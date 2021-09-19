@@ -6,6 +6,8 @@ use std::default::Default;
 use std::fmt;
 
 use crate::crypto::get_encrypted_raw_payload;
+use crate::keys::{get_key_from_hex_string, NonceKey};
+use crate::util::get_random_192_bit_buf;
 use crate::V2SymmetricKey;
 
 pub struct Message<'a>(&'a str);
@@ -44,7 +46,7 @@ impl<'a> AsRef<str> for Header<'a> {
 }
 impl<'a> Default for Header<'a> {
   fn default() -> Self {
-    Self("v2.local")
+    Self("v2.local.")
   }
 }
 
@@ -81,7 +83,7 @@ impl<'a> fmt::Display for Footer<'a> {
     write!(f, ".{}", self.0)
   }
 }
-
+#[derive(Clone)]
 pub struct RawPayload(Vec<u8>);
 impl From<Vec<u8>> for RawPayload {
   fn from(s: Vec<u8>) -> Self {
@@ -101,13 +103,25 @@ pub struct V2LocalToken {
 }
 impl V2LocalToken {
   pub fn new(message: Message, key: V2SymmetricKey, footer: Option<Footer>) -> V2LocalToken {
+    let random_buf = get_random_192_bit_buf();
+    let nonce_key = NonceKey::from(&random_buf);
+
+    V2LocalToken::build_v2_local_token(message, key, footer, &nonce_key)
+  }
+
+  pub(crate) fn build_v2_local_token(
+    message: Message,
+    key: V2SymmetricKey,
+    footer: Option<Footer>,
+    nonce_key: &NonceKey,
+  ) -> V2LocalToken {
     let header = Header::default();
     let payload: RawPayload;
 
     if let Some(ref f) = footer {
-      payload = get_encrypted_raw_payload(&message, &header, f, key);
+      payload = get_encrypted_raw_payload(&message, &header, f, key, nonce_key);
     } else {
-      payload = get_encrypted_raw_payload(&message, &header, &Footer::default(), key);
+      payload = get_encrypted_raw_payload(&message, &header, &Footer::default(), key, nonce_key);
     }
     let mut temp_footer: Option<String> = None;
     if footer.is_some() {
@@ -124,9 +138,9 @@ impl V2LocalToken {
 impl fmt::Display for V2LocalToken {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     if let Some(provided_footer) = &self.footer {
-      write!(f, "{}.{}.{}", self.header, self.payload, provided_footer)
+      write!(f, "{}{}.{}", self.header, self.payload, provided_footer)
     } else {
-      write!(f, "{}.{}", self.header, self.payload)
+      write!(f, "{}{}", self.header, self.payload)
     }
   }
 }
@@ -135,24 +149,48 @@ impl fmt::Display for V2LocalToken {
 mod tests {
 
   use super::*;
+  use crate::keys::{Key192BitSize, Key256BitSize};
+  use serde_json::json;
 
   //this doesn't compile without a properly sized key
   //which is what we want
 
   #[test]
+  fn test_vector_1() {
+    const EXPECTED_TOKEN: &str = "v2.local.97TTOvgwIxNGvV80XKiGZg_kD3tsXM_-qB4dZGHOeN1cTkgQ4PnW8888l802W8d9AvEGnoNBY3BnqHORy8a5cC8aKpbA0En8XELw2yDk2f1sVODyfnDbi6rEGMY3pSfCbLWMM2oHJxvlEl2XbQ";
+    //create the nonce for the test vector
+    let key_buf =
+      &get_key_from_hex_string::<Key256BitSize>("707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f")
+        .unwrap();
+
+    //create message for test vector
+    let json = json!({
+      "data": "this is a signed message",
+      "exp": "2019-01-01T00:00:00+00:00"
+    })
+    .to_string();
+    let message = Message::from(json.as_str());
+
+    //create a local v2 token
+    let token = V2LocalToken::build_v2_local_token(message, V2SymmetricKey::from(key_buf), None, &NonceKey::default());
+
+    assert_eq!(token.to_string(), EXPECTED_TOKEN);
+  }
+
+  #[test]
   fn test_v2_header_equality() {
     let header = Header::default();
-    assert_eq!(&header, "v2.local")
+    assert_eq!(&header, "v2.local.")
   }
 
   #[test]
   fn test_v2_header_outfix_equality_from_str() {
-    assert!("v2.local".eq(&Header::default()));
+    assert!("v2.local.".eq(&Header::default()));
   }
 
   #[test]
   fn test_v2_header_outfix_equality() {
-    assert!(Header::default().eq("v2.local"));
+    assert!(Header::default().eq("v2.local."));
   }
 
   #[test]

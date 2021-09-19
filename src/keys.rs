@@ -1,5 +1,6 @@
 use hex::{FromHex, FromHexError};
 use std::convert::{AsRef, From};
+use std::default::Default;
 
 pub type Key256BitSize = [u8; 32];
 pub type Key192BitSize = [u8; 24];
@@ -20,7 +21,18 @@ impl<'a> AsRef<Key256Bit<'a>> for V2SymmetricKey<'a> {
   }
 }
 
-pub struct NonceKey<'a>(Key192Bit<'a>);
+impl<'a> Default for V2SymmetricKey<'a> {
+  fn default() -> Self {
+    Self(&[0; 32])
+  }
+}
+pub(crate) struct NonceKey<'a>(Key192Bit<'a>);
+
+impl<'a> Default for NonceKey<'a> {
+  fn default() -> Self {
+    Self(&[0; 24])
+  }
+}
 
 impl<'a> From<Key192Bit<'a>> for NonceKey<'a> {
   fn from(key: Key192Bit<'a>) -> Self {

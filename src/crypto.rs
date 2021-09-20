@@ -155,7 +155,6 @@ mod tests {
     XChaCha20Poly1305,
   };
 
-  use crate::util::*;
   use crate::v2::Footer;
   use crate::v2::Header;
   use crate::{crypto::PreAuthenticationEncoding, v2::RawPayload};
@@ -195,8 +194,7 @@ mod tests {
   }
   #[test]
   fn test_preauthentication_encoding() {
-    let random_buf = get_random_192_bit_buf();
-    let nonce_key = NonceKey::from(random_buf);
+    let nonce_key = NonceKey::new_random();
 
     let finalized = get_blake2_finalized(&Message::default(), &nonce_key);
 
@@ -210,13 +208,11 @@ mod tests {
 
   #[test]
   fn test_aead_encrypt() {
-    let random_buf = get_random_192_bit_buf();
-    let nonce_key = NonceKey::from(random_buf);
+    let nonce_key = NonceKey::new_random();
 
     let (nonce, pae, blake2_finalized) =
       get_aead_encrypt_prerequisites(&Message::from(""), &Header::default(), &Footer::default(), &nonce_key);
-    let random_buf = get_random_256_bit_buf();
-    let key = V2SymmetricKey::from(random_buf);
+    let key = V2SymmetricKey::new_random();
     let aead = XChaCha20Poly1305::new_from_slice(key.as_ref());
     assert!(aead.is_ok());
 
@@ -238,16 +234,14 @@ mod tests {
 
   #[test]
   fn test_aead() {
-    let random_buf = get_random_256_bit_buf();
-    let key = V2SymmetricKey::from(random_buf);
+    let key = V2SymmetricKey::new_random();
     let aead = XChaCha20Poly1305::new_from_slice(key.as_ref());
     assert!(aead.is_ok());
   }
 
   #[test]
   fn test_mutable_hash_context_into_finalized() {
-    let random_buf = get_random_192_bit_buf();
-    let nonce_key = NonceKey::from(random_buf);
+    let nonce_key = NonceKey::new_random();
 
     let mut hash_context = Blake2HashContext::from(&nonce_key);
     hash_context.as_mut().update(b"wubbulubbadubdub");

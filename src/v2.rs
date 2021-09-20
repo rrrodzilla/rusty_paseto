@@ -7,7 +7,6 @@ use std::fmt;
 
 use crate::crypto::get_encrypted_raw_payload;
 use crate::keys::NonceKey;
-use crate::util::get_random_192_bit_buf;
 use crate::V2SymmetricKey;
 
 pub struct Message<'a>(&'a str);
@@ -95,6 +94,8 @@ impl RawPayload {
     encode_config(self.0, URL_SAFE_NO_PAD)
   }
 }
+
+/// A V2 Local paseto token that has been encrypted
 #[derive(Debug, PartialEq)]
 pub struct V2LocalToken {
   header: String,
@@ -103,8 +104,7 @@ pub struct V2LocalToken {
 }
 impl V2LocalToken {
   pub fn new(message: Message, key: V2SymmetricKey, footer: Option<Footer>) -> V2LocalToken {
-    let random_buf = get_random_192_bit_buf();
-    let nonce_key = NonceKey::from(random_buf);
+    let nonce_key = NonceKey::new_random();
 
     V2LocalToken::build_v2_local_token(message, key, footer, &nonce_key)
   }
@@ -146,18 +146,21 @@ impl fmt::Display for V2LocalToken {
 }
 
 #[cfg(test)]
-mod tests {
+mod test_vectors {
 
   use super::*;
-  use crate::V2SymmetricKey;
+  use crate::{keys::HexKey, Key256Bit, V2SymmetricKey};
   use serde_json::json;
 
   #[test]
-  fn test_vector_1() {
+  fn test_2_e_1() {
     const EXPECTED_TOKEN: &str = "v2.local.97TTOvgwIxNGvV80XKiGZg_kD3tsXM_-qB4dZGHOeN1cTkgQ4PnW8888l802W8d9AvEGnoNBY3BnqHORy8a5cC8aKpbA0En8XELw2yDk2f1sVODyfnDbi6rEGMY3pSfCbLWMM2oHJxvlEl2XbQ";
-    //create the nonce for the test vector
-    let key = V2SymmetricKey::parse_from_hex("707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f")
+    // parse the hex string to ensure it will make a valid key
+    let hex_key = "707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f"
+      .parse::<HexKey<Key256Bit>>()
       .expect("Could not parse hex value from string");
+    //then generate the V2 local key for it
+    let key = V2SymmetricKey::from(hex_key);
 
     //create message for test vector
     let json = json!({
@@ -170,8 +173,14 @@ mod tests {
     //create a local v2 token
     let token = V2LocalToken::build_v2_local_token(message, key, None, &NonceKey::default());
 
+    //validate the test vector
     assert_eq!(token.to_string(), EXPECTED_TOKEN);
   }
+}
+#[cfg(test)]
+mod v2_additional_tests {
+
+  use super::*;
 
   #[test]
   fn test_v2_header_equality() {

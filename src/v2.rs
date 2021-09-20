@@ -6,7 +6,7 @@ use std::default::Default;
 use std::fmt;
 
 use crate::crypto::get_encrypted_raw_payload;
-use crate::keys::{get_key_from_hex_string, NonceKey};
+use crate::keys::NonceKey;
 use crate::util::get_random_192_bit_buf;
 use crate::V2SymmetricKey;
 
@@ -104,7 +104,7 @@ pub struct V2LocalToken {
 impl V2LocalToken {
   pub fn new(message: Message, key: V2SymmetricKey, footer: Option<Footer>) -> V2LocalToken {
     let random_buf = get_random_192_bit_buf();
-    let nonce_key = NonceKey::from(&random_buf);
+    let nonce_key = NonceKey::from(random_buf);
 
     V2LocalToken::build_v2_local_token(message, key, footer, &nonce_key)
   }
@@ -149,19 +149,15 @@ impl fmt::Display for V2LocalToken {
 mod tests {
 
   use super::*;
-  use crate::keys::{Key192BitSize, Key256BitSize};
+  use crate::V2SymmetricKey;
   use serde_json::json;
-
-  //this doesn't compile without a properly sized key
-  //which is what we want
 
   #[test]
   fn test_vector_1() {
     const EXPECTED_TOKEN: &str = "v2.local.97TTOvgwIxNGvV80XKiGZg_kD3tsXM_-qB4dZGHOeN1cTkgQ4PnW8888l802W8d9AvEGnoNBY3BnqHORy8a5cC8aKpbA0En8XELw2yDk2f1sVODyfnDbi6rEGMY3pSfCbLWMM2oHJxvlEl2XbQ";
     //create the nonce for the test vector
-    let key_buf =
-      &get_key_from_hex_string::<Key256BitSize>("707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f")
-        .unwrap();
+    let key = V2SymmetricKey::parse_from_hex("707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f")
+      .expect("Could not parse hex value from string");
 
     //create message for test vector
     let json = json!({
@@ -172,7 +168,7 @@ mod tests {
     let message = Message::from(json.as_str());
 
     //create a local v2 token
-    let token = V2LocalToken::build_v2_local_token(message, V2SymmetricKey::from(key_buf), None, &NonceKey::default());
+    let token = V2LocalToken::build_v2_local_token(message, key, None, &NonceKey::default());
 
     assert_eq!(token.to_string(), EXPECTED_TOKEN);
   }

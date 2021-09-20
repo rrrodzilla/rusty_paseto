@@ -1,6 +1,6 @@
 use crate::keys::NonceKey;
 use crate::v2::{Footer, Header, Message, RawPayload};
-use crate::{get_key_from_hex_string, Key192BitSize, V2SymmetricKey};
+use crate::V2SymmetricKey;
 use blake2::digest::{Update, VariableOutput};
 use blake2::VarBlake2b;
 use chacha20poly1305::{
@@ -17,7 +17,7 @@ pub(crate) fn get_encrypted_raw_payload(
   nonce_key: &NonceKey,
 ) -> RawPayload {
   let (nonce, pre_auth, blake2_finalized) = get_aead_encrypt_prerequisites(message, header, footer, nonce_key);
-  let aead = XChaCha20Poly1305::new_from_slice(*key.as_ref());
+  let aead = XChaCha20Poly1305::new_from_slice(key.as_ref());
   //let temp_key = &[0; 32];
   //let aead = XChaCha20Poly1305::new_from_slice(temp_key);
 
@@ -38,9 +38,7 @@ pub(crate) fn get_encrypted_raw_payload(
   raw_payload.extend_from_slice(blake2_finalized.as_ref());
   raw_payload.extend_from_slice(crypted.as_ref());
 
-  let payload = RawPayload::from(raw_payload);
-  // eprintln!("RAW PAYLOAD: {}", &payload.clone().encode());
-  payload
+  RawPayload::from(raw_payload)
 }
 
 pub(crate) fn get_blake2_finalized(message: &Message, nonce_key: &NonceKey) -> Blake2Finalized {
@@ -107,9 +105,9 @@ impl AsRef<Vec<u8>> for PreAuthenticationEncoding {
 
 pub struct Blake2HashContext(VarBlake2b);
 
-impl From<&NonceKey<'_>> for Blake2HashContext {
+impl From<&NonceKey> for Blake2HashContext {
   fn from(nonce: &NonceKey) -> Self {
-    Self(VarBlake2b::new_keyed(*nonce.as_ref(), nonce.as_ref().len()))
+    Self(VarBlake2b::new_keyed(nonce.as_ref(), nonce.as_ref().len()))
   }
 }
 impl AsRef<VarBlake2b> for Blake2HashContext {
@@ -198,7 +196,7 @@ mod tests {
   #[test]
   fn test_preauthentication_encoding() {
     let random_buf = get_random_192_bit_buf();
-    let nonce_key = NonceKey::from(&random_buf);
+    let nonce_key = NonceKey::from(random_buf);
 
     let finalized = get_blake2_finalized(&Message::default(), &nonce_key);
 
@@ -213,13 +211,13 @@ mod tests {
   #[test]
   fn test_aead_encrypt() {
     let random_buf = get_random_192_bit_buf();
-    let nonce_key = NonceKey::from(&random_buf);
+    let nonce_key = NonceKey::from(random_buf);
 
     let (nonce, pae, blake2_finalized) =
       get_aead_encrypt_prerequisites(&Message::from(""), &Header::default(), &Footer::default(), &nonce_key);
     let random_buf = get_random_256_bit_buf();
-    let key = V2SymmetricKey::from(&random_buf);
-    let aead = XChaCha20Poly1305::new_from_slice(*key.as_ref());
+    let key = V2SymmetricKey::from(random_buf);
+    let aead = XChaCha20Poly1305::new_from_slice(key.as_ref());
     assert!(aead.is_ok());
 
     let crypted = aead.unwrap().encrypt(
@@ -241,15 +239,15 @@ mod tests {
   #[test]
   fn test_aead() {
     let random_buf = get_random_256_bit_buf();
-    let key = V2SymmetricKey::from(&random_buf);
-    let aead = XChaCha20Poly1305::new_from_slice(*key.as_ref());
+    let key = V2SymmetricKey::from(random_buf);
+    let aead = XChaCha20Poly1305::new_from_slice(key.as_ref());
     assert!(aead.is_ok());
   }
 
   #[test]
   fn test_mutable_hash_context_into_finalized() {
     let random_buf = get_random_192_bit_buf();
-    let nonce_key = NonceKey::from(&random_buf);
+    let nonce_key = NonceKey::from(random_buf);
 
     let mut hash_context = Blake2HashContext::from(&nonce_key);
     hash_context.as_mut().update(b"wubbulubbadubdub");

@@ -1,7 +1,5 @@
-//use serde_json;
 use crate::crypto::{get_encrypted_raw_payload, try_decrypt_payload, Base64EncodedString};
-use crate::keys::NonceKey;
-use crate::V2LocalSharedKey;
+use crate::keys::{Key192Bit, NonceKey, V2LocalSharedKey};
 use std::cmp::PartialEq;
 use std::convert::{AsRef, From};
 use std::default::Default;
@@ -229,12 +227,15 @@ impl V2LocalToken {
     Self::build_v2_local_token(message, key, footer, &nonce_key)
   }
 
-  fn build_v2_local_token(
+  fn build_v2_local_token<NK>(
     message: Payload,
     key: &V2LocalSharedKey,
     footer: Option<Footer>,
-    nonce_key: &NonceKey,
-  ) -> V2LocalToken {
+    nonce_key: &NK,
+  ) -> V2LocalToken
+  where
+    NK: AsRef<Key192Bit>,
+  {
     //set a default header for this token type and use
     let header = Header::default();
 

@@ -1,6 +1,5 @@
-use crate::keys::NonceKey;
-use crate::v2::{Footer, Header, Payload, V2LocalTokenParseError};
-use crate::V2LocalSharedKey;
+use crate::keys::{Key192Bit, Key256Bit};
+use crate::v2::V2LocalTokenParseError;
 use base64::{decode_config, encode_config, DecodeError, URL_SAFE_NO_PAD};
 use blake2::digest::{Update, VariableOutput};
 use blake2::VarBlake2b;
@@ -12,12 +11,17 @@ use ring::constant_time::verify_slices_are_equal as ConstantTimeEquals;
 use std::convert::{AsMut, AsRef, From};
 use std::str::FromStr;
 
-pub(crate) fn try_decrypt_payload(
+pub(crate) fn try_decrypt_payload<H, F, K>(
   payload: &str,
-  header: &Header,
-  footer: &Footer,
-  key: &V2LocalSharedKey,
-) -> Result<String, V2LocalTokenParseError> {
+  header: &H,
+  footer: &F,
+  key: &K,
+) -> Result<String, V2LocalTokenParseError>
+where
+  H: AsRef<str>,
+  F: AsRef<str>,
+  K: AsRef<Key256Bit>,
+{
   let payload_encoded = payload.parse::<Base64EncodedString>()?;
   let mut payload_decoded = payload_encoded.decode()?;
   let (nonce, ciphertext) = payload_decoded.split_at_mut(24);
@@ -37,17 +41,22 @@ pub(crate) fn try_decrypt_payload(
   }
 }
 
-pub(crate) fn get_encrypted_raw_payload(
-  message: &Payload,
-  header: &Header,
-  footer: &Footer,
-  key: &V2LocalSharedKey,
-  nonce_key: &NonceKey,
-) -> RawPayload {
+pub(crate) fn get_encrypted_raw_payload<P, H, F, K, NK>(
+  message: &P,
+  header: &H,
+  footer: &F,
+  key: &K,
+  nonce_key: &NK,
+) -> RawPayload
+where
+  P: AsRef<str>,
+  H: AsRef<str>,
+  F: AsRef<str>,
+  K: AsRef<Key256Bit>,
+  NK: AsRef<Key192Bit>,
+{
   let (nonce, pre_auth, blake2_finalized) = get_aead_encrypt_prerequisites(message, header, footer, nonce_key);
   let aead = XChaCha20Poly1305::new_from_slice(key.as_ref());
-  //let temp_key = &[0; 32];
-  //let aead = XChaCha20Poly1305::new_from_slice(temp_key);
 
   assert!(aead.is_ok());
 
@@ -61,7 +70,7 @@ pub(crate) fn get_encrypted_raw_payload(
       },
     )
     .unwrap();
-  //  eprintln!("PAYLOAD MSG: {}", &message.as_ref());
+
   let mut raw_payload = Vec::new();
   raw_payload.extend_from_slice(blake2_finalized.as_ref());
   raw_payload.extend_from_slice(crypted.as_ref());
@@ -69,18 +78,28 @@ pub(crate) fn get_encrypted_raw_payload(
   RawPayload::from(raw_payload)
 }
 
-pub(crate) fn get_blake2_finalized(message: &Payload, nonce_key: &NonceKey) -> Blake2Finalized {
+pub(crate) fn get_blake2_finalized<P, NK>(message: &P, nonce_key: &NK) -> Blake2Finalized
+where
+  P: AsRef<str>,
+  NK: AsRef<Key192Bit>,
+{
   let mut hash_context = Blake2HashContext::from(nonce_key);
   hash_context.as_mut().update(message.as_ref().as_bytes());
   Blake2Finalized::from(hash_context)
 }
 
-pub(crate) fn get_aead_encrypt_prerequisites(
-  message: &Payload,
-  header: &Header,
-  footer: &Footer,
-  nonce_key: &NonceKey,
-) -> (Nonce, PreAuthenticationEncoding, Blake2Finalized) {
+pub(crate) fn get_aead_encrypt_prerequisites<P, H, F, NK>(
+  message: &P,
+  header: &H,
+  footer: &F,
+  nonce_key: &NK,
+) -> (Nonce, PreAuthenticationEncoding, Blake2Finalized)
+where
+  P: AsRef<str>,
+  H: AsRef<str>,
+  F: AsRef<str>,
+  NK: AsRef<Key192Bit>,
+{
   let finalized = get_blake2_finalized(message, nonce_key);
 
   let pae = PreAuthenticationEncoding::parse(&[
@@ -186,8 +205,11 @@ impl AsRef<Vec<u8>> for PreAuthenticationEncoding {
 
 pub struct Blake2HashContext(VarBlake2b);
 
-impl From<&NonceKey> for Blake2HashContext {
-  fn from(nonce: &NonceKey) -> Self {
+impl<R> From<R> for Blake2HashContext
+where
+  R: AsRef<Key192Bit>,
+{
+  fn from(nonce: R) -> Self {
     Self(VarBlake2b::new_keyed(nonce.as_ref(), nonce.as_ref().len()))
   }
 }

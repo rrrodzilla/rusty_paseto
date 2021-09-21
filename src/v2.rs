@@ -1,5 +1,5 @@
 use crate::crypto::{get_encrypted_raw_payload, try_decrypt_payload, Base64EncodedString};
-use crate::keys::{Key192Bit, NonceKey, V2LocalSharedKey};
+use crate::keys::{Key192Bit, Key256Bit, NonceKey, V2LocalSharedKey};
 use std::cmp::PartialEq;
 use std::convert::{AsRef, From};
 use std::default::Default;
@@ -39,6 +39,7 @@ impl<'a> fmt::Display for Payload<'a> {
   }
 }
 
+///A v2 local token header as per the paseto specification
 #[derive(PartialEq, Debug)]
 pub struct Header<'a>(&'a str);
 
@@ -127,8 +128,11 @@ pub enum V2LocalTokenParseError {
 #[derive(Debug, PartialEq)]
 pub struct V2LocalDecryptedString(String);
 
-impl PartialEq<Payload<'_>> for V2LocalDecryptedString {
-  fn eq(&self, other: &Payload) -> bool {
+impl<R> PartialEq<R> for V2LocalDecryptedString
+where
+  R: AsRef<str>,
+{
+  fn eq(&self, other: &R) -> bool {
     self.as_ref() == other.as_ref()
   }
 }
@@ -143,16 +147,20 @@ impl AsRef<String> for V2LocalDecryptedString {
     &self.0
   }
 }
+
 impl V2LocalDecryptedString {
   /// Given an arbitrary string, an encryption key and an optional footer,
   /// validate and decrypt this token raising errors as needed
-  pub fn parse(
-    potential_token: &str,
+  pub fn parse<T>(
+    potential_token: &T,
     potential_footer: Option<Footer>,
     key: &V2LocalSharedKey,
-  ) -> Result<V2LocalDecryptedString, V2LocalTokenParseError> {
+  ) -> Result<V2LocalDecryptedString, V2LocalTokenParseError>
+  where
+    T: AsRef<str> + ?Sized,
+  {
     //an initial parse of the incoming string to see what we find and validate it's structure
-    let parsed_values = potential_token.parse::<V2LocalUntrustedEncryptedToken>()?;
+    let parsed_values = V2LocalUntrustedEncryptedToken::from_str(potential_token.as_ref())?;
     //if all went well, we can extract the values
     let (raw_payload, found_footer) = parsed_values.as_ref();
 
@@ -169,10 +177,13 @@ impl V2LocalDecryptedString {
     Ok(Self(payload))
   }
 
-  fn validate_footer_against_hex_encoded_footer_in_constant_time(
-    footer: Option<Footer>,
+  fn validate_footer_against_hex_encoded_footer_in_constant_time<F>(
+    footer: Option<F>,
     encoded_footer_string: &Option<String>,
-  ) -> Result<(), V2LocalTokenParseError> {
+  ) -> Result<(), V2LocalTokenParseError>
+  where
+    F: AsRef<str>,
+  {
     if let Some(found_footer_string) = encoded_footer_string {
       //this means we found a footer in the provided token string
       //so that means we should also have a provided footer when this method was called
@@ -212,11 +223,12 @@ pub struct V2LocalToken {
   payload: String,
   token: String,
 }
-impl AsRef<String> for V2LocalToken {
-  fn as_ref(&self) -> &String {
+impl AsRef<str> for V2LocalToken {
+  fn as_ref(&self) -> &str {
     &self.token
   }
 }
+
 impl V2LocalToken {
   /// Creates a new token from constituent parts
   pub fn new(message: Payload, key: &V2LocalSharedKey, footer: Option<Footer>) -> V2LocalToken {
@@ -227,13 +239,11 @@ impl V2LocalToken {
     Self::build_v2_local_token(message, key, footer, &nonce_key)
   }
 
-  fn build_v2_local_token<NK>(
-    message: Payload,
-    key: &V2LocalSharedKey,
-    footer: Option<Footer>,
-    nonce_key: &NK,
-  ) -> V2LocalToken
+  fn build_v2_local_token<P, F, SK, NK>(message: P, key: &SK, footer: Option<F>, nonce_key: &NK) -> V2LocalToken
   where
+    P: AsRef<str>,
+    F: AsRef<str> + Default,
+    SK: AsRef<Key256Bit>,
     NK: AsRef<Key192Bit>,
   {
     //set a default header for this token type and use
@@ -285,7 +295,7 @@ impl fmt::Display for V2LocalToken {
   }
 }
 
-/// A type alias to simplify usage of this tuple (header, payload, potential footer)
+/// A type alias to simplify usage of this tuple (payload, potential footer)
 /// each value in the tuple EXCEPT for the header should be base64 encoded already
 type V2LocalUntrustedEncryptedTokenParts = (String, Option<String>);
 
@@ -360,7 +370,12 @@ mod test_vectors {
     let message = Payload::from(json.as_str());
 
     //create a local v2 token
-    let token = V2LocalToken::build_v2_local_token(message, &key, None, &NonceKey::default());
+    let token = V2LocalToken::build_v2_local_token::<Payload, Footer, V2LocalSharedKey, NonceKey>(
+      message,
+      &key,
+      None,
+      &NonceKey::default(),
+    );
 
     //validate the test vector
     assert_eq!(token.to_string(), EXPECTED_TOKEN);

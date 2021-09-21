@@ -14,3 +14,4 @@ serde_json = { version = "^1.0.68"}
 thiserror = "1.0.29"
 
 [dev-dependencies]
+anyhow = "1.0.42"

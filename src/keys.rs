@@ -4,8 +4,11 @@ use std::convert::{AsRef, From};
 use std::default::Default;
 use std::str::FromStr;
 
-// a type alias for a size 32 array of u8 vals
+/// A type to ensure u8 arrays with exactly 32 elements
+/// to allow for the creation of 256 bit keys
 pub type Key256Bit = [u8; 32];
+/// A type to ensure u8 arrays with exactly 24 elements
+/// to allow for the creation of 192 bit keys
 pub type Key192Bit = [u8; 24];
 
 /// A structure for parsing strings which might be hex keys of a particular size
@@ -34,6 +37,9 @@ impl<T> AsRef<T> for HexKey<T> {
   }
 }
 
+/// Used to encrypt or decrypt V2LocalTokens
+/// These keys are 256 bit (32 byte) keys and can only be created either from a Key256Bit type or a
+/// HexKey<Key256BitSize> type.
 pub struct V2SymmetricKey(Key256Bit);
 
 /// Only allows hex keys of the correct size

@@ -1,11 +1,11 @@
 use crate::keys::NonceKey;
-use crate::v2::{Footer, Header, Message, RawPayload, V2LocalTokenParseError};
+use crate::v2::{Footer, Header, Payload, RawPayload, V2LocalTokenParseError};
 use crate::V2SymmetricKey;
 use base64::{decode_config, encode_config, DecodeError, URL_SAFE_NO_PAD};
 use blake2::digest::{Update, VariableOutput};
 use blake2::VarBlake2b;
 use chacha20poly1305::{
-  aead::{Aead, NewAead, Payload},
+  aead::{Aead, NewAead, Payload as AeadPayload},
   XChaCha20Poly1305, XNonce,
 };
 use ring::constant_time::verify_slices_are_equal as ConstantTimeEquals;
@@ -16,7 +16,7 @@ pub(crate) fn try_decrypt_payload(
   payload: &str,
   header: &Header,
   footer: &Footer,
-  key: V2SymmetricKey,
+  key: &V2SymmetricKey,
 ) -> Result<String, V2LocalTokenParseError> {
   let payload_encoded = payload.parse::<Base64EncodedString>()?;
   let mut payload_decoded = payload_encoded.decode()?;
@@ -27,7 +27,7 @@ pub(crate) fn try_decrypt_payload(
   let aead = XChaCha20Poly1305::new_from_slice(key.as_ref()).map_err(|_| V2LocalTokenParseError::Decrypt)?;
   match aead.decrypt(
     xnonce.as_ref(),
-    Payload {
+    AeadPayload {
       msg: ciphertext,
       aad: pae.as_ref(),
     },
@@ -38,7 +38,7 @@ pub(crate) fn try_decrypt_payload(
 }
 
 pub(crate) fn get_encrypted_raw_payload(
-  message: &Message,
+  message: &Payload,
   header: &Header,
   footer: &Footer,
   key: &V2SymmetricKey,
@@ -55,7 +55,7 @@ pub(crate) fn get_encrypted_raw_payload(
     .unwrap()
     .encrypt(
       nonce.as_ref(),
-      Payload {
+      AeadPayload {
         msg: message.as_ref().as_bytes(),
         aad: pre_auth.as_ref(),
       },
@@ -69,14 +69,14 @@ pub(crate) fn get_encrypted_raw_payload(
   RawPayload::from(raw_payload)
 }
 
-pub(crate) fn get_blake2_finalized(message: &Message, nonce_key: &NonceKey) -> Blake2Finalized {
+pub(crate) fn get_blake2_finalized(message: &Payload, nonce_key: &NonceKey) -> Blake2Finalized {
   let mut hash_context = Blake2HashContext::from(nonce_key);
   hash_context.as_mut().update(message.as_ref().as_bytes());
   Blake2Finalized::from(hash_context)
 }
 
 pub(crate) fn get_aead_encrypt_prerequisites(
-  message: &Message,
+  message: &Payload,
   header: &Header,
   footer: &Footer,
   nonce_key: &NonceKey,
@@ -224,7 +224,7 @@ impl From<&mut [u8]> for Nonce {
 mod tests {
   use blake2::digest::Update;
   use chacha20poly1305::{
-    aead::{Aead, NewAead, Payload},
+    aead::{Aead, NewAead, Payload as AeadPayload},
     XChaCha20Poly1305,
   };
 
@@ -234,7 +234,7 @@ mod tests {
     crypto::{Base64EncodedString, PreAuthenticationEncoding},
     v2::RawPayload,
   };
-  use crate::{keys::*, v2::Message};
+  use crate::{keys::*, v2::Payload};
 
   use super::{get_aead_encrypt_prerequisites, get_blake2_finalized, Blake2Finalized, Blake2HashContext, Nonce};
 
@@ -272,7 +272,7 @@ mod tests {
   fn test_preauthentication_encoding() {
     let nonce_key = NonceKey::new_random();
 
-    let finalized = get_blake2_finalized(&Message::default(), &nonce_key);
+    let finalized = get_blake2_finalized(&Payload::default(), &nonce_key);
 
     let pae = PreAuthenticationEncoding::parse(&[
       Header::default().as_ref().as_bytes(),
@@ -287,14 +287,14 @@ mod tests {
     let nonce_key = NonceKey::new_random();
 
     let (nonce, pae, blake2_finalized) =
-      get_aead_encrypt_prerequisites(&Message::from(""), &Header::default(), &Footer::default(), &nonce_key);
+      get_aead_encrypt_prerequisites(&Payload::from(""), &Header::default(), &Footer::default(), &nonce_key);
     let key = V2SymmetricKey::new_random();
     let aead = XChaCha20Poly1305::new_from_slice(key.as_ref());
     assert!(aead.is_ok());
 
     let crypted = aead.unwrap().encrypt(
       nonce.as_ref(),
-      Payload {
+      AeadPayload {
         msg: "some message".as_bytes(),
         aad: pae.as_ref(),
       },

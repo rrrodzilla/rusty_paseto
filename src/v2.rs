@@ -9,25 +9,30 @@ use std::fmt;
 use std::str::FromStr;
 use thiserror::Error;
 
-#[derive(Clone, Copy)]
-pub struct Message<'a>(&'a str);
-impl<'a> AsRef<str> for Message<'a> {
+/// The token payload
+#[derive(PartialEq, Debug, Clone, Copy)]
+pub struct Payload<'a>(&'a str);
+impl<'a> AsRef<str> for Payload<'a> {
   fn as_ref(&self) -> &str {
     self.0
   }
 }
-impl<'a> Default for Message<'a> {
+impl<'a> Default for Payload<'a> {
   fn default() -> Self {
     Self("")
   }
 }
-impl<'a> From<&'a str> for Message<'a> {
+impl<'a> From<&'a str> for Payload<'a> {
   fn from(s: &'a str) -> Self {
     Self(s)
   }
 }
-
-impl<'a> fmt::Display for Message<'a> {
+impl<'a> PartialEq<V2LocalTokenDecrypted> for Payload<'a> {
+  fn eq(&self, other: &V2LocalTokenDecrypted) -> bool {
+    self.as_ref() == other.as_ref()
+  }
+}
+impl<'a> fmt::Display for Payload<'a> {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "{}", self.0)
   }
@@ -62,6 +67,8 @@ impl<'a> fmt::Display for Header<'a> {
     write!(f, "{}", self.0)
   }
 }
+
+/// An optional footer for paseto tokens
 #[derive(Clone, Copy)]
 pub struct Footer<'a>(&'a str);
 
@@ -127,9 +134,20 @@ pub enum V2LocalTokenParseError {
   #[error("Couldn't decrypt payload")]
   Decrypt,
 }
-/// A V2 Local paseto token that has been encrypted
+/// A V2 Local paseto token that has been decrypted with a V2SymmetricKey
 #[derive(Debug, PartialEq)]
 pub struct V2LocalTokenDecrypted(String);
+
+impl PartialEq<Payload<'_>> for V2LocalTokenDecrypted {
+  fn eq(&self, other: &Payload) -> bool {
+    self.as_ref() == other.as_ref()
+  }
+}
+impl fmt::Display for V2LocalTokenDecrypted {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{}", self.0)
+  }
+}
 
 impl AsRef<String> for V2LocalTokenDecrypted {
   fn as_ref(&self) -> &String {
@@ -142,7 +160,7 @@ impl V2LocalTokenDecrypted {
   pub fn parse(
     potential_token: &str,
     potential_footer: Option<Footer>,
-    key: V2SymmetricKey,
+    key: &V2SymmetricKey,
   ) -> Result<V2LocalTokenDecrypted, V2LocalTokenParseError> {
     //an initial parse of the incoming string to see what we find and validate it's structure
     let parsed_values = potential_token.parse::<V2LocalUntrustedEncryptedToken>()?;
@@ -171,7 +189,7 @@ impl V2LocalTokenDecrypted {
       //so that means we should also have a provided footer when this method was called
       if let Some(provided_footer) = footer {
         //encode the found and provided footers
-        let encoded_provided_footer = provided_footer.as_ref().parse::<Base64EncodedString>().unwrap();
+        let encoded_provided_footer = Base64EncodedString::from(provided_footer.as_ref().to_string());
         let encoded_found_footer = found_footer_string.parse::<Base64EncodedString>().unwrap();
 
         //test for equality using ConstantTimeEquals
@@ -197,26 +215,31 @@ impl V2LocalTokenDecrypted {
   }
 }
 
-/// A V2 Local paseto token that has been encrypted
+/// A V2 Local paseto token that has been encrypted with a V2SymmetricKey
 #[derive(Debug, PartialEq)]
 pub struct V2LocalToken {
   header: String,
   footer: Option<String>,
   payload: String,
+  token: String,
 }
-
+impl AsRef<String> for V2LocalToken {
+  fn as_ref(&self) -> &String {
+    &self.token
+  }
+}
 impl V2LocalToken {
   /// Creates a new token from constituent parts
-  pub fn new(message: Message, key: V2SymmetricKey, footer: Option<Footer>) -> V2LocalToken {
+  pub fn new(message: Payload, key: &V2SymmetricKey, footer: Option<Footer>) -> V2LocalToken {
     //use a random nonce
     let nonce_key = NonceKey::new_random();
 
     //build the token
-    Self::build_v2_local_token(message, &key, footer, &nonce_key)
+    Self::build_v2_local_token(message, key, footer, &nonce_key)
   }
 
   fn build_v2_local_token(
-    message: Message,
+    message: Payload,
     key: &V2SymmetricKey,
     footer: Option<Footer>,
     nonce_key: &NonceKey,
@@ -236,13 +259,29 @@ impl V2LocalToken {
     }
 
     //encrypt the payload
-    let payload = get_encrypted_raw_payload(&message, &header, &footer.unwrap_or_default(), key, nonce_key);
+    let payload = Base64EncodedString::from(get_encrypted_raw_payload(
+      &message,
+      &header,
+      &footer.unwrap_or_default(),
+      key,
+      nonce_key,
+    ))
+    .as_ref()
+    .to_string();
+
+    let token: String;
+    if let Some(f) = optional_encoded_footer.clone() {
+      token = format!("{}{}.{}", header, payload, f);
+    } else {
+      token = format!("{}{}", header, payload);
+    }
 
     //produce the token with the values
     V2LocalToken {
       header: header.to_string(), //the header is not base64 encoded
       payload: Base64EncodedString::from(payload).as_ref().to_string(),
       footer: optional_encoded_footer,
+      token,
     }
   }
 }
@@ -250,11 +289,7 @@ impl V2LocalToken {
 impl fmt::Display for V2LocalToken {
   /// Formats the token for display and subsequently allows a to_string implementation
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    if let Some(provided_footer) = &self.footer {
-      write!(f, "{}{}.{}", self.header, self.payload, provided_footer)
-    } else {
-      write!(f, "{}{}", self.header, self.payload)
-    }
+    write!(f, "{}", self.token)
   }
 }
 
@@ -297,10 +332,10 @@ impl FromStr for V2LocalUntrustedEncryptedToken {
     //produce the struct based on whether there is a potential footer or not
     match potential_parts.len() {
       //no footer
-      3 => Ok(Self((Message::from(potential_parts[2]).to_string(), None))),
+      3 => Ok(Self((Payload::from(potential_parts[2]).to_string(), None))),
       //otherwise there must be
       _ => Ok(Self((
-        Message::from(potential_parts[2]).to_string(),
+        Payload::from(potential_parts[2]).to_string(),
         Some(Footer::from(potential_parts[3]).to_string()),
       ))),
     }
@@ -322,7 +357,7 @@ mod test_vectors {
       .parse::<HexKey<Key256Bit>>()
       .expect("Could not parse hex value from string");
     //then generate the V2 local key for it
-    let key = V2SymmetricKey::from(hex_key);
+    let key = &V2SymmetricKey::from(hex_key);
 
     //create message for test vector
     let json = json!({
@@ -330,7 +365,7 @@ mod test_vectors {
       "exp": "2019-01-01T00:00:00+00:00"
     })
     .to_string();
-    let message = Message::from(json.as_str());
+    let message = Payload::from(json.as_str());
 
     //create a local v2 token
     let token = V2LocalToken::build_v2_local_token(message, &key, None, &NonceKey::default());
@@ -342,7 +377,7 @@ mod test_vectors {
     let decrypted_payload = V2LocalTokenDecrypted::parse(token.to_string().as_str(), None, key);
     if let Ok(payload) = decrypted_payload {
       assert_eq!(payload.as_ref(), message.as_ref());
-      eprintln!("{}", payload.as_ref());
+      eprintln!("{}", payload);
     }
   }
 }

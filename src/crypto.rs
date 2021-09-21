@@ -1,19 +1,47 @@
 use crate::keys::NonceKey;
-use crate::v2::{Footer, Header, Message, RawPayload};
+use crate::v2::{Footer, Header, Message, RawPayload, V2LocalTokenParseError};
 use crate::V2SymmetricKey;
+use base64::{decode_config, encode_config, DecodeError, URL_SAFE_NO_PAD};
 use blake2::digest::{Update, VariableOutput};
 use blake2::VarBlake2b;
 use chacha20poly1305::{
   aead::{Aead, NewAead, Payload},
   XChaCha20Poly1305, XNonce,
 };
+use ring::constant_time::verify_slices_are_equal as ConstantTimeEquals;
 use std::convert::{AsMut, AsRef, From};
+use std::str::FromStr;
+
+pub(crate) fn try_decrypt_payload(
+  payload: &str,
+  header: &Header,
+  footer: &Footer,
+  key: V2SymmetricKey,
+) -> Result<String, V2LocalTokenParseError> {
+  let payload_encoded = payload.parse::<Base64EncodedString>()?;
+  let mut payload_decoded = payload_encoded.decode()?;
+  let (nonce, ciphertext) = payload_decoded.split_at_mut(24);
+
+  let pae = PreAuthenticationEncoding::parse(&[header.as_ref().as_bytes(), nonce, footer.as_ref().as_bytes()]);
+  let xnonce = Nonce::from(nonce);
+  let aead = XChaCha20Poly1305::new_from_slice(key.as_ref()).map_err(|_| V2LocalTokenParseError::Decrypt)?;
+  match aead.decrypt(
+    xnonce.as_ref(),
+    Payload {
+      msg: ciphertext,
+      aad: pae.as_ref(),
+    },
+  ) {
+    Ok(decrypted) => String::from_utf8(decrypted).map_err(|_| V2LocalTokenParseError::Decrypt),
+    Err(_) => Err(V2LocalTokenParseError::Decrypt),
+  }
+}
 
 pub(crate) fn get_encrypted_raw_payload(
   message: &Message,
   header: &Header,
   footer: &Footer,
-  key: V2SymmetricKey,
+  key: &V2SymmetricKey,
   nonce_key: &NonceKey,
 ) -> RawPayload {
   let (nonce, pre_auth, blake2_finalized) = get_aead_encrypt_prerequisites(message, header, footer, nonce_key);
@@ -63,6 +91,46 @@ pub(crate) fn get_aead_encrypt_prerequisites(
 
   (Nonce::from(&finalized), pae, finalized)
 }
+
+#[derive(Clone, Debug)]
+pub struct Base64EncodedString(String);
+
+impl Base64EncodedString {
+  pub fn decode(&self) -> Result<Vec<u8>, DecodeError> {
+    decode_config(&self.0, URL_SAFE_NO_PAD)
+  }
+}
+
+impl AsRef<str> for Base64EncodedString {
+  fn as_ref(&self) -> &str {
+    &self.0
+  }
+}
+impl From<String> for Base64EncodedString {
+  fn from(s: String) -> Self {
+    Self(encode_config(s, URL_SAFE_NO_PAD))
+  }
+}
+impl From<RawPayload> for Base64EncodedString {
+  fn from(s: RawPayload) -> Self {
+    Self(encode_config(s.as_ref(), URL_SAFE_NO_PAD))
+  }
+}
+
+impl PartialEq for Base64EncodedString {
+  fn eq(&self, other: &Self) -> bool {
+    ConstantTimeEquals(self.as_ref().as_bytes(), other.as_ref().as_bytes()).is_ok()
+  }
+}
+
+impl FromStr for Base64EncodedString {
+  type Err = std::convert::Infallible;
+  fn from_str(s: &str) -> Result<Self, Self::Err> {
+    Ok(Self(s.to_string()))
+  }
+}
+
+impl Eq for Base64EncodedString {}
 
 pub struct PreAuthenticationEncoding(Vec<u8>);
 
@@ -147,6 +215,11 @@ impl From<&Blake2Finalized> for Nonce {
   }
 }
 
+impl From<&mut [u8]> for Nonce {
+  fn from(nonce_slice: &mut [u8]) -> Self {
+    Self(*XNonce::from_slice(nonce_slice))
+  }
+}
 #[cfg(test)]
 mod tests {
   use blake2::digest::Update;
@@ -157,7 +230,10 @@ mod tests {
 
   use crate::v2::Footer;
   use crate::v2::Header;
-  use crate::{crypto::PreAuthenticationEncoding, v2::RawPayload};
+  use crate::{
+    crypto::{Base64EncodedString, PreAuthenticationEncoding},
+    v2::RawPayload,
+  };
   use crate::{keys::*, v2::Message};
 
   use super::{get_aead_encrypt_prerequisites, get_blake2_finalized, Blake2Finalized, Blake2HashContext, Nonce};
@@ -228,8 +304,8 @@ mod tests {
     raw_payload.extend_from_slice(blake2_finalized.as_ref());
     raw_payload.extend_from_slice(crypted.unwrap().as_ref());
     let payload = RawPayload::from(raw_payload);
-    //      let token = V2LocalToken::parse_from_parts(Header::default(), payload, Some(footer));
-    assert!(payload.encode().len() > 0);
+    let encoded = Base64EncodedString::from(payload);
+    assert!(encoded.as_ref().len() > 0);
   }
 
   #[test]

@@ -1,7 +1,7 @@
 //use serde_json;
 use crate::crypto::{get_encrypted_raw_payload, try_decrypt_payload, Base64EncodedString};
 use crate::keys::NonceKey;
-use crate::V2SymmetricKey;
+use crate::V2LocalSharedKey;
 use std::cmp::PartialEq;
 use std::convert::{AsRef, From};
 use std::default::Default;
@@ -27,9 +27,12 @@ impl<'a> From<&'a str> for Payload<'a> {
     Self(s)
   }
 }
-impl<'a> PartialEq<V2LocalTokenDecrypted> for Payload<'a> {
-  fn eq(&self, other: &V2LocalTokenDecrypted) -> bool {
-    self.as_ref() == other.as_ref()
+impl<'a, R> PartialEq<R> for Payload<'a>
+where
+  R: AsRef<&'a str>,
+{
+  fn eq(&self, other: &R) -> bool {
+    self.as_ref() == *other.as_ref()
   }
 }
 impl<'a> fmt::Display for Payload<'a> {
@@ -100,18 +103,6 @@ impl<'a> PartialEq for Footer<'a> {
 
 impl<'a> Eq for Footer<'a> {}
 
-#[derive(Clone)]
-pub struct RawPayload(Vec<u8>);
-impl From<Vec<u8>> for RawPayload {
-  fn from(s: Vec<u8>) -> Self {
-    Self(s)
-  }
-}
-impl AsRef<Vec<u8>> for RawPayload {
-  fn as_ref(&self) -> &Vec<u8> {
-    &self.0
-  }
-}
 /// Potential errors from attempting to parse a token string
 #[derive(Debug, Error)]
 pub enum V2LocalTokenParseError {
@@ -134,34 +125,34 @@ pub enum V2LocalTokenParseError {
   #[error("Couldn't decrypt payload")]
   Decrypt,
 }
-/// A V2 Local paseto token that has been decrypted with a V2SymmetricKey
+/// Parses a V2 Local paseto token string and provides the decrypted payload string
 #[derive(Debug, PartialEq)]
-pub struct V2LocalTokenDecrypted(String);
+pub struct V2LocalDecryptedString(String);
 
-impl PartialEq<Payload<'_>> for V2LocalTokenDecrypted {
+impl PartialEq<Payload<'_>> for V2LocalDecryptedString {
   fn eq(&self, other: &Payload) -> bool {
     self.as_ref() == other.as_ref()
   }
 }
-impl fmt::Display for V2LocalTokenDecrypted {
+impl fmt::Display for V2LocalDecryptedString {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "{}", self.0)
   }
 }
 
-impl AsRef<String> for V2LocalTokenDecrypted {
+impl AsRef<String> for V2LocalDecryptedString {
   fn as_ref(&self) -> &String {
     &self.0
   }
 }
-impl V2LocalTokenDecrypted {
+impl V2LocalDecryptedString {
   /// Given an arbitrary string, an encryption key and an optional footer,
   /// validate and decrypt this token raising errors as needed
   pub fn parse(
     potential_token: &str,
     potential_footer: Option<Footer>,
-    key: &V2SymmetricKey,
-  ) -> Result<V2LocalTokenDecrypted, V2LocalTokenParseError> {
+    key: &V2LocalSharedKey,
+  ) -> Result<V2LocalDecryptedString, V2LocalTokenParseError> {
     //an initial parse of the incoming string to see what we find and validate it's structure
     let parsed_values = potential_token.parse::<V2LocalUntrustedEncryptedToken>()?;
     //if all went well, we can extract the values
@@ -215,7 +206,7 @@ impl V2LocalTokenDecrypted {
   }
 }
 
-/// A V2 Local paseto token that has been encrypted with a V2SymmetricKey
+/// A V2 Local paseto token that has been encrypted with a V2LocalSharedKey
 #[derive(Debug, PartialEq)]
 pub struct V2LocalToken {
   header: String,
@@ -230,7 +221,7 @@ impl AsRef<String> for V2LocalToken {
 }
 impl V2LocalToken {
   /// Creates a new token from constituent parts
-  pub fn new(message: Payload, key: &V2SymmetricKey, footer: Option<Footer>) -> V2LocalToken {
+  pub fn new(message: Payload, key: &V2LocalSharedKey, footer: Option<Footer>) -> V2LocalToken {
     //use a random nonce
     let nonce_key = NonceKey::new_random();
 
@@ -240,7 +231,7 @@ impl V2LocalToken {
 
   fn build_v2_local_token(
     message: Payload,
-    key: &V2SymmetricKey,
+    key: &V2LocalSharedKey,
     footer: Option<Footer>,
     nonce_key: &NonceKey,
   ) -> V2LocalToken {
@@ -346,7 +337,7 @@ impl FromStr for V2LocalUntrustedEncryptedToken {
 mod test_vectors {
 
   use super::*;
-  use crate::{keys::HexKey, Key256Bit, V2SymmetricKey};
+  use crate::{keys::HexKey, Key256Bit, V2LocalSharedKey};
   use serde_json::json;
 
   #[test]
@@ -357,7 +348,7 @@ mod test_vectors {
       .parse::<HexKey<Key256Bit>>()
       .expect("Could not parse hex value from string");
     //then generate the V2 local key for it
-    let key = &V2SymmetricKey::from(hex_key);
+    let key = &V2LocalSharedKey::from(hex_key);
 
     //create message for test vector
     let json = json!({
@@ -374,7 +365,7 @@ mod test_vectors {
     assert_eq!(token.to_string(), EXPECTED_TOKEN);
 
     //now let's try to decrypt it
-    let decrypted_payload = V2LocalTokenDecrypted::parse(token.to_string().as_str(), None, key);
+    let decrypted_payload = V2LocalDecryptedString::parse(token.to_string().as_str(), None, key);
     if let Ok(payload) = decrypted_payload {
       assert_eq!(payload.as_ref(), message.as_ref());
       eprintln!("{}", payload);

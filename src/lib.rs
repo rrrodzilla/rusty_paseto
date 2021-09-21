@@ -8,5 +8,5 @@ mod crypto;
 mod keys;
 mod v2;
 
-pub use keys::{HexKey, Key192Bit, Key256Bit, V2SymmetricKey};
-pub use v2::{Footer, Payload, V2LocalToken, V2LocalTokenDecrypted, V2LocalTokenParseError};
+pub use keys::{HexKey, Key192Bit, Key256Bit, V2LocalSharedKey};
+pub use v2::{Footer, Payload, V2LocalDecryptedString, V2LocalToken, V2LocalTokenParseError};

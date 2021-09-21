@@ -1,6 +1,6 @@
 use crate::keys::NonceKey;
-use crate::v2::{Footer, Header, Payload, RawPayload, V2LocalTokenParseError};
-use crate::V2SymmetricKey;
+use crate::v2::{Footer, Header, Payload, V2LocalTokenParseError};
+use crate::V2LocalSharedKey;
 use base64::{decode_config, encode_config, DecodeError, URL_SAFE_NO_PAD};
 use blake2::digest::{Update, VariableOutput};
 use blake2::VarBlake2b;
@@ -16,7 +16,7 @@ pub(crate) fn try_decrypt_payload(
   payload: &str,
   header: &Header,
   footer: &Footer,
-  key: &V2SymmetricKey,
+  key: &V2LocalSharedKey,
 ) -> Result<String, V2LocalTokenParseError> {
   let payload_encoded = payload.parse::<Base64EncodedString>()?;
   let mut payload_decoded = payload_encoded.decode()?;
@@ -41,7 +41,7 @@ pub(crate) fn get_encrypted_raw_payload(
   message: &Payload,
   header: &Header,
   footer: &Footer,
-  key: &V2SymmetricKey,
+  key: &V2LocalSharedKey,
   nonce_key: &NonceKey,
 ) -> RawPayload {
   let (nonce, pre_auth, blake2_finalized) = get_aead_encrypt_prerequisites(message, header, footer, nonce_key);
@@ -90,6 +90,19 @@ pub(crate) fn get_aead_encrypt_prerequisites(
   ]);
 
   (Nonce::from(&finalized), pae, finalized)
+}
+
+#[derive(Clone)]
+pub(crate) struct RawPayload(Vec<u8>);
+impl From<Vec<u8>> for RawPayload {
+  fn from(s: Vec<u8>) -> Self {
+    Self(s)
+  }
+}
+impl AsRef<Vec<u8>> for RawPayload {
+  fn as_ref(&self) -> &Vec<u8> {
+    &self.0
+  }
 }
 
 #[derive(Clone, Debug)]
@@ -228,12 +241,9 @@ mod tests {
     XChaCha20Poly1305,
   };
 
+  use crate::crypto::{Base64EncodedString, PreAuthenticationEncoding, RawPayload};
   use crate::v2::Footer;
   use crate::v2::Header;
-  use crate::{
-    crypto::{Base64EncodedString, PreAuthenticationEncoding},
-    v2::RawPayload,
-  };
   use crate::{keys::*, v2::Payload};
 
   use super::{get_aead_encrypt_prerequisites, get_blake2_finalized, Blake2Finalized, Blake2HashContext, Nonce};
@@ -288,7 +298,7 @@ mod tests {
 
     let (nonce, pae, blake2_finalized) =
       get_aead_encrypt_prerequisites(&Payload::from(""), &Header::default(), &Footer::default(), &nonce_key);
-    let key = V2SymmetricKey::new_random();
+    let key = V2LocalSharedKey::new_random();
     let aead = XChaCha20Poly1305::new_from_slice(key.as_ref());
     assert!(aead.is_ok());
 
@@ -310,7 +320,7 @@ mod tests {
 
   #[test]
   fn test_aead() {
-    let key = V2SymmetricKey::new_random();
+    let key = V2LocalSharedKey::new_random();
     let aead = XChaCha20Poly1305::new_from_slice(key.as_ref());
     assert!(aead.is_ok());
   }

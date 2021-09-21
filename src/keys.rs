@@ -40,37 +40,37 @@ impl<T> AsRef<T> for HexKey<T> {
 /// Used to encrypt or decrypt V2LocalTokens
 /// These keys are 256 bit (32 byte) keys and can only be created either from a Key256Bit type or a
 /// HexKey<Key256BitSize> type.
-pub struct V2SymmetricKey(Key256Bit);
+pub struct V2LocalSharedKey(Key256Bit);
 
 /// Only allows hex keys of the correct size
-impl From<HexKey<Key256Bit>> for V2SymmetricKey {
+impl From<HexKey<Key256Bit>> for V2LocalSharedKey {
   /// Only allows hex keys of the correct size
   fn from(key: HexKey<Key256Bit>) -> Self {
     Self(*key.as_ref())
   }
 }
 
-impl From<Key256Bit> for V2SymmetricKey {
-  /// Creates a V2SymmetricKey from a Key256Bit structure
+impl From<Key256Bit> for V2LocalSharedKey {
+  /// Creates a V2LocalSharedKey from a Key256Bit structure
   fn from(key: Key256Bit) -> Self {
     Self(key)
   }
 }
 
-impl AsRef<Key256Bit> for V2SymmetricKey {
+impl AsRef<Key256Bit> for V2LocalSharedKey {
   fn as_ref(&self) -> &Key256Bit {
     &self.0
   }
 }
 
-impl Default for V2SymmetricKey {
+impl Default for V2LocalSharedKey {
   fn default() -> Self {
     Self([0; 32])
   }
 }
 
-impl V2SymmetricKey {
-  ///Returns a new valid random V2SymmetricKey
+impl V2LocalSharedKey {
+  ///Returns a new valid random V2LocalSharedKey
   pub fn new_random() -> Self {
     let rng = SystemRandom::new();
     let mut buf = [0u8; 32];
@@ -128,7 +128,7 @@ mod tests {
     let hex_val = "707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f"
       .parse::<HexKey<Key256Bit>>()
       .expect("oops!");
-    let key = V2SymmetricKey::from(hex_val);
+    let key = V2LocalSharedKey::from(hex_val);
     assert_eq!(key.as_ref().len(), 32);
   }
 
@@ -159,7 +159,7 @@ mod tests {
 
   #[test]
   fn test_implied_bit_key() {
-    let symmetric_key: V2SymmetricKey = KEY.into();
+    let symmetric_key: V2LocalSharedKey = KEY.into();
     assert_eq!(symmetric_key.as_ref(), &KEY)
   }
 
@@ -170,7 +170,7 @@ mod tests {
   }
   #[test]
   fn test_explicit_convert() {
-    let symmetric_key = V2SymmetricKey::from(KEY);
+    let symmetric_key = V2LocalSharedKey::from(KEY);
     assert_eq!(symmetric_key.as_ref(), &KEY)
   }
 }

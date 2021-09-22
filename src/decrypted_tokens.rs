@@ -1,7 +1,7 @@
 use crate::common::Footer;
-use crate::common::Header;
 use crate::crypto::{try_decrypt_payload, validate_footer_against_hex_encoded_footer_in_constant_time};
 use crate::errors::PasetoTokenParseError;
+use crate::headers::Header;
 use crate::untrusted_tokens::V2LocalUntrustedEncryptedToken;
 use crate::v2::local::V2LocalSharedKey;
 use std::cmp::PartialEq;

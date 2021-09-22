@@ -1,5 +1,6 @@
-use crate::common::{Footer, Header};
+use crate::common::Footer;
 use crate::errors::PasetoTokenParseError;
+use crate::headers::Header;
 use crate::v2::Payload;
 use std::str::FromStr;
 

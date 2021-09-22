@@ -11,6 +11,7 @@ mod common;
 mod crypto;
 mod decrypted_tokens;
 mod errors;
+mod headers;
 mod keys;
 mod tokens;
 mod untrusted_tokens;

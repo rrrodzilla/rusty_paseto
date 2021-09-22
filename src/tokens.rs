@@ -1,6 +1,6 @@
 use crate::v2::Payload;
 use crate::{
-  common::Footer, common::Header, crypto::get_encrypted_raw_payload, crypto::Base64EncodedString, keys::Key192Bit,
+  common::Footer, crypto::get_encrypted_raw_payload, crypto::Base64EncodedString, headers::Header, keys::Key192Bit,
   keys::Key256Bit, keys::NonceKey, keys::V2LocalSharedKey,
 };
 use std::fmt;

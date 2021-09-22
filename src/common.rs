@@ -1,5 +1,13 @@
 use std::fmt;
 
+#[derive(Default)]
+pub(crate) struct V2LocalHeader<'a>(&'a str);
+impl<'a> AsRef<str> for V2LocalHeader<'a> {
+  fn as_ref(&self) -> &str {
+    "v2.local."
+  }
+}
+
 /// An optional footer for the PASETO token.
 ///
 /// Appended to the end of a token and validated during decryption.
@@ -115,10 +123,16 @@ impl<'a> fmt::Display for Payload<'a> {
 }
 
 #[cfg(test)]
-mod v2_additional_tests {
+mod unit_tests {
 
   use super::*;
   use crate::crypto::Base64EncodedString;
+
+  #[test]
+  fn test_v2_local_header_equality() {
+    let header = V2LocalHeader::default();
+    assert_eq!(header.as_ref(), "v2.local.")
+  }
 
   #[test]
   fn test_v2_header_equality() {

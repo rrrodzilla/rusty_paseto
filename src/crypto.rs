@@ -293,7 +293,7 @@ where
   }
 }
 #[cfg(test)]
-mod tests {
+mod unit_tests {
   use blake2::digest::Update;
   use chacha20poly1305::{
     aead::{Aead, NewAead, Payload as AeadPayload},

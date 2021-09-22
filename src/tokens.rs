@@ -86,7 +86,7 @@ impl fmt::Display for V2LocalToken {
 }
 
 #[cfg(test)]
-mod test_vectors {
+mod v2_test_vectors {
 
   use super::*;
   use crate::tokens::V2LocalToken;
@@ -133,7 +133,7 @@ mod test_vectors {
 }
 
 #[cfg(test)]
-mod tokens {
+mod unit_tests {
 
   use super::*;
   use crate::untrusted_tokens::*;

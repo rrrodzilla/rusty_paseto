@@ -16,6 +16,8 @@ fn basic_usage_test_random_key_and_footer() -> Result<()> {
 
   //these can be equated directly or you can access the internal values using AsRef
   assert_eq!(decrypted, payload);
+  //...like so.
+  assert_eq!(decrypted.as_ref(), "I'm Pickle Rick!");
 
   Ok(())
 }
@@ -35,12 +37,14 @@ fn basic_usage_test_random_key_and_no_footer() -> Result<()> {
 
   //these can be equated directly or you can access the internal values using AsRef
   assert_eq!(decrypted, payload);
+  //...like so.
+  assert_eq!(decrypted.as_ref(), "I'm Pickle Rick!");
 
   Ok(())
 }
 
 #[test]
-fn basic_usage_test_none_random_key_and_no_footer() -> Result<()> {
+fn basic_usage_test_non_random_key_and_no_footer() -> Result<()> {
   //create a 32 byte key value
   const KEY: Key256Bit = *b"wubbalubbadubdubwubbalubbadubdub";
   //turn it into a key
@@ -56,6 +60,8 @@ fn basic_usage_test_none_random_key_and_no_footer() -> Result<()> {
 
   //these can be equated directly or you can access the internal values using AsRef
   assert_eq!(decrypted, payload);
+  //...like so.
+  assert_eq!(decrypted.as_ref(), "I'm Pickle Rick!");
 
   Ok(())
 }

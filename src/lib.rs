@@ -4,6 +4,8 @@
 //!
 //! [PASETO]: https://github.com/paseto-standard/paseto-spec
 
+#![doc(html_no_source)]
+#![warn(missing_crate_level_docs)]
 mod crypto;
 mod keys;
 mod v2;

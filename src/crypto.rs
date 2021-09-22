@@ -1,5 +1,5 @@
+use crate::errors::PasetoTokenParseError;
 use crate::keys::{Key192Bit, Key256Bit};
-use crate::v2::V2LocalTokenParseError;
 use base64::{decode_config, encode_config, DecodeError, URL_SAFE_NO_PAD};
 use blake2::digest::{Update, VariableOutput};
 use blake2::VarBlake2b;
@@ -16,7 +16,7 @@ pub(crate) fn try_decrypt_payload<H, F, K>(
   header: &H,
   footer: &F,
   key: &K,
-) -> Result<String, V2LocalTokenParseError>
+) -> Result<String, PasetoTokenParseError>
 where
   H: AsRef<str>,
   F: AsRef<str>,
@@ -28,7 +28,7 @@ where
 
   let pae = PreAuthenticationEncoding::parse(&[header.as_ref().as_bytes(), nonce, footer.as_ref().as_bytes()]);
   let xnonce = Nonce::from(nonce);
-  let aead = XChaCha20Poly1305::new_from_slice(key.as_ref()).map_err(|_| V2LocalTokenParseError::Decrypt)?;
+  let aead = XChaCha20Poly1305::new_from_slice(key.as_ref()).map_err(|_| PasetoTokenParseError::Decrypt)?;
   match aead.decrypt(
     xnonce.as_ref(),
     AeadPayload {
@@ -36,8 +36,8 @@ where
       aad: pae.as_ref(),
     },
   ) {
-    Ok(decrypted) => String::from_utf8(decrypted).map_err(|_| V2LocalTokenParseError::Decrypt),
-    Err(_) => Err(V2LocalTokenParseError::Decrypt),
+    Ok(decrypted) => String::from_utf8(decrypted).map_err(|_| PasetoTokenParseError::Decrypt),
+    Err(_) => Err(PasetoTokenParseError::Decrypt),
   }
 }
 
@@ -255,6 +255,43 @@ impl From<&mut [u8]> for Nonce {
     Self(*XNonce::from_slice(nonce_slice))
   }
 }
+
+pub(crate) fn validate_footer_against_hex_encoded_footer_in_constant_time<F>(
+  footer: Option<F>,
+  encoded_footer_string: &Option<String>,
+) -> Result<(), PasetoTokenParseError>
+where
+  F: AsRef<str>,
+{
+  if let Some(found_footer_string) = encoded_footer_string {
+    //this means we found a footer in the provided token string
+    //so that means we should also have a provided footer when this method was called
+    if let Some(provided_footer) = footer {
+      //encode the found and provided footers
+      let encoded_provided_footer = Base64EncodedString::from(provided_footer.as_ref().to_string());
+      let encoded_found_footer = found_footer_string.parse::<Base64EncodedString>().unwrap();
+
+      //test for equality using ConstantTimeEquals
+      if encoded_provided_footer.ne(&encoded_found_footer) {
+        Err(PasetoTokenParseError::FooterInvalid)
+      } else {
+        Ok(())
+      }
+    } else {
+      //this means we found a footer in the provided string but there
+      //wasn't one provided in the method call
+      Err(PasetoTokenParseError::FooterInvalid)
+    }
+  } else {
+    //this means there was no footer found in the provided token string
+    if footer.is_some() {
+      //if one was provided anyway, we should err
+      Err(PasetoTokenParseError::FooterInvalid)
+    } else {
+      Ok(())
+    }
+  }
+}
 #[cfg(test)]
 mod tests {
   use blake2::digest::Update;
@@ -263,9 +300,8 @@ mod tests {
     XChaCha20Poly1305,
   };
 
+  use crate::common::{Footer, Header};
   use crate::crypto::{Base64EncodedString, PreAuthenticationEncoding, RawPayload};
-  use crate::v2::Footer;
-  use crate::v2::Header;
   use crate::{keys::*, v2::Payload};
 
   use super::{get_aead_encrypt_prerequisites, get_blake2_finalized, Blake2Finalized, Blake2HashContext, Nonce};

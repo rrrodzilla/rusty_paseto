@@ -1,5 +1,7 @@
 use anyhow::Result;
-use rusty_paseto::{Footer, Key256Bit, Payload, V2LocalDecryptedString, V2LocalSharedKey, V2LocalToken};
+use rusty_paseto::v2::local::{V2LocalDecryptedString, V2LocalSharedKey, V2LocalToken};
+use rusty_paseto::v2::Payload;
+use rusty_paseto::v2::{Footer, Key256Bit};
 
 #[test]
 fn basic_usage_test_random_key_and_footer() -> Result<()> {

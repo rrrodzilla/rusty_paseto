@@ -6,9 +6,22 @@
 
 #![doc(html_no_source)]
 #![warn(missing_crate_level_docs)]
-mod crypto;
-mod keys;
-mod v2;
 
-pub use keys::{HexKey, Key192Bit, Key256Bit, V2LocalSharedKey};
-pub use v2::{Footer, Payload, V2LocalDecryptedString, V2LocalToken, V2LocalTokenParseError};
+mod common;
+mod crypto;
+mod decrypted_tokens;
+mod errors;
+mod keys;
+mod tokens;
+mod untrusted_tokens;
+
+pub mod v2 {
+  pub use crate::common::{Footer, Payload};
+  pub use crate::errors::PasetoTokenParseError;
+  pub use crate::keys::{HexKey, Key256Bit};
+  pub mod local {
+    pub use crate::decrypted_tokens::V2LocalDecryptedString;
+    pub use crate::keys::V2LocalSharedKey;
+    pub use crate::tokens::V2LocalToken;
+  }
+}

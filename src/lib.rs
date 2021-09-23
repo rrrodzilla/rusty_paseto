@@ -23,7 +23,7 @@ pub mod v2 {
   pub use crate::errors::PasetoTokenParseError;
   pub use crate::keys::{HexKey, Key256Bit};
   pub mod local {
-    pub use crate::decrypted_tokens::V2LocalDecryptedString;
+    pub use crate::decrypted_tokens::V2LocalDecryptedToken;
     pub use crate::keys::V2LocalSharedKey;
     pub use crate::tokens::v2::V2LocalToken;
   }

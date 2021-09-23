@@ -213,8 +213,6 @@ where
     //this means we found a footer in the provided token string
     //so that means we should also have a provided footer when this method was called
     if let Some(footer) = footer {
-      //encode the found and provided footers
-
       //test for non equality using ConstantTimeEquals
       if footer.constant_time_equals(encoded_footer_string) {
         Ok(())

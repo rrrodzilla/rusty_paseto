@@ -101,7 +101,7 @@ mod v2_test_vectors {
 
     //now let's try to decrypt it
     let decrypted_payload =
-      crate::decrypted_tokens::V2LocalDecryptedString::parse(token.to_string().as_str(), None, key);
+      crate::decrypted_tokens::V2LocalDecryptedToken::parse(token.to_string().as_str(), None, key);
     if let Ok(payload) = decrypted_payload {
       assert_eq!(payload.as_ref(), message.as_ref());
     }

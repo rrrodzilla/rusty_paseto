@@ -1,5 +1,5 @@
 use anyhow::Result;
-use rusty_paseto::v2::local::{V2LocalDecryptedString, V2LocalSharedKey, V2LocalToken};
+use rusty_paseto::v2::local::{V2LocalDecryptedToken, V2LocalSharedKey, V2LocalToken};
 use rusty_paseto::v2::Payload;
 use rusty_paseto::v2::{Footer, Key256Bit};
 
@@ -14,7 +14,7 @@ fn basic_usage_test_random_key_and_footer() -> Result<()> {
   let token = V2LocalToken::new(payload, key, footer);
 
   //now let's decrypt it
-  let decrypted = V2LocalDecryptedString::parse(&token.to_string(), footer, key)?;
+  let decrypted = V2LocalDecryptedToken::parse(&token.to_string(), footer, key)?;
 
   //these can be equated directly or you can access the internal values using AsRef
   assert_eq!(decrypted, payload);
@@ -35,7 +35,7 @@ fn basic_usage_test_random_key_and_no_footer() -> Result<()> {
   let token = V2LocalToken::new(payload, key, footer);
 
   //now let's decrypt it
-  let decrypted = V2LocalDecryptedString::parse(&token.to_string(), footer, key)?;
+  let decrypted = V2LocalDecryptedToken::parse(&token.to_string(), footer, key)?;
 
   //these can be equated directly or you can access the internal values using AsRef
   assert_eq!(decrypted, payload);
@@ -58,7 +58,7 @@ fn basic_usage_test_non_random_key_and_no_footer() -> Result<()> {
   let token = V2LocalToken::new(payload, key, footer);
 
   //now let's decrypt it
-  let decrypted = V2LocalDecryptedString::parse(&token.to_string(), footer, key)?;
+  let decrypted = V2LocalDecryptedToken::parse(&token.to_string(), footer, key)?;
 
   //these can be equated directly or you can access the internal values using AsRef
   assert_eq!(decrypted, payload);

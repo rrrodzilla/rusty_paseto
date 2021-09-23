@@ -13,9 +13,9 @@ use std::str::FromStr;
 
 /// Parses a V2 Local paseto token string and provides the decrypted payload string
 #[derive(Debug, PartialEq)]
-pub struct V2LocalDecryptedString(String);
+pub struct V2LocalDecryptedToken(String);
 
-impl<R> PartialEq<R> for V2LocalDecryptedString
+impl<R> PartialEq<R> for V2LocalDecryptedToken
 where
   R: AsRef<str>,
 {
@@ -23,39 +23,43 @@ where
     self.as_ref() == other.as_ref()
   }
 }
-impl fmt::Display for V2LocalDecryptedString {
+impl fmt::Display for V2LocalDecryptedToken {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "{}", self.0)
   }
 }
 
-impl AsRef<String> for V2LocalDecryptedString {
+impl AsRef<String> for V2LocalDecryptedToken {
   fn as_ref(&self) -> &String {
     &self.0
   }
 }
 
-impl V2LocalDecryptedString {
+impl V2LocalDecryptedToken {
   // Given an arbitrary string, an encryption key and an optional footer,
   // validate and decrypt this token raising errors as needed
   pub fn parse<T>(
     potential_token: &T,
     potential_footer: Option<Footer>,
     key: &V2LocalSharedKey,
-  ) -> Result<V2LocalDecryptedString, PasetoTokenParseError>
+  ) -> Result<V2LocalDecryptedToken, PasetoTokenParseError>
   where
     T: AsRef<str> + ?Sized,
   {
-    //an initial parse of the incoming string to see what we find and validate it's structure
+    //an initial parse of the incoming string to see what we find and validate its structure
+    //can raise exceptions
     let parsed_values = V2LocalUntrustedEncryptedToken::from_str(potential_token.as_ref())?;
     //if all went well, we can extract the values
     let (parsed_payload, found_footer) = parsed_values.as_ref();
-    let raw_payload = Payload::from(parsed_payload.as_str());
 
     //verify any provided and/or discovered footers are valid
+    //can raise exceptions
     validate_footer_against_hex_encoded_footer_in_constant_time(potential_footer, found_footer)?;
 
+    let raw_payload = Payload::from(parsed_payload.as_str());
+
     //decrypt the payload
+    //can raise exceptions
     let payload = try_decrypt_payload(
       &raw_payload,
       &V2LocalHeader::default(),

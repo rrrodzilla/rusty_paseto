@@ -71,49 +71,128 @@ pub(crate) mod v2 {
 mod v2_test_vectors {
 
   use crate::headers::v2::V2LocalHeader;
-  use crate::keys::{HexKey, Key256Bit, NonceKey, V2LocalSharedKey};
+  use crate::keys::{HexKey, Key192Bit, Key256Bit, NonceKey, V2LocalSharedKey};
   use crate::tokens::v2::V2LocalToken;
   use crate::v2::{Footer, Payload};
-  use serde_json::json;
+  use anyhow::Result;
+  use serde_json::{json, Value};
 
-  #[test]
-  fn test_2_e_1() {
-    const EXPECTED_TOKEN: &str = "v2.local.97TTOvgwIxNGvV80XKiGZg_kD3tsXM_-qB4dZGHOeN1cTkgQ4PnW8888l802W8d9AvEGnoNBY3BnqHORy8a5cC8aKpbA0En8XELw2yDk2f1sVODyfnDbi6rEGMY3pSfCbLWMM2oHJxvlEl2XbQ";
+  fn test_vector(nonce: &str, key: &str, expected_token: &str, payload: &Value, footer: Option<Footer>) -> Result<()> {
     // parse the hex string to ensure it will make a valid key
-    let hex_key = "707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f"
-      .parse::<HexKey<Key256Bit>>()
-      .expect("Could not parse hex value from string");
+    let hex_key = key.parse::<HexKey<Key256Bit>>()?;
     //then generate the V2 local key for it
     let key = &V2LocalSharedKey::from(hex_key);
 
+    let nonce_key = nonce.parse::<HexKey<Key192Bit>>()?;
+    let nonce = NonceKey::from(nonce_key);
     //create message for test vector
-    let json = json!({
-      "data": "this is a signed message",
-      "exp": "2019-01-01T00:00:00+00:00"
-    })
-    .to_string();
+    let json = payload.to_string();
+    //  eprintln!("\nJSON INFO: {}\n", json);
     let message = Payload::from(json.as_str());
     let header = V2LocalHeader::default();
 
-    //create a local v2 token
+    //  //create a local v2 token
     let token = V2LocalToken::build_token::<V2LocalHeader, Payload, Footer, V2LocalSharedKey, NonceKey>(
-      header,
-      message,
-      &key,
-      None,
-      &NonceKey::default(),
+      header, message, &key, footer, &nonce,
     );
 
     //validate the test vector
-    assert_eq!(token.to_string(), EXPECTED_TOKEN);
+    assert_eq!(token.to_string(), expected_token);
 
     //now let's try to decrypt it
     let decrypted_payload =
       crate::decrypted_tokens::V2LocalDecryptedString::parse(token.to_string().as_str(), None, key);
     if let Ok(payload) = decrypted_payload {
       assert_eq!(payload.as_ref(), message.as_ref());
-      eprintln!("{}", payload);
     }
+    Ok(())
+  }
+
+  #[test]
+  fn test_2_e_1() -> Result<()> {
+    test_vector("000000000000000000000000000000000000000000000000",  "707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f",  "v2.local.97TTOvgwIxNGvV80XKiGZg_kD3tsXM_-qB4dZGHOeN1cTkgQ4PnW8888l802W8d9AvEGnoNBY3BnqHORy8a5cC8aKpbA0En8XELw2yDk2f1sVODyfnDbi6rEGMY3pSfCbLWMM2oHJxvlEl2XbQ", &json!({"data": "this is a signed message","exp": "2019-01-01T00:00:00+00:00"}), None)?;
+
+    Ok(())
+  }
+
+  #[test]
+  fn test_2_e_2() -> Result<()> {
+    test_vector("000000000000000000000000000000000000000000000000",  "707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f",  "v2.local.CH50H-HM5tzdK4kOmQ8KbIvrzJfjYUGuu5Vy9ARSFHy9owVDMYg3-8rwtJZQjN9ABHb2njzFkvpr5cOYuRyt7CRXnHt42L5yZ7siD-4l-FoNsC7J2OlvLlIwlG06mzQVunrFNb7Z3_CHM0PK5w", &json!({
+        "data": "this is a secret message",
+        "exp": "2019-01-01T00:00:00+00:00"
+      }), None)?;
+
+    Ok(())
+  }
+
+  #[test]
+  fn test_2_e_3() -> Result<()> {
+    test_vector("45742c976d684ff84ebdc0de59809a97cda2f64c84fda19b",  "707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f",  "v2.local.5K4SCXNhItIhyNuVIZcwrdtaDKiyF81-eWHScuE0idiVqCo72bbjo07W05mqQkhLZdVbxEa5I_u5sgVk1QLkcWEcOSlLHwNpCkvmGGlbCdNExn6Qclw3qTKIIl5-O5xRBN076fSDPo5xUCPpBA", &json!({
+        "data": "this is a signed message",
+        "exp": "2019-01-01T00:00:00+00:00"
+      }), None)?;
+
+    Ok(())
+  }
+
+  #[test]
+  fn test_2_e_4() -> Result<()> {
+    test_vector("45742c976d684ff84ebdc0de59809a97cda2f64c84fda19b",  "707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f",  "v2.local.pvFdDeNtXxknVPsbBCZF6MGedVhPm40SneExdClOxa9HNR8wFv7cu1cB0B4WxDdT6oUc2toyLR6jA6sc-EUM5ll1EkeY47yYk6q8m1RCpqTIzUrIu3B6h232h62DPbIxtjGvNRAwsLK7LcV8oQ", &json!({
+        "data": "this is a secret message",
+        "exp": "2019-01-01T00:00:00+00:00"
+      }), None)?;
+
+    Ok(())
+  }
+
+  #[test]
+  fn test_2_e_5() -> Result<()> {
+    test_vector("45742c976d684ff84ebdc0de59809a97cda2f64c84fda19b",  "707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f",  "v2.local.5K4SCXNhItIhyNuVIZcwrdtaDKiyF81-eWHScuE0idiVqCo72bbjo07W05mqQkhLZdVbxEa5I_u5sgVk1QLkcWEcOSlLHwNpCkvmGGlbCdNExn6Qclw3qTKIIl5-zSLIrxZqOLwcFLYbVK1SrQ.eyJraWQiOiJ6VmhNaVBCUDlmUmYyc25FY1Q3Z0ZUaW9lQTlDT2NOeTlEZmdMMVc2MGhhTiJ9", &json!({
+        "data": "this is a signed message",
+        "exp": "2019-01-01T00:00:00+00:00"
+      }), Some(Footer::from("{\"kid\":\"zVhMiPBP9fRf2snEcT7gFTioeA9COcNy9DfgL1W60haN\"}")))?;
+
+    Ok(())
+  }
+
+  #[test]
+  fn test_2_e_6() -> Result<()> {
+    test_vector("45742c976d684ff84ebdc0de59809a97cda2f64c84fda19b",  "707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f",  "v2.local.pvFdDeNtXxknVPsbBCZF6MGedVhPm40SneExdClOxa9HNR8wFv7cu1cB0B4WxDdT6oUc2toyLR6jA6sc-EUM5ll1EkeY47yYk6q8m1RCpqTIzUrIu3B6h232h62DnMXKdHn_Smp6L_NfaEnZ-A.eyJraWQiOiJ6VmhNaVBCUDlmUmYyc25FY1Q3Z0ZUaW9lQTlDT2NOeTlEZmdMMVc2MGhhTiJ9", &json!({
+        "data": "this is a secret message",
+        "exp": "2019-01-01T00:00:00+00:00"
+      }), Some(Footer::from("{\"kid\":\"zVhMiPBP9fRf2snEcT7gFTioeA9COcNy9DfgL1W60haN\"}")))?;
+
+    Ok(())
+  }
+
+  #[test]
+  fn test_2_e_7() -> Result<()> {
+    test_vector("45742c976d684ff84ebdc0de59809a97cda2f64c84fda19b",  "707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f",  "v2.local.5K4SCXNhItIhyNuVIZcwrdtaDKiyF81-eWHScuE0idiVqCo72bbjo07W05mqQkhLZdVbxEa5I_u5sgVk1QLkcWEcOSlLHwNpCkvmGGlbCdNExn6Qclw3qTKIIl5-zSLIrxZqOLwcFLYbVK1SrQ.eyJraWQiOiJ6VmhNaVBCUDlmUmYyc25FY1Q3Z0ZUaW9lQTlDT2NOeTlEZmdMMVc2MGhhTiJ9", &json!({
+        "data": "this is a signed message",
+        "exp": "2019-01-01T00:00:00+00:00"
+      }), Some(Footer::from("{\"kid\":\"zVhMiPBP9fRf2snEcT7gFTioeA9COcNy9DfgL1W60haN\"}")))?;
+
+    Ok(())
+  }
+
+  #[test]
+  fn test_2_e_8() -> Result<()> {
+    test_vector("45742c976d684ff84ebdc0de59809a97cda2f64c84fda19b",  "707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f",  "v2.local.pvFdDeNtXxknVPsbBCZF6MGedVhPm40SneExdClOxa9HNR8wFv7cu1cB0B4WxDdT6oUc2toyLR6jA6sc-EUM5ll1EkeY47yYk6q8m1RCpqTIzUrIu3B6h232h62DnMXKdHn_Smp6L_NfaEnZ-A.eyJraWQiOiJ6VmhNaVBCUDlmUmYyc25FY1Q3Z0ZUaW9lQTlDT2NOeTlEZmdMMVc2MGhhTiJ9", &json!({
+        "data": "this is a secret message",
+        "exp": "2019-01-01T00:00:00+00:00"
+      }), Some(Footer::from("{\"kid\":\"zVhMiPBP9fRf2snEcT7gFTioeA9COcNy9DfgL1W60haN\"}")))?;
+
+    Ok(())
+  }
+
+  #[test]
+  fn test_2_e_9() -> Result<()> {
+    test_vector("45742c976d684ff84ebdc0de59809a97cda2f64c84fda19b",  "707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f",  "v2.local.pvFdDeNtXxknVPsbBCZF6MGedVhPm40SneExdClOxa9HNR8wFv7cu1cB0B4WxDdT6oUc2toyLR6jA6sc-EUM5ll1EkeY47yYk6q8m1RCpqTIzUrIu3B6h232h62DoOJbyKBGPZG50XDZ6mbPtw.YXJiaXRyYXJ5LXN0cmluZy10aGF0LWlzbid0LWpzb24", &json!({
+        "data": "this is a secret message",
+        "exp": "2019-01-01T00:00:00+00:00"
+      }), Some(Footer::from("arbitrary-string-that-isn't-json")))?;
+
+    Ok(())
   }
 }
 

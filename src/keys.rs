@@ -13,7 +13,12 @@ pub type Key192Bit = [u8; 24];
 
 /// A structure for parsing strings which might be hex keys of a particular size
 pub struct HexKey<T>(T);
-
+impl From<&Key192Bit> for HexKey<Key192Bit> {
+  /// Only allows hex keys of the correct size
+  fn from(key: &Key192Bit) -> Self {
+    Self(*key)
+  }
+}
 ///Allows any string to attempt to be parsed into a HexKey
 impl<T: FromHex> FromStr for HexKey<T>
 where

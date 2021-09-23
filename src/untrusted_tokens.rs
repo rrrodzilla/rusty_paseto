@@ -1,6 +1,6 @@
 use crate::common::Footer;
 use crate::errors::PasetoTokenParseError;
-use crate::headers::Header;
+use crate::headers::v2::V2LocalHeader;
 use crate::v2::Payload;
 use std::str::FromStr;
 
@@ -36,7 +36,7 @@ impl FromStr for V2LocalUntrustedEncryptedToken {
     //first reconstruct it from the incoming string parts
     let potential_header = format!("{}.{}.", potential_parts[0], potential_parts[1]);
     //if the recreated header is not equal to a valid known Header, then the header is invalid
-    if potential_header.ne(Header::default().as_ref()) {
+    if potential_header.ne(V2LocalHeader::default().as_ref()) {
       return Err(PasetoTokenParseError::WrongHeader);
     }
 

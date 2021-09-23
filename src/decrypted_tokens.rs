@@ -1,9 +1,10 @@
 use crate::common::Footer;
 use crate::crypto::{try_decrypt_payload, validate_footer_against_hex_encoded_footer_in_constant_time};
 use crate::errors::PasetoTokenParseError;
-use crate::headers::Header;
+use crate::headers::v2::*;
 use crate::untrusted_tokens::V2LocalUntrustedEncryptedToken;
 use crate::v2::local::V2LocalSharedKey;
+use crate::v2::Payload;
 use std::cmp::PartialEq;
 use std::convert::AsRef;
 use std::default::Default;
@@ -48,15 +49,16 @@ impl V2LocalDecryptedString {
     //an initial parse of the incoming string to see what we find and validate it's structure
     let parsed_values = V2LocalUntrustedEncryptedToken::from_str(potential_token.as_ref())?;
     //if all went well, we can extract the values
-    let (raw_payload, found_footer) = parsed_values.as_ref();
+    let (parsed_payload, found_footer) = parsed_values.as_ref();
+    let raw_payload = Payload::from(parsed_payload.as_str());
 
     //verify any provided and/or discovered footers are valid
     validate_footer_against_hex_encoded_footer_in_constant_time(potential_footer, found_footer)?;
 
     //decrypt the payload
     let payload = try_decrypt_payload(
-      raw_payload,
-      &Header::default(),
+      &raw_payload,
+      &V2LocalHeader::default(),
       &potential_footer.unwrap_or_default(),
       key,
     )?;

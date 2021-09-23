@@ -1,30 +1,29 @@
+use crate::common::RawPayload;
 use crate::errors::PasetoTokenParseError;
 use crate::keys::{Key192Bit, Key256Bit};
-use base64::{decode_config, encode_config, DecodeError, URL_SAFE_NO_PAD};
+use crate::traits::Base64Encodable;
 use blake2::digest::{Update, VariableOutput};
 use blake2::VarBlake2b;
 use chacha20poly1305::{
   aead::{Aead, NewAead, Payload as AeadPayload},
   XChaCha20Poly1305, XNonce,
 };
-use ring::constant_time::verify_slices_are_equal as ConstantTimeEquals;
 use std::convert::{AsMut, AsRef, From};
-use std::str::FromStr;
 
-pub(crate) fn try_decrypt_payload<H, F, K>(
-  payload: &str,
+pub(crate) fn try_decrypt_payload<P, H, F, K>(
+  payload: &P,
   header: &H,
   footer: &F,
   key: &K,
 ) -> Result<String, PasetoTokenParseError>
 where
+  P: AsRef<str> + Base64Encodable<str>,
   H: AsRef<str>,
   F: AsRef<str>,
   K: AsRef<Key256Bit>,
 {
-  let payload_encoded = payload.parse::<Base64EncodedString>()?;
-  let mut payload_decoded = payload_encoded.decode()?;
-  let (nonce, ciphertext) = payload_decoded.split_at_mut(24);
+  let mut payload = payload.decode()?;
+  let (nonce, ciphertext) = payload.split_at_mut(24);
 
   let pae = PreAuthenticationEncoding::parse(&[header.as_ref().as_bytes(), nonce, footer.as_ref().as_bytes()]);
   let xnonce = Nonce::from(nonce);
@@ -111,58 +110,59 @@ where
   (Nonce::from(&finalized), pae, finalized)
 }
 
-#[derive(Clone)]
-pub(crate) struct RawPayload(Vec<u8>);
-impl From<Vec<u8>> for RawPayload {
-  fn from(s: Vec<u8>) -> Self {
-    Self(s)
-  }
-}
-impl AsRef<Vec<u8>> for RawPayload {
-  fn as_ref(&self) -> &Vec<u8> {
-    &self.0
-  }
-}
+//  #[derive(Clone, Debug)]
+//  pub struct Base64EncodedString(String);
 
-#[derive(Clone, Debug)]
-pub struct Base64EncodedString(String);
+//  impl Base64EncodedString {
+//    pub fn decode(&self) -> Result<Vec<u8>, DecodeError> {
+//      decode_config(&self.0, URL_SAFE_NO_PAD)
+//    }
+//  }
+//  impl AsRef<[u8]> for Base64EncodedString {
+//    fn as_ref(&self) -> &[u8] {
+//      &self.0.as_bytes()
+//    }
+//  }
 
-impl Base64EncodedString {
-  pub fn decode(&self) -> Result<Vec<u8>, DecodeError> {
-    decode_config(&self.0, URL_SAFE_NO_PAD)
-  }
-}
+//  impl AsRef<str> for Base64EncodedString {
+//    fn as_ref(&self) -> &str {
+//      &self.0
+//    }
+//  }
 
-impl AsRef<str> for Base64EncodedString {
-  fn as_ref(&self) -> &str {
-    &self.0
-  }
-}
-impl From<String> for Base64EncodedString {
-  fn from(s: String) -> Self {
-    Self(encode_config(s, URL_SAFE_NO_PAD))
-  }
-}
-impl From<RawPayload> for Base64EncodedString {
-  fn from(s: RawPayload) -> Self {
-    Self(encode_config(s.as_ref(), URL_SAFE_NO_PAD))
-  }
-}
+//pub(crate) trait Base64Encodable<T: ?Sized>: Display + AsRef<T> {
+//  impl<T> From<T> for Base64EncodedString
+//  where
+//    T: AsRef<[u8]>,
+//  {
+//    fn from(s: T) -> Self {
+//      Self(encode_config(s, URL_SAFE_NO_PAD))
+//    }
+//  }
+//  impl From<RawPayload> for Base64EncodedString {
+//    fn from(s: RawPayload) -> Self {
+//      Self(encode_config(s.as_ref(), URL_SAFE_NO_PAD))
+//    }
+//  }
 
-impl PartialEq for Base64EncodedString {
-  fn eq(&self, other: &Self) -> bool {
-    ConstantTimeEquals(self.as_ref().as_bytes(), other.as_ref().as_bytes()).is_ok()
-  }
-}
+//  impl PartialEq for Base64EncodedString {
+//    fn eq(&self, other: &Self) -> bool {
+//      ConstantTimeEquals(self.as_ref(), other.as_ref()).is_ok()
+//    }
+//  }
 
-impl FromStr for Base64EncodedString {
-  type Err = std::convert::Infallible;
-  fn from_str(s: &str) -> Result<Self, Self::Err> {
-    Ok(Self(s.to_string()))
-  }
-}
-
-impl Eq for Base64EncodedString {}
+//  impl FromStr for Base64EncodedString {
+//    type Err = std::convert::Infallible;
+//    fn from_str(s: &str) -> Result<Self, Self::Err> {
+//      Ok(Self(encode_config(s, URL_SAFE_NO_PAD)))
+//    }
+//  }
+//  impl fmt::Display for Base64EncodedString {
+//    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+//      write!(f, "{}", self.0)
+//    }
+//  }
+//impl Eq for Base64EncodedString {}
 
 pub struct PreAuthenticationEncoding(Vec<u8>);
 
@@ -261,21 +261,19 @@ pub(crate) fn validate_footer_against_hex_encoded_footer_in_constant_time<F>(
   encoded_footer_string: &Option<String>,
 ) -> Result<(), PasetoTokenParseError>
 where
-  F: AsRef<str>,
+  F: AsRef<str> + Base64Encodable<str>,
 {
-  if let Some(found_footer_string) = encoded_footer_string {
+  if let Some(encoded_footer_string) = encoded_footer_string {
     //this means we found a footer in the provided token string
     //so that means we should also have a provided footer when this method was called
-    if let Some(provided_footer) = footer {
+    if let Some(footer) = footer {
       //encode the found and provided footers
-      let encoded_provided_footer = Base64EncodedString::from(provided_footer.as_ref().to_string());
-      let encoded_found_footer = found_footer_string.parse::<Base64EncodedString>().unwrap();
 
-      //test for equality using ConstantTimeEquals
-      if encoded_provided_footer.ne(&encoded_found_footer) {
-        Err(PasetoTokenParseError::FooterInvalid)
-      } else {
+      //test for non equality using ConstantTimeEquals
+      if footer.constant_time_equals(encoded_footer_string) {
         Ok(())
+      } else {
+        Err(PasetoTokenParseError::FooterInvalid)
       }
     } else {
       //this means we found a footer in the provided string but there
@@ -300,9 +298,9 @@ mod unit_tests {
     XChaCha20Poly1305,
   };
 
-  use crate::common::Footer;
-  use crate::crypto::{Base64EncodedString, PreAuthenticationEncoding, RawPayload};
-  use crate::headers::Header;
+  use crate::crypto::{PreAuthenticationEncoding, RawPayload};
+  use crate::headers::v2::V2LocalHeader;
+  use crate::{common::Footer, traits::Base64Encodable};
   use crate::{keys::*, v2::Payload};
 
   use super::{get_aead_encrypt_prerequisites, get_blake2_finalized, Blake2Finalized, Blake2HashContext, Nonce};
@@ -344,7 +342,7 @@ mod unit_tests {
     let finalized = get_blake2_finalized(&Payload::default(), &nonce_key);
 
     let pae = PreAuthenticationEncoding::parse(&[
-      Header::default().as_ref().as_bytes(),
+      V2LocalHeader::default().as_ref().as_bytes(),
       finalized.as_ref(),
       Footer::default().as_ref().as_bytes(),
     ]);
@@ -355,8 +353,12 @@ mod unit_tests {
   fn test_aead_encrypt() {
     let nonce_key = NonceKey::new_random();
 
-    let (nonce, pae, blake2_finalized) =
-      get_aead_encrypt_prerequisites(&Payload::from(""), &Header::default(), &Footer::default(), &nonce_key);
+    let (nonce, pae, blake2_finalized) = get_aead_encrypt_prerequisites(
+      &Payload::from(""),
+      &V2LocalHeader::default(),
+      &Footer::default(),
+      &nonce_key,
+    );
     let key = V2LocalSharedKey::new_random();
     let aead = XChaCha20Poly1305::new_from_slice(key.as_ref());
     assert!(aead.is_ok());
@@ -373,8 +375,8 @@ mod unit_tests {
     raw_payload.extend_from_slice(blake2_finalized.as_ref());
     raw_payload.extend_from_slice(crypted.unwrap().as_ref());
     let payload = RawPayload::from(raw_payload);
-    let encoded = Base64EncodedString::from(payload);
-    assert!(encoded.as_ref().len() > 0);
+    let encoded = payload.encode();
+    assert!(encoded.len() > 0);
   }
 
   #[test]

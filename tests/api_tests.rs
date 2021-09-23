@@ -14,7 +14,7 @@ fn basic_usage_test_random_key_and_footer() -> Result<()> {
   let token = V2LocalToken::new(payload, key, footer);
 
   //now let's decrypt it
-  let decrypted = V2LocalDecryptedString::parse(token.as_ref(), footer, key)?;
+  let decrypted = V2LocalDecryptedString::parse(&token.to_string(), footer, key)?;
 
   //these can be equated directly or you can access the internal values using AsRef
   assert_eq!(decrypted, payload);
@@ -35,7 +35,7 @@ fn basic_usage_test_random_key_and_no_footer() -> Result<()> {
   let token = V2LocalToken::new(payload, key, footer);
 
   //now let's decrypt it
-  let decrypted = V2LocalDecryptedString::parse(token.as_ref(), footer, key)?;
+  let decrypted = V2LocalDecryptedString::parse(&token.to_string(), footer, key)?;
 
   //these can be equated directly or you can access the internal values using AsRef
   assert_eq!(decrypted, payload);
@@ -58,7 +58,7 @@ fn basic_usage_test_non_random_key_and_no_footer() -> Result<()> {
   let token = V2LocalToken::new(payload, key, footer);
 
   //now let's decrypt it
-  let decrypted = V2LocalDecryptedString::parse(token.as_ref(), footer, key)?;
+  let decrypted = V2LocalDecryptedString::parse(&token.to_string(), footer, key)?;
 
   //these can be equated directly or you can access the internal values using AsRef
   assert_eq!(decrypted, payload);

@@ -110,60 +110,6 @@ where
   (Nonce::from(&finalized), pae, finalized)
 }
 
-//  #[derive(Clone, Debug)]
-//  pub struct Base64EncodedString(String);
-
-//  impl Base64EncodedString {
-//    pub fn decode(&self) -> Result<Vec<u8>, DecodeError> {
-//      decode_config(&self.0, URL_SAFE_NO_PAD)
-//    }
-//  }
-//  impl AsRef<[u8]> for Base64EncodedString {
-//    fn as_ref(&self) -> &[u8] {
-//      &self.0.as_bytes()
-//    }
-//  }
-
-//  impl AsRef<str> for Base64EncodedString {
-//    fn as_ref(&self) -> &str {
-//      &self.0
-//    }
-//  }
-
-//pub(crate) trait Base64Encodable<T: ?Sized>: Display + AsRef<T> {
-//  impl<T> From<T> for Base64EncodedString
-//  where
-//    T: AsRef<[u8]>,
-//  {
-//    fn from(s: T) -> Self {
-//      Self(encode_config(s, URL_SAFE_NO_PAD))
-//    }
-//  }
-//  impl From<RawPayload> for Base64EncodedString {
-//    fn from(s: RawPayload) -> Self {
-//      Self(encode_config(s.as_ref(), URL_SAFE_NO_PAD))
-//    }
-//  }
-
-//  impl PartialEq for Base64EncodedString {
-//    fn eq(&self, other: &Self) -> bool {
-//      ConstantTimeEquals(self.as_ref(), other.as_ref()).is_ok()
-//    }
-//  }
-
-//  impl FromStr for Base64EncodedString {
-//    type Err = std::convert::Infallible;
-//    fn from_str(s: &str) -> Result<Self, Self::Err> {
-//      Ok(Self(encode_config(s, URL_SAFE_NO_PAD)))
-//    }
-//  }
-//  impl fmt::Display for Base64EncodedString {
-//    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-//      write!(f, "{}", self.0)
-//    }
-//  }
-//impl Eq for Base64EncodedString {}
-
 pub struct PreAuthenticationEncoding(Vec<u8>);
 
 /// Performs Pre-Authentication Encoding (or PAE) as described in the

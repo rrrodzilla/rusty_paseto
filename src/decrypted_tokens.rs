@@ -36,8 +36,8 @@ impl AsRef<String> for V2LocalDecryptedString {
 }
 
 impl V2LocalDecryptedString {
-  /// Given an arbitrary string, an encryption key and an optional footer,
-  /// validate and decrypt this token raising errors as needed
+  // Given an arbitrary string, an encryption key and an optional footer,
+  // validate and decrypt this token raising errors as needed
   pub fn parse<T>(
     potential_token: &T,
     potential_footer: Option<Footer>,

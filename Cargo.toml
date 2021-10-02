@@ -12,6 +12,8 @@ base64 = "^0.13.0"
 hex = "^0.4.3"
 serde_json = { version = "^1.0.68"}
 thiserror = "1.0.29"
+iso8601 = "0.4.0"
 
 [dev-dependencies]
 anyhow = "1.0.44"
+chrono = "0.4.19"

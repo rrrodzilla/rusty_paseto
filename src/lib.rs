@@ -5,9 +5,10 @@
 //! [PASETO]: https://github.com/paseto-standard/paseto-spec
 
 #![doc(html_no_source)]
-#![warn(missing_crate_level_docs)]
+#![warn(rustdoc::missing_crate_level_docs)]
 
 //all the various types
+mod claims;
 mod common;
 mod crypto;
 mod decrypted_tokens;

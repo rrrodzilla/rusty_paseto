@@ -1,5 +1,16 @@
 use thiserror::Error;
 
+/// Certain payload claims require a valid iso8601 datetime string.  This error is raised when
+/// attempting to parse a string that does not fit the iso8601 format.
+#[derive(Error, Debug)]
+#[error("{0} is an invalid iso8601 string")]
+pub struct Iso8601ParseError(String);
+impl Iso8601ParseError {
+  pub(crate) fn new(s: &str) -> Self {
+    Self(s.to_string())
+  }
+}
+
 /// Potential errors from attempting to parse a token string
 #[derive(Debug, Error)]
 pub enum PasetoTokenParseError {

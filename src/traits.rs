@@ -21,3 +21,16 @@ pub(crate) trait Base64Encodable<T: ?Sized + std::convert::AsRef<[u8]>>: Display
     ConstantTimeEquals(self.encode().as_ref(), other.as_ref().as_bytes()).is_ok()
   }
 }
+
+/// a simple marker trait to identify claims
+pub trait Claim<T> {
+  fn get_key(&self) -> &str;
+  fn get_value(&self) -> &T;
+}
+pub trait ClaimValue<T> {
+  fn get_value(&self) -> &T;
+}
+
+//impl<'a, V> AsRef<(&'a str, V)> for ArbitraryClaim<'a, V> {
+
+//pub struct ArbitraryClaim<'a, V>((&'a str, V));

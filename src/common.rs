@@ -1,6 +1,11 @@
 use crate::traits::Base64Encodable;
 use std::fmt;
 
+pub struct V2;
+pub struct V4;
+pub struct Local;
+pub struct Public;
+
 /// An optional footer for the PASETO token.
 ///
 /// Appended to the end of a token and validated during decryption.
@@ -18,7 +23,7 @@ use std::fmt;
 /// // Use in any token that accepts an optional footer
 /// let token = V2LocalToken::new(payload, key, footer);
 /// ```
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct Footer<'a>(&'a str);
 
 impl<'a> Base64Encodable<str> for Footer<'a> {}

@@ -11,6 +11,23 @@ impl Iso8601ParseError {
   }
 }
 
+/// Potential errors from attempting to build a token claim
+#[derive(Debug, Error)]
+pub enum TokenClaimError {
+  #[error("The key {0} is a reserved for use within PASETO.  To set a reserved claim, use the strong type: e.g - ExpirationClaim")]
+  ReservedClaim(String),
+}
+
+/// Potential errors from attempting to build a v2 local token
+#[derive(Debug, Error)]
+pub enum V2LocalTokenBuilderError {
+  #[error("The payload was unable to be serialized into json")]
+  PayloadJsonError {
+    #[from]
+    source: serde_json::Error,
+  },
+}
+
 /// Potential errors from attempting to parse a token string
 #[derive(Debug, Error)]
 pub enum PasetoTokenParseError {

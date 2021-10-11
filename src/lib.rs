@@ -8,6 +8,7 @@
 #![warn(rustdoc::missing_crate_level_docs)]
 
 //all the various types
+mod builders;
 mod claims;
 mod common;
 mod crypto;
@@ -21,9 +22,10 @@ mod untrusted_tokens;
 
 pub mod v2 {
   pub use crate::common::{Footer, Payload};
-  pub use crate::errors::PasetoTokenParseError;
+  pub use crate::errors::{PasetoTokenParseError, V2LocalTokenBuilderError};
   pub use crate::keys::{HexKey, Key256Bit};
   pub mod local {
+    pub use crate::builders::TokenBuilder;
     pub use crate::decrypted_tokens::V2LocalDecryptedToken;
     pub use crate::keys::V2LocalSharedKey;
     pub use crate::tokens::v2::V2LocalToken;

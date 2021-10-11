@@ -1,256 +1,266 @@
-use crate::errors::Iso8601ParseError;
-use std::convert::TryFrom;
-//what would example code look like?
-// let claim = ExpirationClaim::from("out of this world");
-pub struct ExpirationClaim<'a>((&'a str, &'a str));
+//  //use crate::common::{PurposeLocal, V2};
+//  use crate::errors::{Iso8601ParseError, TokenClaimError};
+//  use crate::traits::Claim;
+//  use serde::Serialize;
+//  use std::convert::{From, TryFrom};
+//  use std::marker::PhantomData;
 
-impl<'a> TryFrom<&'a str> for ExpirationClaim<'a> {
-  type Error = Iso8601ParseError;
+//  pub struct Expiration;
+//  pub struct NotBefore;
+//  pub struct IssuedAt;
+//  pub struct TokenIdentifier;
+//  pub struct Audience;
+//  pub struct Subject;
+//  pub struct Arbitrary;
+//  pub struct Issuer;
 
-  fn try_from(value: &'a str) -> Result<Self, Self::Error> {
-    match iso8601::datetime(value) {
-      Ok(_) => Ok(Self(("exp", value))),
-      Err(_) => Err(Iso8601ParseError::new(value)),
-    }
-  }
-}
+//  #[derive(Serialize, Clone)]
+//  pub struct PasetoClaim<T, ClaimType> {
+//    claim_type: PhantomData<ClaimType>,
+//    key: String,
+//    value: T,
+//  }
 
-impl<'a> AsRef<(&'a str, &'a str)> for ExpirationClaim<'a> {
-  fn as_ref(&self) -> &(&'a str, &'a str) {
-    &self.0
-  }
-}
+//  //  impl<'a, ClaimType, T: Display> fmt::Display for PasetoClaim<'a, ClaimType, T> {
+//  //    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+//  //      write!(f, "({}, {})", self.key, self.value)
+//  //    }
+//  //  }
 
-//what would example code look like?
-// let claim = NotBeforeClaim::from("out of this world");
-pub struct NotBeforeClaim<'a>((&'a str, &'a str));
+//  // Claim trait allows access to internal values
+//  impl<T, ClaimType> Claim<T> for PasetoClaim<T, ClaimType> {
+//    fn get_key(&self) -> &str {
+//      &self.key
+//    }
+//    fn get_value(&self) -> &T {
+//      &self.value
+//    }
+//  }
 
-impl<'a> TryFrom<&'a str> for NotBeforeClaim<'a> {
-  type Error = Iso8601ParseError;
+//  impl TryFrom<&str> for PasetoClaim<&str, IssuedAt> {
+//    type Error = Iso8601ParseError;
 
-  fn try_from(value: &'a str) -> Result<Self, Self::Error> {
-    match iso8601::datetime(value) {
-      Ok(_) => Ok(Self(("nbf", value))),
-      Err(_) => Err(Iso8601ParseError::new(value)),
-    }
-  }
-}
+//    fn try_from(value: &str) -> Result<Self, Self::Error> {
+//      verify_iso8601_value("iat", &value.to_owned())
+//    }
+//  }
 
-impl<'a> AsRef<(&'a str, &'a str)> for NotBeforeClaim<'a> {
-  fn as_ref(&self) -> &(&'a str, &'a str) {
-    &self.0
-  }
-}
+//  impl TryFrom<&str> for PasetoClaim<&str, NotBefore> {
+//    type Error = Iso8601ParseError;
 
-//what would example code look like?
-// let claim = IssuedAtClaim::from("out of this world");
-pub struct IssuedAtClaim<'a>((&'a str, &'a str));
+//    fn try_from(value: &str) -> Result<Self, Self::Error> {
+//      verify_iso8601_value("nbf", &value.to_owned())
+//    }
+//  }
 
-impl<'a> TryFrom<&'a str> for IssuedAtClaim<'a> {
-  type Error = Iso8601ParseError;
+//  impl TryFrom<&str> for PasetoClaim<&str, Expiration> {
+//    type Error = Iso8601ParseError;
 
-  fn try_from(value: &'a str) -> Result<Self, Self::Error> {
-    match iso8601::datetime(value) {
-      Ok(_) => Ok(Self(("iat", value))),
-      Err(_) => Err(Iso8601ParseError::new(value)),
-    }
-  }
-}
+//    fn try_from(value: &str) -> Result<Self, Self::Error> {
+//      verify_iso8601_value("exp", &value.to_owned())
+//    }
+//  }
 
-impl<'a> AsRef<(&'a str, &'a str)> for IssuedAtClaim<'a> {
-  fn as_ref(&self) -> &(&'a str, &'a str) {
-    &self.0
-  }
-}
+//  /// parsing a date string and ensuring it's a valid iso8601 formatted string
+//  fn verify_iso8601_value<'a, ClaimType>(
+//    key: &str,
+//    value: &'a str,
+//  ) -> Result<PasetoClaim<&'a str, ClaimType>, Iso8601ParseError> {
+//    match iso8601::datetime(value) {
+//      //Ok(_) => Ok(Self<Expiration>(("exp", value))),
+//      Ok(_) => Ok(PasetoClaim {
+//        claim_type: PhantomData::<ClaimType>,
+//        key: key.to_string(),
+//        value,
+//      }),
+//      Err(_) => Err(Iso8601ParseError::new(value)),
+//    }
+//  }
 
-//what would example code look like?
-// let token_identifier_claim = token_identifierClaim::from("out of this world");
-pub struct TokenIdentifierClaim<'a>((&'a str, &'a str));
+//  impl From<&str> for PasetoClaim<&str, TokenIdentifier> {
+//    fn from(value: &str) -> Self {
+//      Self {
+//        claim_type: PhantomData::<TokenIdentifier>,
+//        key: "jti".to_string(),
+//        value: &value.to_owned(),
+//      }
+//    }
+//  }
 
-impl<'a> From<&'a str> for TokenIdentifierClaim<'a> {
-  fn from(s: &'a str) -> Self {
-    Self(("jti", s))
-  }
-}
+//  impl From<&str> for PasetoClaim<&str, Audience> {
+//    fn from(value: &str) -> Self {
+//      Self {
+//        claim_type: PhantomData::<Audience>,
+//        key: "aud".to_string(),
+//        value: &value.to_owned(),
+//      }
+//    }
+//  }
 
-impl<'a> AsRef<(&'a str, &'a str)> for TokenIdentifierClaim<'a> {
-  fn as_ref(&self) -> &(&'a str, &'a str) {
-    &self.0
-  }
-}
+//  impl From<&str> for PasetoClaim<&str, Subject> {
+//    fn from(value: &str) -> Self {
+//      Self {
+//        claim_type: PhantomData::<Subject>,
+//        key: "sub".to_string(),
+//        value: &value.to_owned(),
+//      }
+//    }
+//  }
 
-//what would example code look like?
-// let audience_claim = audienceClaim::from("out of this world");
-pub struct AudienceClaim<'a>((&'a str, &'a str));
+//  impl From<&str> for PasetoClaim<&str, Issuer> {
+//    fn from(value: &str) -> Self {
+//      Self {
+//        claim_type: PhantomData::<Issuer>,
+//        key: "iss".to_string(),
+//        value: &value.to_owned(),
+//      }
+//    }
+//  }
 
-impl<'a> From<&'a str> for AudienceClaim<'a> {
-  fn from(s: &'a str) -> Self {
-    Self(("aud", s))
-  }
-}
+//  impl<'a, T: Serialize> PasetoClaim<T, Arbitrary> {
+//    pub fn try_new(key: &'a str, value: T) -> Result<Self, TokenClaimError> {
+//      //ensuring we don't use any of the restricted values
+//      match key {
+//        key if ["iss", "sub", "aud", "exp", "nbf", "iat", "jti"].contains(&key) => {
+//          Err(TokenClaimError::ReservedClaim(key.into()))
+//        }
+//        _ => Ok(Self {
+//          claim_type: PhantomData::<Arbitrary>,
+//          key: key.to_string(),
+//          value,
+//        }),
+//      }
+//    }
+//  }
 
-impl<'a> AsRef<(&'a str, &'a str)> for AudienceClaim<'a> {
-  fn as_ref(&self) -> &(&'a str, &'a str) {
-    &self.0
-  }
-}
+//  #[cfg(test)]
+//  mod unit_tests {
 
-//what would example code look like?
-// let claim = ArbitraryClaim::new<u8>("universe", 137);
-pub struct ArbitraryClaim<'a, V>((&'a str, V));
+//    use super::*;
+//    use crate::traits::Claim;
+//    use anyhow::Result;
+//    use chrono::prelude::*;
+//    use std::convert::TryFrom;
 
-impl<'a, V> ArbitraryClaim<'a, V> {
-  fn new(name: &'a str, value: V) -> Self {
-    Self((name, value))
-  }
-}
+//    #[test]
+//    fn test_expiration_claim() -> Result<()> {
+//      // setup
+//      // a good time format
+//      let now = Local::now();
+//      let s = now.to_rfc3339();
 
-impl<'a, V> AsRef<(&'a str, V)> for ArbitraryClaim<'a, V> {
-  fn as_ref(&self) -> &(&'a str, V) {
-    &self.0
-  }
-}
+//      assert!(PasetoClaim::<Expiration>::try_from("hello").is_err());
+//      let claim = PasetoClaim::<Expiration>::try_from(s.as_str());
+//      assert!(claim.is_ok());
+//      let claim = claim.unwrap();
 
-//what would example code look like?
-// let subject_claim = SubjectClaim::from("out of this world");
-pub struct SubjectClaim<'a>((&'a str, &'a str));
+//      assert_eq!(claim.get_key(), "exp");
 
-impl<'a> From<&'a str> for SubjectClaim<'a> {
-  fn from(s: &'a str) -> Self {
-    Self(("sub", s))
-  }
-}
+//      Ok(())
+//    }
 
-impl<'a> AsRef<(&'a str, &'a str)> for SubjectClaim<'a> {
-  fn as_ref(&self) -> &(&'a str, &'a str) {
-    &self.0
-  }
-}
+//    #[test]
+//    fn test_not_before_claim() -> Result<()> {
+//      //  //creating a claim name
+//      let now = Local::now();
+//      let s = now.to_rfc3339();
 
-//what would example code look like?
-// let issuer_claim = IssuerClaim::from("something");
-pub struct IssuerClaim<'a>((&'a str, &'a str));
+//      assert!(PasetoClaim::<NotBefore>::try_from("hello").is_err());
+//      let claim = PasetoClaim::<NotBefore>::try_from(s.as_str());
+//      assert!(claim.is_ok());
+//      let claim = claim.unwrap();
+//      assert_eq!(claim.get_key(), "nbf");
 
-impl<'a> From<&'a str> for IssuerClaim<'a> {
-  fn from(s: &'a str) -> Self {
-    Self(("iss", s))
-  }
-}
+//      Ok(())
+//    }
 
-impl<'a> AsRef<(&'a str, &'a str)> for IssuerClaim<'a> {
-  fn as_ref(&self) -> &(&'a str, &'a str) {
-    &self.0
-  }
-}
+//    #[test]
+//    fn test_issued_at_claim() -> Result<()> {
+//      //  //creating a claim name
+//      let now = Local::now();
+//      let s = now.to_rfc3339();
 
-#[cfg(test)]
-mod unit_tests {
+//      assert!(PasetoClaim::<IssuedAt>::try_from("hello").is_err());
+//      let claim = PasetoClaim::<IssuedAt>::try_from(s.as_str());
+//      assert!(claim.is_ok());
+//      let claim = claim.unwrap();
+//      assert_eq!(claim.get_key(), "iat");
 
-  use super::*;
-  use anyhow::Result;
-  use chrono::prelude::*;
+//      Ok(())
+//    }
 
-  #[test]
-  fn test_expiration_claim() -> Result<()> {
-    //creating a claim name
-    let now = Local::now();
-    let s = now.to_rfc3339();
+//    #[test]
+//    fn test_token_identifier_claim() {
+//      // setup
+//      let claim = PasetoClaim::<TokenIdentifier>::from("out of this world");
 
-    let claim = ExpirationClaim::try_from(s.as_str())?;
-    let (name, value) = claim.as_ref();
-    assert_eq!(&"exp", name);
-    assert_eq!(&s, value);
+//      //verify
+//      assert_eq!("jti", claim.get_key());
+//      //assert_eq!(claim.get_value(), "out of this world");
+//    }
 
-    //test a bad time format
-    let now = Local::now();
-    let bad_date = now.to_string();
-    let claim = ExpirationClaim::try_from(bad_date.as_str());
-    assert!(claim.is_err());
+//    #[test]
+//    fn test_audience_claim() {
+//      // setup
+//      let claim = PasetoClaim::<Audience>::from("out of this world");
 
-    Ok(())
-  }
+//      //verify
+//      assert_eq!("aud", claim.get_key());
+//      //assert_eq!("out of this world", claim.get_value());
+//    }
 
-  #[test]
-  fn test_not_before_claim() -> Result<()> {
-    //creating a claim name
-    let now = Local::now();
-    let s = now.to_rfc3339();
+//    #[test]
+//    fn test_subject_claim() {
+//      // setup
+//      let claim = PasetoClaim::<Subject>::from("out of this world");
 
-    let claim = NotBeforeClaim::try_from(s.as_str())?;
-    let (name, value) = claim.as_ref();
-    assert_eq!(&"nbf", name);
-    assert_eq!(&s, value);
+//      //verify
+//      assert_eq!("sub", claim.get_key());
+//      //assert_eq!("out of this world", claim.get_value());
+//    }
 
-    //test a bad time format
-    let now = Local::now();
-    let bad_date = now.to_string();
-    let claim = NotBeforeClaim::try_from(bad_date.as_str());
-    assert!(claim.is_err());
+//    #[test]
+//    fn test_iss_claim() {
+//      // setup
+//      let claim = PasetoClaim::<Issuer>::from("rick sanchez");
 
-    Ok(())
-  }
-  #[test]
-  fn test_issued_at_claim() -> Result<()> {
-    //creating a claim name
-    let now = Local::now();
-    let s = now.to_rfc3339();
+//      //verify
+//      assert_eq!("iss", claim.get_key());
+//      //assert_eq!("rick sanchez", claim.get_value());
+//    }
 
-    let claim = IssuedAtClaim::try_from(s.as_str())?;
-    let (name, value) = claim.as_ref();
-    assert_eq!(&"iat", name);
-    assert_eq!(&s, value);
+//    #[test]
+//    fn test_basic_arbitrary_claim() -> Result<()> {
+//      let claim = PasetoClaim::<Arbitrary, i32>::try_new("universe", 137)?;
+//      // setup
+//      //verify
 
-    //test a bad time format
-    let now = Local::now();
-    let bad_date = now.to_string();
-    let claim = IssuedAtClaim::try_from(bad_date.as_str());
-    assert!(claim.is_err());
+//      assert_eq!(claim.key, "universe");
+//      assert_eq!(claim.value, 137);
+//      Ok(())
+//    }
 
-    Ok(())
-  }
+//    #[test]
+//    fn test_restricted_arbitrary_claim() {
+//      // setup
+//      //verify
+//      assert!(PasetoClaim::try_new("iss", 137).is_err());
+//      assert!(PasetoClaim::try_new("sub", 137).is_err());
+//      assert!(PasetoClaim::try_new("aud", 137).is_err());
+//      assert!(PasetoClaim::try_new("exp", 137).is_err());
+//      assert!(PasetoClaim::try_new("nbf", 137).is_err());
+//      assert!(PasetoClaim::try_new("iat", 137).is_err());
+//      assert!(PasetoClaim::try_new("jti", 137).is_err());
+//      assert!(PasetoClaim::try_new("i'm good tho", true).is_ok());
+//    }
 
-  #[test]
-  fn test_token_identifier_claim() {
-    //creating a claim name
-    let claim = TokenIdentifierClaim::from("out of this world");
-    let (name, value) = claim.as_ref();
-    assert_eq!(&"jti", name);
-    assert_eq!(&"out of this world", value);
-  }
+//    #[test]
+//    fn test_arbitrary_claim() -> Result<()> {
+//      //creating a valid arbitrary claim
+//      let claim = PasetoClaim::try_new("universe", 137)?;
 
-  #[test]
-  fn test_audience_claim() {
-    //creating a claim name
-    let claim = AudienceClaim::from("out of this world");
-    let (name, value) = claim.as_ref();
-    assert_eq!(&"aud", name);
-    assert_eq!(&"out of this world", value);
-  }
-
-  #[test]
-  fn test_subject_claim() {
-    //creating a claim name
-    let claim = SubjectClaim::from("out of this world");
-    let (name, value) = claim.as_ref();
-    assert_eq!(&"sub", name);
-    assert_eq!(&"out of this world", value);
-  }
-
-  #[test]
-  fn test_iss_claim() {
-    //creating a claim name
-    let claim = IssuerClaim::from("sanchez");
-    let (name, value) = claim.as_ref();
-    assert_eq!(&"iss", name);
-    assert_eq!(&"sanchez", value);
-  }
-
-  #[test]
-  fn test_arbitrary_claim() {
-    //creating a claim name
-    let claim = ArbitraryClaim::new("universe", 137);
-    let (name, value) = claim.as_ref();
-    assert_eq!(&"universe", name);
-    assert_eq!(&137, value);
-  }
-}
+//      assert_eq!(claim.key, "universe");
+//      assert_eq!(claim.value, 137);
+//      Ok(())
+//    }
+//  }

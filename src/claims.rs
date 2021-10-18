@@ -1,15 +1,164 @@
 //  //use crate::common::{PurposeLocal, V2};
-//  use crate::errors::{Iso8601ParseError, TokenClaimError};
+use crate::errors::{Iso8601ParseError, TokenClaimError};
 //  use crate::traits::Claim;
-//  use serde::Serialize;
-//  use std::convert::{From, TryFrom};
+use serde::ser::SerializeMap;
+use std::convert::From;
 //  use std::marker::PhantomData;
-
+use std::convert::{AsRef, TryFrom};
 //  pub struct Expiration;
 //  pub struct NotBefore;
 //  pub struct IssuedAt;
 //  pub struct TokenIdentifier;
-//  pub struct Audience;
+
+#[derive(Clone, Debug)]
+pub struct Arbitrary<T: 'static>((&'static str, T));
+//impl AnyClaim for Arbitrary {}
+
+//created using the From trait
+impl<T> Arbitrary<T> {
+  pub fn try_new(key: &'static str, value: T) -> Result<Self, TokenClaimError> {
+    //      //ensuring we don't use any of the restricted values
+    match key {
+      key if ["iss", "sub", "aud", "exp", "nbf", "iat", "jti"].contains(&key) => {
+        Err(TokenClaimError::ReservedClaim(key.into()))
+      }
+      _ => Ok(Self((key, value))),
+    }
+  }
+}
+
+//want to receive a reference as a tuple
+impl<T> AsRef<(&'static str, T)> for Arbitrary<T> {
+  fn as_ref(&self) -> &(&'static str, T) {
+    &(self.0)
+  }
+}
+
+impl<T: serde::Serialize> serde::Serialize for Arbitrary<T> {
+  fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+  where
+    S: serde::Serializer,
+  {
+    let mut map = serializer.serialize_map(Some(2))?;
+    map.serialize_key(&self.0 .0)?;
+    map.serialize_value(&self.0 .1)?;
+    map.end()
+  }
+}
+
+#[derive(Clone)]
+pub struct Expiration((&'static str, &'static str));
+
+impl TryFrom<&'static str> for Expiration {
+  type Error = Iso8601ParseError;
+
+  fn try_from(value: &'static str) -> Result<Self, Self::Error> {
+    match iso8601::datetime(value) {
+      Ok(_) => Ok(Self(("exp", value))),
+      Err(_) => Err(Iso8601ParseError::new(value)),
+    }
+  }
+}
+
+//  /// parsing a date string and ensuring it's a valid iso8601 formatted string
+//  fn verify_iso8601_value<'a, ClaimType>(
+//    key: &str,
+//    value: &'a str,
+//  ) -> Result<PasetoClaim<&'a str, ClaimType>, Iso8601ParseError> {
+//    match iso8601::datetime(value) {
+//      //Ok(_) => Ok(Self<Expiration>(("exp", value))),
+//      Ok(_) => Ok(PasetoClaim {
+//        claim_type: PhantomData::<ClaimType>,
+//        key: key.to_string(),
+//        value,
+//      }),
+//      Err(_) => Err(Iso8601ParseError::new(value)),
+//    }
+//  }
+//  //created using the From trait
+//  impl From<&'static str> for Expiration {
+//    fn from(s: &'static str) -> Self {
+//      Self(("exp", s))
+//    }
+//  }
+
+//want to receive a reference as a tuple
+impl AsRef<(&'static str, &'static str)> for Expiration {
+  fn as_ref(&self) -> &(&'static str, &'static str) {
+    &self.0
+  }
+}
+
+impl serde::Serialize for Expiration {
+  fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+  where
+    S: serde::Serializer,
+  {
+    let mut map = serializer.serialize_map(Some(2))?;
+    map.serialize_key(&self.0 .0)?;
+    map.serialize_value(&self.0 .1)?;
+    map.end()
+  }
+}
+
+#[derive(Clone)]
+pub struct Audience((&'static str, &'static str));
+
+//created using the From trait
+impl From<&'static str> for Audience {
+  fn from(s: &'static str) -> Self {
+    Self(("aud", s))
+  }
+}
+
+//want to receive a reference as a tuple
+impl AsRef<(&'static str, &'static str)> for Audience {
+  fn as_ref(&self) -> &(&'static str, &'static str) {
+    &self.0
+  }
+}
+
+impl serde::Serialize for Audience {
+  fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+  where
+    S: serde::Serializer,
+  {
+    let mut map = serializer.serialize_map(Some(2))?;
+    map.serialize_key(&self.0 .0)?;
+    map.serialize_value(&self.0 .1)?;
+    //map.serialize_entry(self.0 .0, self.0 .1)?;
+    map.end()
+  }
+}
+
+#[derive(Clone)]
+pub struct Subject((&'static str, &'static str));
+
+//created using the From trait
+impl From<&'static str> for Subject {
+  fn from(s: &'static str) -> Self {
+    Self(("sub", s))
+  }
+}
+
+//want to receive a reference as a tuple
+impl AsRef<(&'static str, &'static str)> for Subject {
+  fn as_ref(&self) -> &(&'static str, &'static str) {
+    &self.0
+  }
+}
+
+impl serde::Serialize for Subject {
+  fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+  where
+    S: serde::Serializer,
+  {
+    let mut map = serializer.serialize_map(Some(2))?;
+    map.serialize_entry(self.0 .0, self.0 .1)?;
+    map.end()
+  }
+}
+
 //  pub struct Subject;
 //  pub struct Arbitrary;
 //  pub struct Issuer;
@@ -58,22 +207,6 @@
 
 //    fn try_from(value: &str) -> Result<Self, Self::Error> {
 //      verify_iso8601_value("exp", &value.to_owned())
-//    }
-//  }
-
-//  /// parsing a date string and ensuring it's a valid iso8601 formatted string
-//  fn verify_iso8601_value<'a, ClaimType>(
-//    key: &str,
-//    value: &'a str,
-//  ) -> Result<PasetoClaim<&'a str, ClaimType>, Iso8601ParseError> {
-//    match iso8601::datetime(value) {
-//      //Ok(_) => Ok(Self<Expiration>(("exp", value))),
-//      Ok(_) => Ok(PasetoClaim {
-//        claim_type: PhantomData::<ClaimType>,
-//        key: key.to_string(),
-//        value,
-//      }),
-//      Err(_) => Err(Iso8601ParseError::new(value)),
 //    }
 //  }
 

@@ -1,5 +1,6 @@
 use base64::{decode_config, encode_config, DecodeError, URL_SAFE_NO_PAD};
 use ring::constant_time::verify_slices_are_equal as ConstantTimeEquals;
+//use serde::{Serialize, Serializer};
 use std::{convert::AsRef, fmt::Display};
 
 /// Handles encoding, decoding and comparing Base64Encoded strings
@@ -27,6 +28,7 @@ pub trait Claim<T> {
   fn get_key(&self) -> &str;
   fn get_value(&self) -> &T;
 }
+
 pub trait ClaimValue<T> {
   fn get_value(&self) -> &T;
 }

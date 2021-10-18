@@ -7,6 +7,8 @@
 #![doc(html_no_source)]
 #![warn(rustdoc::missing_crate_level_docs)]
 
+extern crate erased_serde;
+
 //all the various types
 mod builders;
 mod claims;
@@ -21,6 +23,7 @@ mod traits;
 mod untrusted_tokens;
 
 pub mod v2 {
+  pub use crate::claims::Audience;
   pub use crate::common::{Footer, Payload};
   pub use crate::errors::{PasetoTokenParseError, V2LocalTokenBuilderError};
   pub use crate::keys::{HexKey, Key256Bit};

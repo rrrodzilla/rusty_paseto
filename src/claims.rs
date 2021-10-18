@@ -12,17 +12,17 @@ use std::convert::{AsRef, TryFrom};
 
 #[derive(Clone, Debug)]
 pub struct Arbitrary<T: 'static>((&'static str, T));
-//impl AnyClaim for Arbitrary {}
 
-//created using the From trait
-impl<T> Arbitrary<T> {
-  pub fn try_new(key: &'static str, value: T) -> Result<Self, TokenClaimError> {
-    //      //ensuring we don't use any of the restricted values
+impl<T> TryFrom<(&'static str, T)> for Arbitrary<T> {
+  type Error = TokenClaimError;
+
+  fn try_from(val: (&'static str, T)) -> Result<Self, Self::Error> {
+    let key = val.0;
     match key {
       key if ["iss", "sub", "aud", "exp", "nbf", "iat", "jti"].contains(&key) => {
         Err(TokenClaimError::ReservedClaim(key.into()))
       }
-      _ => Ok(Self((key, value))),
+      _ => Ok(Self((key, val.1))),
     }
   }
 }

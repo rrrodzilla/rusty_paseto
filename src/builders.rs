@@ -28,7 +28,7 @@ impl<Version, Purpose> TokenBuilder<'_, Version, Purpose> {
     }
   }
 
-  pub fn add_claim<T: Any + erased_serde::Serialize>(&mut self, value: T) -> &mut Self {
+  pub fn set_claim<T: Any + erased_serde::Serialize>(&mut self, value: T) -> &mut Self {
     self.claims.insert(TypeId::of::<T>(), Box::new(value));
     self
   }
@@ -87,12 +87,12 @@ mod builders {
 
     //create a builder, add some claims and then build the token with the key
     let token = TokenBuilder::<V2, Local>::default()
-      .add_claim(Audience::from("customers"))
-      .add_claim(Subject::from("loyal subjects"))
-      .add_claim(Arbitrary::<&str>::try_new("data", "this is a secret message")?)
-      .add_claim(Arbitrary::<u8>::try_new("seats", 4)?)
-      .add_claim(Arbitrary::<f32>::try_new("any ol' pi", 3.141526)?)
-      .add_claim(Expiration::try_from("2019-01-01T00:00:00+00:00")?)
+      .set_claim(Audience::from("customers"))
+      .set_claim(Subject::from("loyal subjects"))
+      .set_claim(Expiration::try_from("2019-01-01T00:00:00+00:00")?)
+      .set_claim(Arbitrary::try_from(("data", "this is a secret message"))?)
+      .set_claim(Arbitrary::try_from(("seats", 4))?)
+      .set_claim(Arbitrary::try_from(("any ol' pi", 3.141526))?)
       .build(&key)?;
 
     //now let's decrypt the token and verify the values
@@ -107,11 +107,25 @@ mod builders {
     assert_eq!(json["seats"], 4);
     Ok(())
   }
+  #[test]
+  fn test_no_claims() -> Result<()> {
+    //create a key
+    const KEY: Key256Bit = *b"wubbalubbadubdubwubbalubbadubdub";
+    let key = V2LocalSharedKey::from(KEY);
+
+    //create a builder, add no claims and then build the token with the key
+    let token = TokenBuilder::<V2, Local>::default().build(&key)?;
+
+    //now let's decrypt the token and verify the values
+    let decrypted = V2LocalDecryptedToken::parse(&token, None, &key)?;
+    assert_eq!(decrypted.as_ref(), "{}");
+    Ok(())
+  }
 
   #[test]
   fn invalid_arbitrary_claim_test() -> Result<()> {
     //create a restricted paseto claim, this should fail
-    let result = Arbitrary::<&str>::try_new("exp", "2019-01-01T00:00:00+00:00");
+    let result = Arbitrary::<&str>::try_from(("exp", "2019-01-01T00:00:00+00:00"));
     assert!(result.is_err());
 
     Ok(())
@@ -128,8 +142,8 @@ mod builders {
 
   //    //construct and add a single claim
   //    //    let new_claim = PasetoClaim::try_new("glasses", 4)?;
-  //    //    builder.add_claim(new_claim);
-  //    //builder.add_claim(PasetoClaim::try_new("wine", "merlot")?);
+  //    //    builder.set_claim(new_claim);
+  //    //builder.set_claim(PasetoClaim::try_new("wine", "merlot")?);
 
   //    //build
   //    let token = builder.build(KEY)?;

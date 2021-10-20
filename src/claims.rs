@@ -19,16 +19,16 @@ impl<T> PasetoClaim for Arbitrary<T> {
   }
 }
 
-impl<T> TryFrom<(String, T)> for Arbitrary<T> {
+impl<T> TryFrom<(&str, T)> for Arbitrary<T> {
   type Error = TokenClaimError;
 
-  fn try_from(val: (String, T)) -> Result<Self, Self::Error> {
-    let key = val.0.as_str();
+  fn try_from(val: (&str, T)) -> Result<Self, Self::Error> {
+    let key = val.0;
     match key {
       key if ["iss", "sub", "aud", "exp", "nbf", "iat", "jti"].contains(&key) => {
         Err(TokenClaimError::ReservedClaim(key.into()))
       }
-      _ => Ok(Self((val.0, val.1))),
+      _ => Ok(Self((String::from(val.0), val.1))),
     }
   }
 }

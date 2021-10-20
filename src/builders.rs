@@ -69,7 +69,10 @@ mod builders {
   use std::convert::TryFrom;
 
   use super::*;
-  use crate::claims::{Arbitrary, Audience, Expiration, Subject};
+  use crate::claims::{
+    AudienceClaim, CustomClaim, ExpirationClaim, IssuedAtClaim, IssuerClaim, NotBeforeClaim, SubjectClaim,
+    TokenIdentifierClaim,
+  };
   use crate::common::{Footer, Local, V2};
   use crate::keys::V2LocalSharedKey;
   use crate::v2::local::V2LocalDecryptedToken;
@@ -83,12 +86,16 @@ mod builders {
 
     //create a builder, add some claims and then build the token with the key
     let token = TokenBuilder::<V2, Local>::default()
-      .set_claim(Audience::from("customers"))
-      .set_claim(Subject::from("loyal subjects"))
-      .set_claim(Expiration::try_from("2019-01-01T00:00:00+00:00")?)
-      .set_claim(Arbitrary::try_from(("data", "this is a secret message"))?)
-      .set_claim(Arbitrary::try_from(("seats", 4))?)
-      .set_claim(Arbitrary::try_from(("any ol' pi", 3.141526))?)
+      .set_claim(AudienceClaim::from("customers"))
+      .set_claim(SubjectClaim::from("loyal subjects"))
+      .set_claim(IssuerClaim::from("me"))
+      .set_claim(TokenIdentifierClaim::from("me"))
+      .set_claim(IssuedAtClaim::try_from("2019-01-01T00:00:00+00:00")?)
+      .set_claim(NotBeforeClaim::try_from("2019-01-01T00:00:00+00:00")?)
+      .set_claim(ExpirationClaim::try_from("2019-01-01T00:00:00+00:00")?)
+      .set_claim(CustomClaim::try_from(("data", "this is a secret message"))?)
+      .set_claim(CustomClaim::try_from(("seats", 4))?)
+      .set_claim(CustomClaim::try_from(("pi to 6 digits", 3.141526))?)
       .set_footer(Some(Footer::from("some footer")))
       .build(&key)?;
 
@@ -97,17 +104,22 @@ mod builders {
     let json: Value = serde_json::from_str(decrypted.as_ref())?;
 
     assert_eq!(json["aud"], "customers");
+    assert_eq!(json["jti"], "me");
+    assert_eq!(json["iss"], "me");
     assert_eq!(json["data"], "this is a secret message");
     assert_eq!(json["exp"], "2019-01-01T00:00:00+00:00");
+    assert_eq!(json["iat"], "2019-01-01T00:00:00+00:00");
+    assert_eq!(json["nbf"], "2019-01-01T00:00:00+00:00");
     assert_eq!(json["sub"], "loyal subjects");
-    assert_eq!(json["any ol' pi"], 3.141526);
+    assert_eq!(json["pi to 6 digits"], 3.141526);
     assert_eq!(json["seats"], 4);
     Ok(())
     //TODO: implement like so:
     //let token = TokenParser::<V2, Local>::default()
     //.set_footer(None)
-    //.validate_claim(Arbitrary::try_from(("data", "this is a secret message"))?, None)
-    //.validate_claim(Arbitrary::try_from(("seats", 4))?, Some(|v: i32| v > 2 ))
+    //.validate_claim(CustomClaim::try_from(("data", "this is a secret message"))?, None)
+    //.validate_claim(SubjectClaim::from("loyal subjects"), None)
+    //.validate_claim(CustomClaim::try_from(("seats", 4))?, Some(|v: i32| v > 2 ))
     //.parse(rawToken, &key)?;
   }
 
@@ -118,10 +130,10 @@ mod builders {
 
     //create a builder, add some claims dynamically
     let mut builder = TokenBuilder::<V2, Local>::default();
-    builder.set_claim(Expiration::try_from("2019-01-01T00:00:00+00:00")?);
+    builder.set_claim(ExpirationClaim::try_from("2019-01-01T00:00:00+00:00")?);
 
     for n in 1..10 {
-      builder.set_claim(Arbitrary::try_from((format!("n{}", n).as_str(), n))?);
+      builder.set_claim(CustomClaim::try_from((format!("n{}", n).as_str(), n))?);
     }
 
     //and then build the token with the key

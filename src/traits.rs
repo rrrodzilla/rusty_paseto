@@ -28,6 +28,6 @@ pub trait PasetoClaim {
   fn get_key(&self) -> &str;
 }
 
-//impl<'a, V> AsRef<(&'a str, V)> for ArbitraryClaim<'a, V> {
+//impl<'a, V> AsRef<(&'a str, V)> for CustomClaimClaim<'a, V> {
 
-//pub struct ArbitraryClaim<'a, V>((&'a str, V));
+//pub struct CustomClaimClaim<'a, V>((&'a str, V));

@@ -5,21 +5,17 @@ use serde::ser::SerializeMap;
 use std::convert::From;
 //  use std::marker::PhantomData;
 use std::convert::{AsRef, TryFrom};
-//  pub struct Expiration;
-//  pub struct NotBefore;
-//  pub struct IssuedAt;
-//  pub struct TokenIdentifier;
 
 #[derive(Clone, Debug)]
-pub struct Arbitrary<T>((String, T));
+pub struct CustomClaim<T>((String, T));
 
-impl<T> PasetoClaim for Arbitrary<T> {
+impl<T> PasetoClaim for CustomClaim<T> {
   fn get_key(&self) -> &str {
     &self.0 .0
   }
 }
 
-impl<T> TryFrom<(&str, T)> for Arbitrary<T> {
+impl<T> TryFrom<(&str, T)> for CustomClaim<T> {
   type Error = TokenClaimError;
 
   fn try_from(val: (&str, T)) -> Result<Self, Self::Error> {
@@ -33,28 +29,14 @@ impl<T> TryFrom<(&str, T)> for Arbitrary<T> {
   }
 }
 
-//  impl<T> TryFrom<(&'static str, T)> for Arbitrary<T> {
-//    type Error = TokenClaimError;
-
-//    fn try_from(val: (&'static str, T)) -> Result<Self, Self::Error> {
-//      let key = val.0;
-//      match key {
-//        key if ["iss", "sub", "aud", "exp", "nbf", "iat", "jti"].contains(&key) => {
-//          Err(TokenClaimError::ReservedClaim(key.into()))
-//        }
-//        _ => Ok(Self((key, val.1))),
-//      }
-//    }
-//  }
-
-//want to receive a reference as a tuple
-impl<T> AsRef<(String, T)> for Arbitrary<T> {
+//we want to receive a reference as a tuple
+impl<T> AsRef<(String, T)> for CustomClaim<T> {
   fn as_ref(&self) -> &(String, T) {
     &self.0
   }
 }
 
-impl<T: serde::Serialize> serde::Serialize for Arbitrary<T> {
+impl<T: serde::Serialize> serde::Serialize for CustomClaim<T> {
   fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
   where
     S: serde::Serializer,
@@ -67,17 +49,93 @@ impl<T: serde::Serialize> serde::Serialize for Arbitrary<T> {
 }
 
 #[derive(Clone)]
-pub struct Expiration((&'static str, &'static str));
-impl PasetoClaim for Expiration {
+pub struct IssuedAtClaim<'a>((&'a str, &'a str));
+impl<'a> PasetoClaim for IssuedAtClaim<'a> {
   fn get_key(&self) -> &str {
     self.0 .0
   }
 }
 
-impl TryFrom<&'static str> for Expiration {
+impl<'a> TryFrom<&'a str> for IssuedAtClaim<'a> {
   type Error = Iso8601ParseError;
 
-  fn try_from(value: &'static str) -> Result<Self, Self::Error> {
+  fn try_from(value: &'a str) -> Result<Self, Self::Error> {
+    match iso8601::datetime(value) {
+      Ok(_) => Ok(Self(("iat", value))),
+      Err(_) => Err(Iso8601ParseError::new(value)),
+    }
+  }
+}
+
+//want to receive a reference as a tuple
+impl<'a> AsRef<(&'a str, &'a str)> for IssuedAtClaim<'a> {
+  fn as_ref(&self) -> &(&'a str, &'a str) {
+    &self.0
+  }
+}
+
+impl<'a> serde::Serialize for IssuedAtClaim<'a> {
+  fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+  where
+    S: serde::Serializer,
+  {
+    let mut map = serializer.serialize_map(Some(2))?;
+    map.serialize_key(&self.0 .0)?;
+    map.serialize_value(&self.0 .1)?;
+    map.end()
+  }
+}
+
+#[derive(Clone)]
+pub struct NotBeforeClaim<'a>((&'a str, &'a str));
+impl<'a> PasetoClaim for NotBeforeClaim<'a> {
+  fn get_key(&self) -> &str {
+    self.0 .0
+  }
+}
+
+impl<'a> TryFrom<&'a str> for NotBeforeClaim<'a> {
+  type Error = Iso8601ParseError;
+
+  fn try_from(value: &'a str) -> Result<Self, Self::Error> {
+    match iso8601::datetime(value) {
+      Ok(_) => Ok(Self(("nbf", value))),
+      Err(_) => Err(Iso8601ParseError::new(value)),
+    }
+  }
+}
+
+//want to receive a reference as a tuple
+impl<'a> AsRef<(&'a str, &'a str)> for NotBeforeClaim<'a> {
+  fn as_ref(&self) -> &(&'a str, &'a str) {
+    &self.0
+  }
+}
+
+impl<'a> serde::Serialize for NotBeforeClaim<'a> {
+  fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+  where
+    S: serde::Serializer,
+  {
+    let mut map = serializer.serialize_map(Some(2))?;
+    map.serialize_key(&self.0 .0)?;
+    map.serialize_value(&self.0 .1)?;
+    map.end()
+  }
+}
+
+#[derive(Clone)]
+pub struct ExpirationClaim<'a>((&'a str, &'a str));
+impl<'a> PasetoClaim for ExpirationClaim<'a> {
+  fn get_key(&self) -> &str {
+    self.0 .0
+  }
+}
+
+impl<'a> TryFrom<&'a str> for ExpirationClaim<'a> {
+  type Error = Iso8601ParseError;
+
+  fn try_from(value: &'a str) -> Result<Self, Self::Error> {
     match iso8601::datetime(value) {
       Ok(_) => Ok(Self(("exp", value))),
       Err(_) => Err(Iso8601ParseError::new(value)),
@@ -85,36 +143,14 @@ impl TryFrom<&'static str> for Expiration {
   }
 }
 
-//  /// parsing a date string and ensuring it's a valid iso8601 formatted string
-//  fn verify_iso8601_value<'a, ClaimType>(
-//    key: &str,
-//    value: &'a str,
-//  ) -> Result<PasetoClaim<&'a str, ClaimType>, Iso8601ParseError> {
-//    match iso8601::datetime(value) {
-//      //Ok(_) => Ok(Self<Expiration>(("exp", value))),
-//      Ok(_) => Ok(PasetoClaim {
-//        claim_type: PhantomData::<ClaimType>,
-//        key: key.to_string(),
-//        value,
-//      }),
-//      Err(_) => Err(Iso8601ParseError::new(value)),
-//    }
-//  }
-//  //created using the From trait
-//  impl From<&'static str> for Expiration {
-//    fn from(s: &'static str) -> Self {
-//      Self(("exp", s))
-//    }
-//  }
-
 //want to receive a reference as a tuple
-impl AsRef<(&'static str, &'static str)> for Expiration {
-  fn as_ref(&self) -> &(&'static str, &'static str) {
+impl<'a> AsRef<(&'a str, &'a str)> for ExpirationClaim<'a> {
+  fn as_ref(&self) -> &(&'a str, &'a str) {
     &self.0
   }
 }
 
-impl serde::Serialize for Expiration {
+impl<'a> serde::Serialize for ExpirationClaim<'a> {
   fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
   where
     S: serde::Serializer,
@@ -127,28 +163,28 @@ impl serde::Serialize for Expiration {
 }
 
 #[derive(Clone)]
-pub struct Audience((&'static str, &'static str));
-impl PasetoClaim for Audience {
+pub struct TokenIdentifierClaim<'a>((&'a str, &'a str));
+impl<'a> PasetoClaim for TokenIdentifierClaim<'a> {
   fn get_key(&self) -> &str {
     self.0 .0
   }
 }
 
 //created using the From trait
-impl From<&'static str> for Audience {
-  fn from(s: &'static str) -> Self {
-    Self(("aud", s))
+impl<'a> From<&'a str> for TokenIdentifierClaim<'a> {
+  fn from(s: &'a str) -> Self {
+    Self(("jti", s))
   }
 }
 
 //want to receive a reference as a tuple
-impl AsRef<(&'static str, &'static str)> for Audience {
-  fn as_ref(&self) -> &(&'static str, &'static str) {
+impl<'a> AsRef<(&'a str, &'a str)> for TokenIdentifierClaim<'a> {
+  fn as_ref(&self) -> &(&'a str, &'a str) {
     &self.0
   }
 }
 
-impl serde::Serialize for Audience {
+impl<'a> serde::Serialize for TokenIdentifierClaim<'a> {
   fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
   where
     S: serde::Serializer,
@@ -162,29 +198,64 @@ impl serde::Serialize for Audience {
 }
 
 #[derive(Clone)]
-pub struct Subject((&'static str, &'static str));
-
-impl PasetoClaim for Subject {
+pub struct AudienceClaim<'a>((&'a str, &'a str));
+impl<'a> PasetoClaim for AudienceClaim<'a> {
   fn get_key(&self) -> &str {
     self.0 .0
   }
 }
 
 //created using the From trait
-impl From<&'static str> for Subject {
-  fn from(s: &'static str) -> Self {
+impl<'a> From<&'a str> for AudienceClaim<'a> {
+  fn from(s: &'a str) -> Self {
+    Self(("aud", s))
+  }
+}
+
+//want to receive a reference as a tuple
+impl<'a> AsRef<(&'a str, &'a str)> for AudienceClaim<'a> {
+  fn as_ref(&self) -> &(&'a str, &'a str) {
+    &self.0
+  }
+}
+
+impl<'a> serde::Serialize for AudienceClaim<'a> {
+  fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+  where
+    S: serde::Serializer,
+  {
+    let mut map = serializer.serialize_map(Some(2))?;
+    map.serialize_key(&self.0 .0)?;
+    map.serialize_value(&self.0 .1)?;
+    //map.serialize_entry(self.0 .0, self.0 .1)?;
+    map.end()
+  }
+}
+
+#[derive(Clone)]
+pub struct SubjectClaim<'a>((&'a str, &'a str));
+
+impl<'a> PasetoClaim for SubjectClaim<'a> {
+  fn get_key(&self) -> &str {
+    self.0 .0
+  }
+}
+
+//created using the From trait
+impl<'a> From<&'a str> for SubjectClaim<'a> {
+  fn from(s: &'a str) -> Self {
     Self(("sub", s))
   }
 }
 
 //want to receive a reference as a tuple
-impl AsRef<(&'static str, &'static str)> for Subject {
-  fn as_ref(&self) -> &(&'static str, &'static str) {
+impl<'a> AsRef<(&'a str, &'a str)> for SubjectClaim<'a> {
+  fn as_ref(&self) -> &(&'a str, &'a str) {
     &self.0
   }
 }
 
-impl serde::Serialize for Subject {
+impl<'a> serde::Serialize for SubjectClaim<'a> {
   fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
   where
     S: serde::Serializer,
@@ -195,241 +266,162 @@ impl serde::Serialize for Subject {
   }
 }
 
-//  pub struct Subject;
-//  pub struct Arbitrary;
-//  pub struct Issuer;
+#[derive(Clone)]
+pub struct IssuerClaim<'a>((&'a str, &'a str));
 
-//  #[derive(Serialize, Clone)]
-//  pub struct PasetoClaim<T, ClaimType> {
-//    claim_type: PhantomData<ClaimType>,
-//    key: String,
-//    value: T,
-//  }
+impl<'a> PasetoClaim for IssuerClaim<'a> {
+  fn get_key(&self) -> &str {
+    self.0 .0
+  }
+}
 
-//  //  impl<'a, ClaimType, T: Display> fmt::Display for PasetoClaim<'a, ClaimType, T> {
-//  //    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-//  //      write!(f, "({}, {})", self.key, self.value)
-//  //    }
-//  //  }
+//created using the From trait
+impl<'a> From<&'a str> for IssuerClaim<'a> {
+  fn from(s: &'a str) -> Self {
+    Self(("iss", s))
+  }
+}
 
-//  // Claim trait allows access to internal values
-//  impl<T, ClaimType> Claim<T> for PasetoClaim<T, ClaimType> {
-//    fn get_key(&self) -> &str {
-//      &self.key
-//    }
-//    fn get_value(&self) -> &T {
-//      &self.value
-//    }
-//  }
+//want to receive a reference as a tuple
+impl<'a> AsRef<(&'a str, &'a str)> for IssuerClaim<'a> {
+  fn as_ref(&self) -> &(&'a str, &'a str) {
+    &self.0
+  }
+}
 
-//  impl TryFrom<&str> for PasetoClaim<&str, IssuedAt> {
-//    type Error = Iso8601ParseError;
+impl<'a> serde::Serialize for IssuerClaim<'a> {
+  fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+  where
+    S: serde::Serializer,
+  {
+    let mut map = serializer.serialize_map(Some(2))?;
+    map.serialize_entry(self.0 .0, self.0 .1)?;
+    map.end()
+  }
+}
 
-//    fn try_from(value: &str) -> Result<Self, Self::Error> {
-//      verify_iso8601_value("iat", &value.to_owned())
-//    }
-//  }
+#[cfg(test)]
+mod unit_tests {
 
-//  impl TryFrom<&str> for PasetoClaim<&str, NotBefore> {
-//    type Error = Iso8601ParseError;
+  use super::*;
+  use anyhow::Result;
+  use chrono::prelude::*;
+  use std::convert::TryFrom;
 
-//    fn try_from(value: &str) -> Result<Self, Self::Error> {
-//      verify_iso8601_value("nbf", &value.to_owned())
-//    }
-//  }
+  #[test]
+  fn test_expiration_claim() -> Result<()> {
+    // setup
+    // a good time format
+    let now = Local::now();
+    let s = now.to_rfc3339();
 
-//  impl TryFrom<&str> for PasetoClaim<&str, Expiration> {
-//    type Error = Iso8601ParseError;
+    assert!(ExpirationClaim::try_from("hello").is_err());
+    let claim = ExpirationClaim::try_from(s.as_str());
+    assert!(claim.is_ok());
+    let claim = claim.unwrap();
 
-//    fn try_from(value: &str) -> Result<Self, Self::Error> {
-//      verify_iso8601_value("exp", &value.to_owned())
-//    }
-//  }
+    assert_eq!(claim.get_key(), "exp");
 
-//  impl From<&str> for PasetoClaim<&str, TokenIdentifier> {
-//    fn from(value: &str) -> Self {
-//      Self {
-//        claim_type: PhantomData::<TokenIdentifier>,
-//        key: "jti".to_string(),
-//        value: &value.to_owned(),
-//      }
-//    }
-//  }
+    Ok(())
+  }
 
-//  impl From<&str> for PasetoClaim<&str, Audience> {
-//    fn from(value: &str) -> Self {
-//      Self {
-//        claim_type: PhantomData::<Audience>,
-//        key: "aud".to_string(),
-//        value: &value.to_owned(),
-//      }
-//    }
-//  }
+  #[test]
+  fn test_not_before_claim() -> Result<()> {
+    // setup
+    // a good time format
+    let now = Local::now();
+    let s = now.to_rfc3339();
 
-//  impl From<&str> for PasetoClaim<&str, Subject> {
-//    fn from(value: &str) -> Self {
-//      Self {
-//        claim_type: PhantomData::<Subject>,
-//        key: "sub".to_string(),
-//        value: &value.to_owned(),
-//      }
-//    }
-//  }
+    assert!(NotBeforeClaim::try_from("hello").is_err());
+    let claim = NotBeforeClaim::try_from(s.as_str());
+    assert!(claim.is_ok());
+    let claim = claim.unwrap();
 
-//  impl From<&str> for PasetoClaim<&str, Issuer> {
-//    fn from(value: &str) -> Self {
-//      Self {
-//        claim_type: PhantomData::<Issuer>,
-//        key: "iss".to_string(),
-//        value: &value.to_owned(),
-//      }
-//    }
-//  }
+    assert_eq!(claim.get_key(), "nbf");
 
-//  impl<'a, T: Serialize> PasetoClaim<T, Arbitrary> {
-//    pub fn try_new(key: &'a str, value: T) -> Result<Self, TokenClaimError> {
-//      //ensuring we don't use any of the restricted values
-//      match key {
-//        key if ["iss", "sub", "aud", "exp", "nbf", "iat", "jti"].contains(&key) => {
-//          Err(TokenClaimError::ReservedClaim(key.into()))
-//        }
-//        _ => Ok(Self {
-//          claim_type: PhantomData::<Arbitrary>,
-//          key: key.to_string(),
-//          value,
-//        }),
-//      }
-//    }
-//  }
+    Ok(())
+  }
 
-//  #[cfg(test)]
-//  mod unit_tests {
+  #[test]
+  fn test_issued_at_claim() -> Result<()> {
+    // setup
+    // a good time format
+    let now = Local::now();
+    let s = now.to_rfc3339();
 
-//    use super::*;
-//    use crate::traits::Claim;
-//    use anyhow::Result;
-//    use chrono::prelude::*;
-//    use std::convert::TryFrom;
+    assert!(IssuedAtClaim::try_from("hello").is_err());
+    let claim = IssuedAtClaim::try_from(s.as_str());
+    assert!(claim.is_ok());
+    let claim = claim.unwrap();
 
-//    #[test]
-//    fn test_expiration_claim() -> Result<()> {
-//      // setup
-//      // a good time format
-//      let now = Local::now();
-//      let s = now.to_rfc3339();
+    assert_eq!(claim.get_key(), "iat");
 
-//      assert!(PasetoClaim::<Expiration>::try_from("hello").is_err());
-//      let claim = PasetoClaim::<Expiration>::try_from(s.as_str());
-//      assert!(claim.is_ok());
-//      let claim = claim.unwrap();
+    Ok(())
+  }
+  #[test]
+  fn test_token_identifier_claim() {
+    // setup
+    let borrowed_str = String::from("hello world");
+    let claim = TokenIdentifierClaim::from(borrowed_str.as_str());
 
-//      assert_eq!(claim.get_key(), "exp");
+    //verify
+    assert_eq!("jti", claim.get_key());
+  }
 
-//      Ok(())
-//    }
+  #[test]
+  fn test_audience_claim() {
+    // setup
+    let borrowed_str = String::from("hello world");
+    let claim = AudienceClaim::from(borrowed_str.as_str());
 
-//    #[test]
-//    fn test_not_before_claim() -> Result<()> {
-//      //  //creating a claim name
-//      let now = Local::now();
-//      let s = now.to_rfc3339();
+    //verify
+    assert_eq!("aud", claim.get_key());
+  }
 
-//      assert!(PasetoClaim::<NotBefore>::try_from("hello").is_err());
-//      let claim = PasetoClaim::<NotBefore>::try_from(s.as_str());
-//      assert!(claim.is_ok());
-//      let claim = claim.unwrap();
-//      assert_eq!(claim.get_key(), "nbf");
+  #[test]
+  fn test_subject_claim() {
+    // setup
+    let borrowed_str = String::from("hello world");
+    let claim = SubjectClaim::from(borrowed_str.as_str());
 
-//      Ok(())
-//    }
+    //verify
+    assert_eq!("sub", claim.get_key());
+  }
 
-//    #[test]
-//    fn test_issued_at_claim() -> Result<()> {
-//      //  //creating a claim name
-//      let now = Local::now();
-//      let s = now.to_rfc3339();
+  #[test]
+  fn test_iss_claim() {
+    // setup
+    let borrowed_str = String::from("hello world");
+    let claim = IssuerClaim::from(borrowed_str.as_str());
 
-//      assert!(PasetoClaim::<IssuedAt>::try_from("hello").is_err());
-//      let claim = PasetoClaim::<IssuedAt>::try_from(s.as_str());
-//      assert!(claim.is_ok());
-//      let claim = claim.unwrap();
-//      assert_eq!(claim.get_key(), "iat");
+    //verify
+    assert_eq!("iss", claim.get_key());
+  }
 
-//      Ok(())
-//    }
+  #[test]
+  fn test_basic_custom_claim() -> Result<()> {
+    let borrowed_str = String::from("universe");
+    let claim = CustomClaim::try_from((borrowed_str.as_str(), 137))?;
+    // setup
+    //verify
 
-//    #[test]
-//    fn test_token_identifier_claim() {
-//      // setup
-//      let claim = PasetoClaim::<TokenIdentifier>::from("out of this world");
+    assert_eq!(claim.get_key(), "universe");
+    let (_, v) = claim.as_ref();
+    assert_eq!(v, &137);
+    Ok(())
+  }
 
-//      //verify
-//      assert_eq!("jti", claim.get_key());
-//      //assert_eq!(claim.get_value(), "out of this world");
-//    }
-
-//    #[test]
-//    fn test_audience_claim() {
-//      // setup
-//      let claim = PasetoClaim::<Audience>::from("out of this world");
-
-//      //verify
-//      assert_eq!("aud", claim.get_key());
-//      //assert_eq!("out of this world", claim.get_value());
-//    }
-
-//    #[test]
-//    fn test_subject_claim() {
-//      // setup
-//      let claim = PasetoClaim::<Subject>::from("out of this world");
-
-//      //verify
-//      assert_eq!("sub", claim.get_key());
-//      //assert_eq!("out of this world", claim.get_value());
-//    }
-
-//    #[test]
-//    fn test_iss_claim() {
-//      // setup
-//      let claim = PasetoClaim::<Issuer>::from("rick sanchez");
-
-//      //verify
-//      assert_eq!("iss", claim.get_key());
-//      //assert_eq!("rick sanchez", claim.get_value());
-//    }
-
-//    #[test]
-//    fn test_basic_arbitrary_claim() -> Result<()> {
-//      let claim = PasetoClaim::<Arbitrary, i32>::try_new("universe", 137)?;
-//      // setup
-//      //verify
-
-//      assert_eq!(claim.key, "universe");
-//      assert_eq!(claim.value, 137);
-//      Ok(())
-//    }
-
-//    #[test]
-//    fn test_restricted_arbitrary_claim() {
-//      // setup
-//      //verify
-//      assert!(PasetoClaim::try_new("iss", 137).is_err());
-//      assert!(PasetoClaim::try_new("sub", 137).is_err());
-//      assert!(PasetoClaim::try_new("aud", 137).is_err());
-//      assert!(PasetoClaim::try_new("exp", 137).is_err());
-//      assert!(PasetoClaim::try_new("nbf", 137).is_err());
-//      assert!(PasetoClaim::try_new("iat", 137).is_err());
-//      assert!(PasetoClaim::try_new("jti", 137).is_err());
-//      assert!(PasetoClaim::try_new("i'm good tho", true).is_ok());
-//    }
-
-//    #[test]
-//    fn test_arbitrary_claim() -> Result<()> {
-//      //creating a valid arbitrary claim
-//      let claim = PasetoClaim::try_new("universe", 137)?;
-
-//      assert_eq!(claim.key, "universe");
-//      assert_eq!(claim.value, 137);
-//      Ok(())
-//    }
-//  }
+  #[test]
+  fn test_restricted_custom_claim() {
+    // setup
+    //verify
+    assert!(CustomClaim::try_from(("iss", 137)).is_err());
+    assert!(CustomClaim::try_from(("sub", 137)).is_err());
+    assert!(CustomClaim::try_from(("aud", 137)).is_err());
+    assert!(CustomClaim::try_from(("exp", 137)).is_err());
+    assert!(CustomClaim::try_from(("nbf", 137)).is_err());
+    assert!(CustomClaim::try_from(("iat", 137)).is_err());
+    assert!(CustomClaim::try_from(("jti", 137)).is_err());
+    assert!(CustomClaim::try_from(("i'm good tho", true)).is_ok());
+  }
+}

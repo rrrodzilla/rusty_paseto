@@ -14,7 +14,7 @@ impl Iso8601ParseError {
 /// Potential errors from attempting to build a token claim
 #[derive(Debug, Error)]
 pub enum TokenClaimError {
-  #[error("The key {0} is a reserved for use within PASETO.  To set a reserved claim, use the strong type: e.g - ExpirationClaim")]
+  #[error("The key {0} is a reserved for use within PASETO.  To set a reserved claim, use the strong type: e.g - ExpirationClaimClaim")]
   ReservedClaim(String),
 }
 

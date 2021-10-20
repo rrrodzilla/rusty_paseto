@@ -24,13 +24,12 @@ mod untrusted_tokens;
 
 pub mod v2 {
   pub use crate::claims::AudienceClaim;
-  pub use crate::common::{Footer, Payload};
+  pub use crate::common::{Footer, Payload, PurposeLocal, Version2};
   pub use crate::errors::{PasetoTokenParseError, V2LocalTokenBuilderError};
-  pub use crate::keys::{HexKey, Key256Bit};
+  pub use crate::keys::{HexKey, Key, Key256Bit};
   pub mod local {
     pub use crate::builders::TokenBuilder;
-    pub use crate::decrypted_tokens::V2LocalDecryptedToken;
-    pub use crate::keys::V2LocalSharedKey;
-    pub use crate::tokens::v2::V2LocalToken;
+    pub use crate::decrypted_tokens::DecryptedToken;
+    pub use crate::tokens::v2::Token;
   }
 }

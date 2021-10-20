@@ -1,41 +1,13 @@
 use crate::traits::Base64Encodable;
 use std::fmt;
 
-pub struct V2;
-pub struct V4;
-pub struct Local;
-pub struct Public;
+#[derive(Debug)]
+pub struct Version2;
+#[derive(Debug)]
+pub struct PurposeLocal;
+#[derive(Debug)]
+pub struct PurposePublic;
 
-//  //claims: HashMap<TypeId, Box<dyn erased_serde::Serialize>>,
-//  pub struct ClaimSet<'a>(HashMap<&'a TypeId, Box<dyn erased_serde::Serialize>>);
-
-//  impl<'a> Default for ClaimSet<'a> {
-//    fn default() -> Self {
-//      Self(HashMap::new())
-//    }
-//  }
-
-//  impl<'a> Iterator for ClaimSet<'a> {
-//    type Item = (&'a TypeId, Box<dyn erased_serde::Serialize>);
-
-//    fn next(&mut self) -> Option<Self::Item> {
-//      let s = self.0;
-//      self.0.into_iter().next()
-//    }
-//  }
-
-//  impl<'a> ClaimSet<'a> {
-//    fn insert<T: erased_serde::Serialize + 'static>(&mut self, claim: T) {
-//      self.0.insert(&TypeId::of::<T>(), Box::new(claim));
-//    }
-//  }
-
-//  impl<'a> AsRef<HashMap<&'a TypeId, Box<dyn erased_serde::Serialize>>> for ClaimSet<'a> {
-//    fn as_ref(&self) -> &HashMap<&'a TypeId, Box<dyn erased_serde::Serialize>> {
-//      let tuple = self.0;
-//      &tuple
-//    }
-//  }
 /// An optional footer for the PASETO token.
 ///
 /// Appended to the end of a token and validated during decryption.
@@ -46,12 +18,12 @@ pub struct Public;
 /// ```
 /// # use rusty_paseto::v2::local::*;
 /// # use rusty_paseto::v2::*;
-/// # let key = &V2LocalSharedKey::new_random();
+/// # let key = &Key::<Version2, PurposeLocal>::new_random();
 /// let footer = Some(Footer::from("wubbulubbadubdub"));
 /// # let payload = Payload::from("I'm Pickle Rick!");
 ///
 /// // Use in any token that accepts an optional footer
-/// let token = V2LocalToken::new(payload, key, footer);
+/// let token = Token::<Version2, PurposeLocal>::new(payload, key, footer);
 /// ```
 #[derive(Debug, Clone, Copy)]
 pub struct Footer<'a>(&'a str);

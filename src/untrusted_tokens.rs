@@ -1,23 +1,28 @@
-use crate::common::Footer;
+use crate::common::{Footer, PurposeLocal, Version2};
 use crate::errors::PasetoTokenParseError;
-use crate::headers::v2::V2LocalHeader;
+use crate::headers::v2::Header;
 use crate::v2::Payload;
+use std::marker::PhantomData;
 use std::str::FromStr;
 
 /// A type alias to simplify usage of this tuple (payload, potential footer)
 /// each value in the tuple EXCEPT for the header should be base64 encoded already
-pub(crate) type V2LocalUntrustedEncryptedTokenParts = (String, Option<String>);
+//pub(crate) type V2LocalUntrustedEncryptedTokenParts = (String, Option<String>);
 
 /// A private struct for parsing an incoming token string
-pub(crate) struct V2LocalUntrustedEncryptedToken(V2LocalUntrustedEncryptedTokenParts);
+pub(crate) struct UntrustedEncryptedToken<Version, Purpose> {
+  version: PhantomData<Version>,
+  purpose: PhantomData<Purpose>,
+  encrypted_token_parts: (String, Option<String>),
+}
 
-impl AsRef<V2LocalUntrustedEncryptedTokenParts> for V2LocalUntrustedEncryptedToken {
-  fn as_ref(&self) -> &V2LocalUntrustedEncryptedTokenParts {
-    &self.0
+impl AsRef<(String, Option<String>)> for UntrustedEncryptedToken<Version2, PurposeLocal> {
+  fn as_ref(&self) -> &(String, Option<String>) {
+    &self.encrypted_token_parts
   }
 }
 
-impl FromStr for V2LocalUntrustedEncryptedToken {
+impl FromStr for UntrustedEncryptedToken<Version2, PurposeLocal> {
   type Err = PasetoTokenParseError;
 
   /// This is where the real work is done to parse any ole string which may or may not
@@ -36,19 +41,27 @@ impl FromStr for V2LocalUntrustedEncryptedToken {
     //first reconstruct it from the incoming string parts
     let potential_header = format!("{}.{}.", potential_parts[0], potential_parts[1]);
     //if the recreated header is not equal to a valid known Header, then the header is invalid
-    if potential_header.ne(V2LocalHeader::default().as_ref()) {
+    if potential_header.ne(Header::<Version2, PurposeLocal>::default().as_ref()) {
       return Err(PasetoTokenParseError::WrongHeader);
     }
 
     //produce the struct based on whether there is a potential footer or not
     match potential_parts.len() {
       //no footer
-      3 => Ok(Self((Payload::from(potential_parts[2]).to_string(), None))),
+      3 => Ok(Self {
+        version: PhantomData,
+        purpose: PhantomData,
+        encrypted_token_parts: (Payload::from(potential_parts[2]).to_string(), None),
+      }),
       //otherwise there must be
-      _ => Ok(Self((
-        Payload::from(potential_parts[2]).to_string(),
-        Some(Footer::from(potential_parts[3]).to_string()),
-      ))),
+      _ => Ok(Self {
+        version: PhantomData,
+        purpose: PhantomData,
+        encrypted_token_parts: (
+          Payload::from(potential_parts[2]).to_string(),
+          Some(Footer::from(potential_parts[3]).to_string()),
+        ),
+      }),
     }
   }
 }

@@ -1,28 +1,35 @@
 pub(crate) mod v2 {
   use crate::traits::Base64Encodable;
   use crate::{
-    common::{Footer, Payload},
+    common::{Footer, Payload, PurposeLocal, Version2},
     crypto::get_encrypted_raw_payload,
-    headers::v2::V2LocalHeader,
-    keys::{Key192Bit, Key256Bit, NonceKey, V2LocalSharedKey},
+    headers::v2::Header,
+    keys::{Key, Key192Bit, Key256Bit, NonceKey},
   };
   use std::fmt;
+  use std::marker::PhantomData;
 
   /// A V2 Local paseto token that has been encrypted with a V2LocalSharedKey
   #[derive(Debug, PartialEq)]
-  pub struct V2LocalToken {
+  pub struct Token<Version, Purpose> {
+    purpose: PhantomData<Purpose>,
+    version: PhantomData<Version>,
     header: String,
     footer: Option<String>,
     payload: String,
   }
 
-  impl V2LocalToken {
+  impl Token<Version2, PurposeLocal> {
     /// Creates a new token from constituent parts
-    pub fn new(message: Payload, key: &V2LocalSharedKey, footer: Option<Footer>) -> V2LocalToken {
+    pub fn new(
+      message: Payload,
+      key: &Key<Version2, PurposeLocal>,
+      footer: Option<Footer>,
+    ) -> Token<Version2, PurposeLocal> {
       //use a random nonce
       let nonce_key = NonceKey::new_random();
       //set a default header for this token type
-      let header = V2LocalHeader::default();
+      let header = Header::<Version2, PurposeLocal>::default();
       //build and return the token
       Self::build_token(header, message, key, footer, &nonce_key)
     }
@@ -34,7 +41,7 @@ pub(crate) mod v2 {
       key: &SK,
       footer: Option<F>,
       nonce_key: &NK,
-    ) -> V2LocalToken
+    ) -> Token<Version2, PurposeLocal>
     where
       H: AsRef<str> + std::fmt::Display,
       P: AsRef<str>,
@@ -47,7 +54,9 @@ pub(crate) mod v2 {
 
       //produce the token with the values
       //the payload and footer are both base64 encoded
-      V2LocalToken {
+      Token::<Version2, PurposeLocal> {
+        purpose: PhantomData,
+        version: PhantomData,
         header: header.to_string(), //the header is not base64 encoded
         payload: payload.encode(),
         footer: footer.as_ref().map(|f| f.encode()),
@@ -55,7 +64,7 @@ pub(crate) mod v2 {
     }
   }
 
-  impl fmt::Display for V2LocalToken {
+  impl fmt::Display for Token<Version2, PurposeLocal> {
     /// Formats the token for display and subsequently allows a to_string implementation
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
       if let Some(footer) = &self.footer {
@@ -70,9 +79,10 @@ pub(crate) mod v2 {
 #[cfg(test)]
 mod v2_test_vectors {
 
-  use crate::headers::v2::V2LocalHeader;
-  use crate::keys::{HexKey, Key192Bit, Key256Bit, NonceKey, V2LocalSharedKey};
-  use crate::tokens::v2::V2LocalToken;
+  use crate::common::{PurposeLocal, Version2};
+  use crate::headers::v2::Header;
+  use crate::keys::{HexKey, Key, Key192Bit, Key256Bit, NonceKey};
+  use crate::tokens::v2::Token;
   use crate::v2::{Footer, Payload};
   use anyhow::Result;
   use serde_json::{json, Value};
@@ -81,7 +91,7 @@ mod v2_test_vectors {
     // parse the hex string to ensure it will make a valid key
     let hex_key = key.parse::<HexKey<Key256Bit>>()?;
     //then generate the V2 local key for it
-    let key = &V2LocalSharedKey::from(hex_key);
+    let key = &Key::<Version2, PurposeLocal>::from(hex_key);
 
     let nonce_key = nonce.parse::<HexKey<Key192Bit>>()?;
     let nonce = NonceKey::from(nonce_key);
@@ -89,19 +99,23 @@ mod v2_test_vectors {
     let json = payload.to_string();
     //  eprintln!("\nJSON INFO: {}\n", json);
     let message = Payload::from(json.as_str());
-    let header = V2LocalHeader::default();
+    let header = Header::<Version2, PurposeLocal>::default();
 
     //  //create a local v2 token
-    let token = V2LocalToken::build_token::<V2LocalHeader, Payload, Footer, V2LocalSharedKey, NonceKey>(
-      header, message, &key, footer, &nonce,
-    );
+    let token = Token::<Version2, PurposeLocal>::build_token::<
+      Header<Version2, PurposeLocal>,
+      Payload,
+      Footer,
+      Key<Version2, PurposeLocal>,
+      NonceKey,
+    >(header, message, &key, footer, &nonce);
 
     //validate the test vector
     assert_eq!(token.to_string(), expected_token);
 
     //now let's try to decrypt it
     let decrypted_payload =
-      crate::decrypted_tokens::V2LocalDecryptedToken::parse(token.to_string().as_str(), None, key);
+      crate::decrypted_tokens::DecryptedToken::<Version2, PurposeLocal>::parse(token.to_string().as_str(), None, key);
     if let Ok(payload) = decrypted_payload {
       assert_eq!(payload.as_ref(), message.as_ref());
     }
@@ -199,11 +213,13 @@ mod v2_test_vectors {
 #[cfg(test)]
 mod unit_tests {
 
+  use crate::common::*;
   use crate::untrusted_tokens::*;
 
   #[test]
   fn test_v2_local_encrypted_parse_with_footer() {
-    let potential_token = "v2.local.some_stuff.aGVyZXNfYV9mb290ZXI".parse::<V2LocalUntrustedEncryptedToken>();
+    let potential_token =
+      "v2.local.some_stuff.aGVyZXNfYV9mb290ZXI".parse::<UntrustedEncryptedToken<Version2, PurposeLocal>>();
     assert!(potential_token.is_ok());
     let token_parts = potential_token.unwrap();
     let (payload, base64_encoded_footer) = token_parts.as_ref();
@@ -220,7 +236,7 @@ mod unit_tests {
 
   #[test]
   fn test_v2_local_encrypted_parse_no_footer() {
-    let potential_token = "v2.local.some_stuff".parse::<V2LocalUntrustedEncryptedToken>();
+    let potential_token = "v2.local.some_stuff".parse::<UntrustedEncryptedToken<Version2, PurposeLocal>>();
     assert!(potential_token.is_ok());
     let token_parts = potential_token.unwrap();
     let (payload, footer) = token_parts.as_ref();

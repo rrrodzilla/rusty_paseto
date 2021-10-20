@@ -1,21 +1,26 @@
-use crate::common::Footer;
+use crate::common::{Footer, PurposeLocal, Version2};
 use crate::crypto::{try_decrypt_payload, validate_footer_against_hex_encoded_footer_in_constant_time};
 use crate::errors::PasetoTokenParseError;
 use crate::headers::v2::*;
-use crate::untrusted_tokens::V2LocalUntrustedEncryptedToken;
-use crate::v2::local::V2LocalSharedKey;
+use crate::keys::Key;
+use crate::untrusted_tokens::UntrustedEncryptedToken;
 use crate::v2::Payload;
 use std::cmp::PartialEq;
 use std::convert::AsRef;
 use std::default::Default;
 use std::fmt;
+use std::marker::PhantomData;
 use std::str::FromStr;
 
 /// Parses a V2 Local paseto token string and provides the decrypted payload string
 #[derive(Debug, PartialEq)]
-pub struct V2LocalDecryptedToken(String);
+pub struct DecryptedToken<Version, Purpose> {
+  version: PhantomData<Version>,
+  purpose: PhantomData<Purpose>,
+  token: String,
+}
 
-impl<R> PartialEq<R> for V2LocalDecryptedToken
+impl<R, Version, Purpose> PartialEq<R> for DecryptedToken<Version, Purpose>
 where
   R: AsRef<str>,
 {
@@ -23,32 +28,32 @@ where
     self.as_ref() == other.as_ref()
   }
 }
-impl fmt::Display for V2LocalDecryptedToken {
+impl<Version, Purpose> fmt::Display for DecryptedToken<Version, Purpose> {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "{}", self.0)
+    write!(f, "{}", self.token)
   }
 }
 
-impl AsRef<String> for V2LocalDecryptedToken {
+impl<Version, Purpose> AsRef<String> for DecryptedToken<Version, Purpose> {
   fn as_ref(&self) -> &String {
-    &self.0
+    &self.token
   }
 }
 
-impl V2LocalDecryptedToken {
+impl DecryptedToken<Version2, PurposeLocal> {
   // Given an arbitrary string, an encryption key and an optional footer,
   // validate and decrypt this token raising errors as needed
   pub fn parse<T>(
     potential_token: &T,
     potential_footer: Option<Footer>,
-    key: &V2LocalSharedKey,
-  ) -> Result<V2LocalDecryptedToken, PasetoTokenParseError>
+    key: &Key<Version2, PurposeLocal>,
+  ) -> Result<DecryptedToken<Version2, PurposeLocal>, PasetoTokenParseError>
   where
     T: AsRef<str> + ?Sized,
   {
     //an initial parse of the incoming string to see what we find and validate its structure
     //can raise exceptions
-    let parsed_values = V2LocalUntrustedEncryptedToken::from_str(potential_token.as_ref())?;
+    let parsed_values = UntrustedEncryptedToken::<Version2, PurposeLocal>::from_str(potential_token.as_ref())?;
     //if all went well, we can extract the values
     let (parsed_payload, found_footer) = parsed_values.as_ref();
 
@@ -62,10 +67,14 @@ impl V2LocalDecryptedToken {
     //can raise exceptions
     let payload = try_decrypt_payload(
       &raw_payload,
-      &V2LocalHeader::default(),
+      &Header::<Version2, PurposeLocal>::default(),
       &potential_footer.unwrap_or_default(),
       key,
     )?;
-    Ok(Self(payload))
+    Ok(Self {
+      version: PhantomData,
+      purpose: PhantomData,
+      token: payload,
+    })
   }
 }

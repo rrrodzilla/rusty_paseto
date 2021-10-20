@@ -1,8 +1,8 @@
 use crate::{
-  common::{Footer, Payload},
+  common::{Footer, Payload, PurposeLocal, Version2},
   errors::V2LocalTokenBuilderError,
-  keys::V2LocalSharedKey,
-  tokens::v2::V2LocalToken,
+  keys::Key,
+  tokens::v2::Token,
   traits::PasetoClaim,
 };
 use core::marker::PhantomData;
@@ -42,8 +42,8 @@ impl<Version, Purpose> Default for TokenBuilder<'_, Version, Purpose> {
   }
 }
 
-impl<'a, V2, Local> TokenBuilder<'a, V2, Local> {
-  pub fn build(&mut self, key: &V2LocalSharedKey) -> Result<String, V2LocalTokenBuilderError> {
+impl<'a> TokenBuilder<'a, Version2, PurposeLocal> {
+  pub fn build(&mut self, key: &Key<Version2, PurposeLocal>) -> Result<String, V2LocalTokenBuilderError> {
     //here we need to go through all the claims and serialize them to build a payload
     let mut payload = String::from('{');
 
@@ -60,7 +60,7 @@ impl<'a, V2, Local> TokenBuilder<'a, V2, Local> {
     payload = payload.trim_end_matches(',').to_string();
     payload.push('}');
 
-    Ok(V2LocalToken::new(Payload::from(payload.as_str()), key, self.footer).to_string())
+    Ok(Token::<Version2, PurposeLocal>::new(Payload::from(payload.as_str()), key, self.footer).to_string())
   }
 }
 
@@ -73,19 +73,19 @@ mod builders {
     AudienceClaim, CustomClaim, ExpirationClaim, IssuedAtClaim, IssuerClaim, NotBeforeClaim, SubjectClaim,
     TokenIdentifierClaim,
   };
-  use crate::common::{Footer, Local, V2};
-  use crate::keys::V2LocalSharedKey;
-  use crate::v2::local::V2LocalDecryptedToken;
+  use crate::common::{Footer, PurposeLocal, Version2};
+  use crate::keys::Key;
+  use crate::v2::local::DecryptedToken;
   use anyhow::Result;
   use serde_json::value::Value;
 
   #[test]
   fn full_builder_test() -> Result<()> {
     //create a key
-    let key = V2LocalSharedKey::from(*b"wubbalubbadubdubwubbalubbadubdub");
+    let key = Key::<Version2, PurposeLocal>::from(*b"wubbalubbadubdubwubbalubbadubdub");
 
     //create a builder, add some claims and then build the token with the key
-    let token = TokenBuilder::<V2, Local>::default()
+    let token = TokenBuilder::<Version2, PurposeLocal>::default()
       .set_claim(AudienceClaim::from("customers"))
       .set_claim(SubjectClaim::from("loyal subjects"))
       .set_claim(IssuerClaim::from("me"))
@@ -100,7 +100,7 @@ mod builders {
       .build(&key)?;
 
     //now let's decrypt the token and verify the values
-    let decrypted = V2LocalDecryptedToken::parse(&token, Some(Footer::from("some footer")), &key)?;
+    let decrypted = DecryptedToken::<Version2, PurposeLocal>::parse(&token, Some(Footer::from("some footer")), &key)?;
     let json: Value = serde_json::from_str(decrypted.as_ref())?;
 
     assert_eq!(json["aud"], "customers");
@@ -126,10 +126,10 @@ mod builders {
   #[test]
   fn dynamic_claims_test() -> Result<()> {
     //create a key
-    let key = V2LocalSharedKey::from(*b"wubbalubbadubdubwubbalubbadubdub");
+    let key = Key::<Version2, PurposeLocal>::from(*b"wubbalubbadubdubwubbalubbadubdub");
 
     //create a builder, add some claims dynamically
-    let mut builder = TokenBuilder::<V2, Local>::default();
+    let mut builder = TokenBuilder::<Version2, PurposeLocal>::default();
     builder.set_claim(ExpirationClaim::try_from("2019-01-01T00:00:00+00:00")?);
 
     for n in 1..10 {
@@ -140,7 +140,7 @@ mod builders {
     let token = builder.build(&key)?;
 
     //now let's decrypt the token and verify the values
-    let decrypted = V2LocalDecryptedToken::parse(&token, None, &key)?;
+    let decrypted = DecryptedToken::<Version2, PurposeLocal>::parse(&token, None, &key)?;
     let json: Value = serde_json::from_str(decrypted.as_ref())?;
 
     for n in 1..10 {
@@ -155,13 +155,13 @@ mod builders {
   #[test]
   fn test_no_claims() -> Result<()> {
     //create a key
-    let key = V2LocalSharedKey::from(*b"wubbalubbadubdubwubbalubbadubdub");
+    let key = Key::<Version2, PurposeLocal>::from(*b"wubbalubbadubdubwubbalubbadubdub");
 
     //create a builder, add no claims and then build the token with the key
-    let token = TokenBuilder::<V2, Local>::default().build(&key)?;
+    let token = TokenBuilder::<Version2, PurposeLocal>::default().build(&key)?;
 
     //now let's decrypt the token and verify the values
-    let decrypted = V2LocalDecryptedToken::parse(&token, None, &key)?;
+    let decrypted = DecryptedToken::<Version2, PurposeLocal>::parse(&token, None, &key)?;
     assert_eq!(decrypted.as_ref(), "{}");
     Ok(())
   }

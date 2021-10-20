@@ -242,9 +242,12 @@ mod unit_tests {
     XChaCha20Poly1305,
   };
 
-  use crate::crypto::{PreAuthenticationEncoding, RawPayload};
-  use crate::headers::v2::V2LocalHeader;
+  use crate::headers::v2::Header;
   use crate::{common::Footer, traits::Base64Encodable};
+  use crate::{
+    crypto::{PreAuthenticationEncoding, RawPayload},
+    v2::{PurposeLocal, Version2},
+  };
   use crate::{keys::*, v2::Payload};
 
   use super::{get_aead_encrypt_prerequisites, get_blake2_finalized, Blake2Finalized, Blake2HashContext, Nonce};
@@ -286,7 +289,7 @@ mod unit_tests {
     let finalized = get_blake2_finalized(&Payload::default(), &nonce_key);
 
     let pae = PreAuthenticationEncoding::parse(&[
-      V2LocalHeader::default().as_ref().as_bytes(),
+      Header::<Version2, PurposeLocal>::default().as_ref().as_bytes(),
       finalized.as_ref(),
       Footer::default().as_ref().as_bytes(),
     ]);
@@ -299,11 +302,11 @@ mod unit_tests {
 
     let (nonce, pae, blake2_finalized) = get_aead_encrypt_prerequisites(
       &Payload::from(""),
-      &V2LocalHeader::default(),
+      &Header::<Version2, PurposeLocal>::default(),
       &Footer::default(),
       &nonce_key,
     );
-    let key = V2LocalSharedKey::new_random();
+    let key = Key::<Version2, PurposeLocal>::new_random();
     let aead = XChaCha20Poly1305::new_from_slice(key.as_ref());
     assert!(aead.is_ok());
 
@@ -325,7 +328,7 @@ mod unit_tests {
 
   #[test]
   fn test_aead() {
-    let key = V2LocalSharedKey::new_random();
+    let key = Key::<Version2, PurposeLocal>::new_random();
     let aead = XChaCha20Poly1305::new_from_slice(key.as_ref());
     assert!(aead.is_ok());
   }

@@ -1,8 +1,12 @@
 use hex::{FromHex, FromHexError};
 use ring::rand::{SecureRandom, SystemRandom};
+use std::any::Any;
 use std::convert::{AsRef, From};
 use std::default::Default;
+use std::marker::PhantomData;
 use std::str::FromStr;
+
+use crate::common::{PurposeLocal, Version2};
 
 /// A type to ensure u8 arrays with exactly 32 elements
 /// to allow for the creation of 256 bit keys
@@ -42,45 +46,61 @@ impl<T> AsRef<T> for HexKey<T> {
   }
 }
 
-/// Used to encrypt or decrypt V2LocalTokens
-/// These keys are 256 bit (32 byte) keys and can only be created either from a Key256Bit type or a
-/// HexKey<Key256BitSize> type.
-pub struct V2LocalSharedKey(Key256Bit);
-
-/// Only allows hex keys of the correct size
-impl From<HexKey<Key256Bit>> for V2LocalSharedKey {
-  /// Only allows hex keys of the correct size
-  fn from(key: HexKey<Key256Bit>) -> Self {
-    Self(*key.as_ref())
-  }
+pub struct Key<Version, Purpose> {
+  version: PhantomData<Version>,
+  purpose: PhantomData<Purpose>,
+  key: Box<dyn Any>,
 }
 
-impl From<Key256Bit> for V2LocalSharedKey {
+impl From<Key256Bit> for Key<Version2, PurposeLocal> {
   /// Creates a V2LocalSharedKey from a Key256Bit structure
   fn from(key: Key256Bit) -> Self {
-    Self(key)
+    Self {
+      version: PhantomData,
+      purpose: PhantomData,
+      key: Box::new(key),
+    }
   }
 }
 
-impl AsRef<Key256Bit> for V2LocalSharedKey {
+impl AsRef<Key256Bit> for Key<Version2, PurposeLocal> {
   fn as_ref(&self) -> &Key256Bit {
-    &self.0
+    self.key.as_ref().downcast_ref().unwrap()
   }
 }
 
-impl Default for V2LocalSharedKey {
+impl Default for Key<Version2, PurposeLocal> {
   fn default() -> Self {
-    Self([0; 32])
+    Self {
+      version: PhantomData,
+      purpose: PhantomData,
+      key: Box::new([0; 32]),
+    }
   }
 }
 
-impl V2LocalSharedKey {
+impl Key<Version2, PurposeLocal> {
   ///Returns a new valid random V2LocalSharedKey
   pub fn new_random() -> Self {
     let rng = SystemRandom::new();
     let mut buf = [0u8; 32];
     rng.fill(&mut buf).unwrap();
-    Self(buf)
+    Self {
+      version: PhantomData,
+      purpose: PhantomData,
+      key: Box::new(buf),
+    }
+  }
+}
+
+impl From<HexKey<Key256Bit>> for Key<Version2, PurposeLocal> {
+  /// Only allows hex keys of the correct size
+  fn from(key: HexKey<Key256Bit>) -> Self {
+    Self {
+      version: PhantomData,
+      purpose: PhantomData,
+      key: Box::new(*key.as_ref()),
+    }
   }
 }
 
@@ -129,11 +149,17 @@ mod unit_tests {
   const KEY: Key256Bit = *b"wubbalubbadubdubwubbalubbadubdub";
 
   #[test]
+  fn test_new_random_key() {
+    let key = Key::<Version2, PurposeLocal>::new_random();
+    assert_eq!(key.as_ref().len(), 32);
+  }
+
+  #[test]
   fn test_hex_val_for_256_bit_key() {
     let hex_val = "707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f"
       .parse::<HexKey<Key256Bit>>()
       .expect("oops!");
-    let key = V2LocalSharedKey::from(hex_val);
+    let key = Key::<Version2, PurposeLocal>::from(hex_val);
     assert_eq!(key.as_ref().len(), 32);
   }
 
@@ -164,7 +190,7 @@ mod unit_tests {
 
   #[test]
   fn test_implied_bit_key() {
-    let symmetric_key: V2LocalSharedKey = KEY.into();
+    let symmetric_key: Key<Version2, PurposeLocal> = KEY.into();
     assert_eq!(symmetric_key.as_ref(), &KEY)
   }
 
@@ -175,7 +201,7 @@ mod unit_tests {
   }
   #[test]
   fn test_explicit_convert() {
-    let symmetric_key = V2LocalSharedKey::from(KEY);
+    let symmetric_key = Key::<Version2, PurposeLocal>::from(KEY);
     assert_eq!(symmetric_key.as_ref(), &KEY)
   }
 }

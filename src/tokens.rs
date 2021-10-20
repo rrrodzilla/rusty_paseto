@@ -1,77 +1,75 @@
-pub(crate) mod v2 {
-  use crate::traits::Base64Encodable;
-  use crate::{
-    common::{Footer, Payload, PurposeLocal, Version2},
-    crypto::get_encrypted_raw_payload,
-    headers::v2::Header,
-    keys::{Key, Key192Bit, Key256Bit, NonceKey},
-  };
-  use std::fmt;
-  use std::marker::PhantomData;
+use crate::traits::Base64Encodable;
+use crate::{
+  common::{Footer, Payload, PurposeLocal, Version2},
+  crypto::get_encrypted_raw_payload,
+  headers::v2::Header,
+  keys::{Key, Key192Bit, Key256Bit, NonceKey},
+};
+use std::fmt;
+use std::marker::PhantomData;
 
-  /// A V2 Local paseto token that has been encrypted with a V2LocalSharedKey
-  #[derive(Debug, PartialEq)]
-  pub struct Token<Version, Purpose> {
-    purpose: PhantomData<Purpose>,
-    version: PhantomData<Version>,
-    header: String,
-    footer: Option<String>,
-    payload: String,
+/// A V2 Local paseto token that has been encrypted with a V2LocalSharedKey
+#[derive(Debug, PartialEq)]
+pub struct Token<Version, Purpose> {
+  purpose: PhantomData<Purpose>,
+  version: PhantomData<Version>,
+  header: String,
+  footer: Option<String>,
+  payload: String,
+}
+
+impl Token<Version2, PurposeLocal> {
+  /// Creates a new token from constituent parts
+  pub fn new(
+    message: Payload,
+    key: &Key<Version2, PurposeLocal>,
+    footer: Option<Footer>,
+  ) -> Token<Version2, PurposeLocal> {
+    //use a random nonce
+    let nonce_key = NonceKey::new_random();
+    //set a default header for this token type
+    let header = Header::<Version2, PurposeLocal>::default();
+    //build and return the token
+    Self::build_token(header, message, key, footer, &nonce_key)
   }
 
-  impl Token<Version2, PurposeLocal> {
-    /// Creates a new token from constituent parts
-    pub fn new(
-      message: Payload,
-      key: &Key<Version2, PurposeLocal>,
-      footer: Option<Footer>,
-    ) -> Token<Version2, PurposeLocal> {
-      //use a random nonce
-      let nonce_key = NonceKey::new_random();
-      //set a default header for this token type
-      let header = Header::<Version2, PurposeLocal>::default();
-      //build and return the token
-      Self::build_token(header, message, key, footer, &nonce_key)
-    }
+  //split for unit and test vectors
+  pub(super) fn build_token<H, P, F, SK, NK>(
+    header: H,
+    message: P,
+    key: &SK,
+    footer: Option<F>,
+    nonce_key: &NK,
+  ) -> Token<Version2, PurposeLocal>
+  where
+    H: AsRef<str> + std::fmt::Display,
+    P: AsRef<str>,
+    F: Base64Encodable<str> + Default + Clone,
+    SK: AsRef<Key256Bit>,
+    NK: AsRef<Key192Bit>,
+  {
+    //encrypt the payload
+    let payload = &get_encrypted_raw_payload(&message, &header, &footer.clone().unwrap_or_default(), key, nonce_key);
 
-    //split for unit and test vectors
-    pub(super) fn build_token<H, P, F, SK, NK>(
-      header: H,
-      message: P,
-      key: &SK,
-      footer: Option<F>,
-      nonce_key: &NK,
-    ) -> Token<Version2, PurposeLocal>
-    where
-      H: AsRef<str> + std::fmt::Display,
-      P: AsRef<str>,
-      F: Base64Encodable<str> + Default + Clone,
-      SK: AsRef<Key256Bit>,
-      NK: AsRef<Key192Bit>,
-    {
-      //encrypt the payload
-      let payload = &get_encrypted_raw_payload(&message, &header, &footer.clone().unwrap_or_default(), key, nonce_key);
-
-      //produce the token with the values
-      //the payload and footer are both base64 encoded
-      Token::<Version2, PurposeLocal> {
-        purpose: PhantomData,
-        version: PhantomData,
-        header: header.to_string(), //the header is not base64 encoded
-        payload: payload.encode(),
-        footer: footer.as_ref().map(|f| f.encode()),
-      }
+    //produce the token with the values
+    //the payload and footer are both base64 encoded
+    Token::<Version2, PurposeLocal> {
+      purpose: PhantomData,
+      version: PhantomData,
+      header: header.to_string(), //the header is not base64 encoded
+      payload: payload.encode(),
+      footer: footer.as_ref().map(|f| f.encode()),
     }
   }
+}
 
-  impl fmt::Display for Token<Version2, PurposeLocal> {
-    /// Formats the token for display and subsequently allows a to_string implementation
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-      if let Some(footer) = &self.footer {
-        write!(f, "{}{}.{}", self.header, self.payload, footer)
-      } else {
-        write!(f, "{}{}", self.header, self.payload)
-      }
+impl fmt::Display for Token<Version2, PurposeLocal> {
+  /// Formats the token for display and subsequently allows a to_string implementation
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    if let Some(footer) = &self.footer {
+      write!(f, "{}{}.{}", self.header, self.payload, footer)
+    } else {
+      write!(f, "{}{}", self.header, self.payload)
     }
   }
 }
@@ -82,7 +80,7 @@ mod v2_test_vectors {
   use crate::common::{PurposeLocal, Version2};
   use crate::headers::v2::Header;
   use crate::keys::{HexKey, Key, Key192Bit, Key256Bit, NonceKey};
-  use crate::tokens::v2::Token;
+  use crate::tokens::Token;
   use crate::v2::{Footer, Payload};
   use anyhow::Result;
   use serde_json::{json, Value};

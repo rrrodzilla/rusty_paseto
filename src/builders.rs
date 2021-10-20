@@ -2,7 +2,7 @@ use crate::{
   common::{Footer, Payload, PurposeLocal, Version2},
   errors::TokenBuilderError,
   keys::Key,
-  tokens::v2::Token,
+  tokens::Token,
   traits::PasetoClaim,
 };
 use core::marker::PhantomData;

@@ -1,6 +1,6 @@
 //  //use crate::common::{PurposeLocal, V2};
 use crate::errors::{Iso8601ParseError, TokenClaimError};
-//  use crate::traits::Claim;
+use crate::traits::PasetoClaim;
 use serde::ser::SerializeMap;
 use std::convert::From;
 //  use std::marker::PhantomData;
@@ -11,26 +11,46 @@ use std::convert::{AsRef, TryFrom};
 //  pub struct TokenIdentifier;
 
 #[derive(Clone, Debug)]
-pub struct Arbitrary<T: 'static>((&'static str, T));
+pub struct Arbitrary<T>((String, T));
 
-impl<T> TryFrom<(&'static str, T)> for Arbitrary<T> {
+impl<T> PasetoClaim for Arbitrary<T> {
+  fn get_key(&self) -> &str {
+    &self.0 .0
+  }
+}
+
+impl<T> TryFrom<(String, T)> for Arbitrary<T> {
   type Error = TokenClaimError;
 
-  fn try_from(val: (&'static str, T)) -> Result<Self, Self::Error> {
-    let key = val.0;
+  fn try_from(val: (String, T)) -> Result<Self, Self::Error> {
+    let key = val.0.as_str();
     match key {
       key if ["iss", "sub", "aud", "exp", "nbf", "iat", "jti"].contains(&key) => {
         Err(TokenClaimError::ReservedClaim(key.into()))
       }
-      _ => Ok(Self((key, val.1))),
+      _ => Ok(Self((val.0, val.1))),
     }
   }
 }
 
+//  impl<T> TryFrom<(&'static str, T)> for Arbitrary<T> {
+//    type Error = TokenClaimError;
+
+//    fn try_from(val: (&'static str, T)) -> Result<Self, Self::Error> {
+//      let key = val.0;
+//      match key {
+//        key if ["iss", "sub", "aud", "exp", "nbf", "iat", "jti"].contains(&key) => {
+//          Err(TokenClaimError::ReservedClaim(key.into()))
+//        }
+//        _ => Ok(Self((key, val.1))),
+//      }
+//    }
+//  }
+
 //want to receive a reference as a tuple
-impl<T> AsRef<(&'static str, T)> for Arbitrary<T> {
-  fn as_ref(&self) -> &(&'static str, T) {
-    &(self.0)
+impl<T> AsRef<(String, T)> for Arbitrary<T> {
+  fn as_ref(&self) -> &(String, T) {
+    &self.0
   }
 }
 
@@ -48,6 +68,11 @@ impl<T: serde::Serialize> serde::Serialize for Arbitrary<T> {
 
 #[derive(Clone)]
 pub struct Expiration((&'static str, &'static str));
+impl PasetoClaim for Expiration {
+  fn get_key(&self) -> &str {
+    self.0 .0
+  }
+}
 
 impl TryFrom<&'static str> for Expiration {
   type Error = Iso8601ParseError;
@@ -103,6 +128,11 @@ impl serde::Serialize for Expiration {
 
 #[derive(Clone)]
 pub struct Audience((&'static str, &'static str));
+impl PasetoClaim for Audience {
+  fn get_key(&self) -> &str {
+    self.0 .0
+  }
+}
 
 //created using the From trait
 impl From<&'static str> for Audience {
@@ -133,6 +163,12 @@ impl serde::Serialize for Audience {
 
 #[derive(Clone)]
 pub struct Subject((&'static str, &'static str));
+
+impl PasetoClaim for Subject {
+  fn get_key(&self) -> &str {
+    self.0 .0
+  }
+}
 
 //created using the From trait
 impl From<&'static str> for Subject {

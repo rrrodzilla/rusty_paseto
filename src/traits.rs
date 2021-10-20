@@ -24,13 +24,8 @@ pub(crate) trait Base64Encodable<T: ?Sized + std::convert::AsRef<[u8]>>: Display
 }
 
 /// a simple marker trait to identify claims
-pub trait Claim<T> {
+pub trait PasetoClaim {
   fn get_key(&self) -> &str;
-  fn get_value(&self) -> &T;
-}
-
-pub trait ClaimValue<T> {
-  fn get_value(&self) -> &T;
 }
 
 //impl<'a, V> AsRef<(&'a str, V)> for ArbitraryClaim<'a, V> {

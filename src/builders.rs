@@ -3,18 +3,15 @@ use crate::{
   errors::V2LocalTokenBuilderError,
   keys::V2LocalSharedKey,
   tokens::v2::V2LocalToken,
+  traits::PasetoClaim,
 };
 use core::marker::PhantomData;
-use std::{
-  any::{Any, TypeId},
-  collections::HashMap,
-  mem::take,
-};
+use std::{collections::HashMap, mem::take};
 
 pub struct TokenBuilder<'a, Version, Purpose> {
   version: PhantomData<Version>,
   purpose: PhantomData<Purpose>,
-  claims: HashMap<TypeId, Box<dyn erased_serde::Serialize>>,
+  claims: HashMap<String, Box<dyn erased_serde::Serialize>>,
   footer: Option<Footer<'a>>,
 }
 
@@ -28,8 +25,8 @@ impl<Version, Purpose> TokenBuilder<'_, Version, Purpose> {
     }
   }
 
-  pub fn set_claim<T: Any + erased_serde::Serialize>(&mut self, value: T) -> &mut Self {
-    self.claims.insert(TypeId::of::<T>(), Box::new(value));
+  pub fn set_claim<T: PasetoClaim + erased_serde::Serialize + 'static>(&mut self, value: T) -> &mut Self {
+    self.claims.insert(value.get_key().to_owned(), Box::new(value));
     self
   }
 
@@ -49,6 +46,7 @@ impl<'a, V2, Local> TokenBuilder<'a, V2, Local> {
   pub fn build(&mut self, key: &V2LocalSharedKey) -> Result<String, V2LocalTokenBuilderError> {
     //here we need to go through all the claims and serialize them to build a payload
     let mut payload = String::from('{');
+
     let claims = take(&mut self.claims);
 
     for claim in claims.into_values() {
@@ -57,13 +55,12 @@ impl<'a, V2, Local> TokenBuilder<'a, V2, Local> {
       payload.push_str(&format!("{},", trimmed));
     }
 
-    //get rid of that trailing comma (this feels like a dirty approach)
+    //get rid of that trailing comma (this feels like a dirty approach, there's probably a better
+    //way to do this)
     payload = payload.trim_end_matches(',').to_string();
     payload.push('}');
 
-    let payload = Payload::from(payload.as_str());
-
-    Ok(V2LocalToken::new(payload, key, self.footer).to_string())
+    Ok(V2LocalToken::new(Payload::from(payload.as_str()), key, self.footer).to_string())
   }
 }
 
@@ -77,7 +74,7 @@ mod builders {
   use crate::keys::{Key256Bit, V2LocalSharedKey};
   use crate::v2::local::V2LocalDecryptedToken;
   use anyhow::Result;
-  use serde_json::Value;
+  use serde_json::value::Value;
 
   #[test]
   fn basic_builder_test() -> Result<()> {
@@ -90,9 +87,9 @@ mod builders {
       .set_claim(Audience::from("customers"))
       .set_claim(Subject::from("loyal subjects"))
       .set_claim(Expiration::try_from("2019-01-01T00:00:00+00:00")?)
-      .set_claim(Arbitrary::try_from(("data", "this is a secret message"))?)
-      .set_claim(Arbitrary::try_from(("seats", 4))?)
-      .set_claim(Arbitrary::try_from(("any ol' pi", 3.141526))?)
+      .set_claim(Arbitrary::try_from(("data".to_string(), "this is a secret message"))?)
+      .set_claim(Arbitrary::try_from(("seats".to_string(), 4))?)
+      .set_claim(Arbitrary::try_from(("any ol' pi".to_string(), 3.141526))?)
       .build(&key)?;
 
     //now let's decrypt the token and verify the values
@@ -107,6 +104,37 @@ mod builders {
     assert_eq!(json["seats"], 4);
     Ok(())
   }
+
+  #[test]
+  fn dynamic_claims_test() -> Result<()> {
+    //create a key
+    const KEY: Key256Bit = *b"wubbalubbadubdubwubbalubbadubdub";
+    let key = V2LocalSharedKey::from(KEY);
+
+    //create a builder, add some claims dynamically
+    let mut builder = TokenBuilder::<V2, Local>::default();
+    builder.set_claim(Expiration::try_from("2019-01-01T00:00:00+00:00")?);
+
+    for n in 1..10 {
+      builder.set_claim(Arbitrary::try_from((format!("n{}", n).to_string(), n))?);
+    }
+
+    //and then build the token with the key
+    let token = builder.build(&key)?;
+
+    //now let's decrypt the token and verify the values
+    let decrypted = V2LocalDecryptedToken::parse(&token, None, &key)?;
+    let json: Value = serde_json::from_str(decrypted.as_ref())?;
+
+    for n in 1..10 {
+      assert_eq!(json[format!("n{}", n)], n);
+    }
+
+    assert_eq!(json["exp"], "2019-01-01T00:00:00+00:00");
+
+    Ok(())
+  }
+
   #[test]
   fn test_no_claims() -> Result<()> {
     //create a key
@@ -119,15 +147,6 @@ mod builders {
     //now let's decrypt the token and verify the values
     let decrypted = V2LocalDecryptedToken::parse(&token, None, &key)?;
     assert_eq!(decrypted.as_ref(), "{}");
-    Ok(())
-  }
-
-  #[test]
-  fn invalid_arbitrary_claim_test() -> Result<()> {
-    //create a restricted paseto claim, this should fail
-    let result = Arbitrary::<&str>::try_from(("exp", "2019-01-01T00:00:00+00:00"));
-    assert!(result.is_err());
-
     Ok(())
   }
 

@@ -20,7 +20,7 @@ pub enum TokenClaimError {
 
 /// Potential errors from attempting to build a v2 local token
 #[derive(Debug, Error)]
-pub enum V2LocalTokenBuilderError {
+pub enum TokenBuilderError {
   #[error("The payload was unable to be serialized into json")]
   PayloadJsonError {
     #[from]

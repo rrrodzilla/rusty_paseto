@@ -1,6 +1,6 @@
 use crate::{
   common::{Footer, Payload, PurposeLocal, Version2},
-  errors::V2LocalTokenBuilderError,
+  errors::TokenBuilderError,
   keys::Key,
   tokens::v2::Token,
   traits::PasetoClaim,
@@ -43,7 +43,7 @@ impl<Version, Purpose> Default for TokenBuilder<'_, Version, Purpose> {
 }
 
 impl<'a> TokenBuilder<'a, Version2, PurposeLocal> {
-  pub fn build(&mut self, key: &Key<Version2, PurposeLocal>) -> Result<String, V2LocalTokenBuilderError> {
+  pub fn build(&mut self, key: &Key<Version2, PurposeLocal>) -> Result<String, TokenBuilderError> {
     //here we need to go through all the claims and serialize them to build a payload
     let mut payload = String::from('{');
 

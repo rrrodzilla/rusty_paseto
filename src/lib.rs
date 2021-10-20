@@ -25,7 +25,7 @@ mod untrusted_tokens;
 pub mod v2 {
   pub use crate::claims::AudienceClaim;
   pub use crate::common::{Footer, Payload, PurposeLocal, Version2};
-  pub use crate::errors::{PasetoTokenParseError, V2LocalTokenBuilderError};
+  pub use crate::errors::{PasetoTokenParseError, TokenBuilderError};
   pub use crate::keys::{HexKey, Key, Key256Bit};
   pub mod local {
     pub use crate::builders::TokenBuilder;

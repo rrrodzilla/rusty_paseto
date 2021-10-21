@@ -96,7 +96,6 @@ mod parsers {
 
     //now let's decrypt the token and verify the values
     let json = GenericTokenParser::<Version2, PurposeLocal>::default()
-      .set_footer(footer)
       .validate_claim(AudienceClaim::from("customers"))
       .validate_claim(SubjectClaim::from("loyal subjects"))
       .validate_claim(IssuerClaim::from("me"))
@@ -107,6 +106,7 @@ mod parsers {
       .validate_claim(CustomClaim::try_from(("data", "this is a secret message"))?)
       .validate_claim(CustomClaim::try_from(("seats", 4))?)
       .validate_claim(CustomClaim::try_from(("pi to 6 digits", 3.141526))?)
+      .set_footer(footer)
       .parse(&token, &key)?;
 
     // we can access all the values from the serde Value object returned by the parser

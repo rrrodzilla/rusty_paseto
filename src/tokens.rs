@@ -34,19 +34,19 @@ impl Token<Version2, PurposeLocal> {
   }
 
   //split for unit and test vectors
-  pub(super) fn build_token<H, P, F, SK, NK>(
-    header: H,
-    message: P,
-    key: &SK,
-    footer: Option<F>,
-    nonce_key: &NK,
+  pub(super) fn build_token<HEADER, MESSAGE, FOOTER, SHAREDKEY, NONCEKEY>(
+    header: HEADER,
+    message: MESSAGE,
+    key: &SHAREDKEY,
+    footer: Option<FOOTER>,
+    nonce_key: &NONCEKEY,
   ) -> Token<Version2, PurposeLocal>
   where
-    H: AsRef<str> + std::fmt::Display,
-    P: AsRef<str>,
-    F: Base64Encodable<str> + Default + Clone,
-    SK: AsRef<Key256Bit>,
-    NK: AsRef<Key192Bit>,
+    HEADER: AsRef<str> + std::fmt::Display,
+    MESSAGE: AsRef<str>,
+    FOOTER: Base64Encodable<str> + Default + Clone,
+    SHAREDKEY: AsRef<Key256Bit>,
+    NONCEKEY: AsRef<Key192Bit>,
   {
     //encrypt the payload
     let payload = &get_encrypted_raw_payload(&message, &header, &footer.clone().unwrap_or_default(), key, nonce_key);

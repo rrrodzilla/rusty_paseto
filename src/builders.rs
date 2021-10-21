@@ -73,7 +73,7 @@ mod builders {
     AudienceClaim, CustomClaim, ExpirationClaim, IssuedAtClaim, IssuerClaim, NotBeforeClaim, SubjectClaim,
     TokenIdentifierClaim,
   };
-  use crate::common::{Footer, PurposeLocal, Version2};
+  use crate::common::*;
   use crate::keys::Key;
   use crate::v2::local::DecryptedToken;
   use anyhow::Result;
@@ -83,6 +83,7 @@ mod builders {
   fn full_builder_test() -> Result<()> {
     //create a key
     let key = Key::<Version2, PurposeLocal>::from(*b"wubbalubbadubdubwubbalubbadubdub");
+    let footer = Some(Footer::from("some footer"));
 
     //create a builder, add some claims and then build the token with the key
     let token = TokenBuilder::<Version2, PurposeLocal>::default()
@@ -96,11 +97,11 @@ mod builders {
       .set_claim(CustomClaim::try_from(("data", "this is a secret message"))?)
       .set_claim(CustomClaim::try_from(("seats", 4))?)
       .set_claim(CustomClaim::try_from(("pi to 6 digits", 3.141526))?)
-      .set_footer(Some(Footer::from("some footer")))
+      .set_footer(footer)
       .build(&key)?;
 
     //now let's decrypt the token and verify the values
-    let decrypted = DecryptedToken::<Version2, PurposeLocal>::parse(&token, Some(Footer::from("some footer")), &key)?;
+    let decrypted = DecryptedToken::<Version2, PurposeLocal>::parse(&token, footer, &key)?;
     let json: Value = serde_json::from_str(decrypted.as_ref())?;
 
     assert_eq!(json["aud"], "customers");
@@ -114,8 +115,8 @@ mod builders {
     assert_eq!(json["pi to 6 digits"], 3.141526);
     assert_eq!(json["seats"], 4);
     Ok(())
-    //TODO: implement like so:
-    //let token = TokenParser::<V2, Local>::default()
+    //TODO: implement a parser like so:
+    //let token = TokenParser::<Version2, PurposeLocal>::default()
     //.set_footer(None)
     //.validate_claim(CustomClaim::try_from(("data", "this is a secret message"))?, None)
     //.validate_claim(SubjectClaim::from("loyal subjects"), None)

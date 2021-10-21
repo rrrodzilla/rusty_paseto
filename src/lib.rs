@@ -18,6 +18,7 @@ mod decrypted_tokens;
 mod errors;
 mod headers;
 mod keys;
+mod parsers;
 mod tokens;
 mod traits;
 mod untrusted_tokens;
@@ -33,6 +34,7 @@ pub mod v2 {
   pub mod local {
     pub use crate::builders::TokenBuilder;
     pub use crate::decrypted_tokens::DecryptedToken;
+    pub use crate::parsers::GenericTokenParser;
     pub use crate::tokens::Token;
   }
 }

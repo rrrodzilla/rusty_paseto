@@ -31,12 +31,21 @@ pub enum TokenBuilderError {
 /// Potential errors from attempting to parse a token string
 #[derive(Debug, Error)]
 pub enum PasetoTokenParseError {
+  #[error("The claim {0} failed downcasting")]
+  DowncastClaim(String),
+  #[error("The claim '{0}' failed validation")]
+  InvalidClaim(String),
   #[error("This string has an incorrect number of parts and cannot be parsed into a token")]
   IncorrectSize,
   #[error("The token header is invalid")]
   WrongHeader,
   #[error("The provided footer is invalid")]
   FooterInvalid,
+  #[error("Couldn't deserialize payload into json with serde")]
+  PayloadJson {
+    #[from]
+    source: serde_json::Error,
+  },
   #[error("Couldn't decode the payload before encryption")]
   PayloadDecode {
     #[from]

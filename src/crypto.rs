@@ -242,13 +242,13 @@ mod unit_tests {
     XChaCha20Poly1305,
   };
 
-  use crate::headers::v2::Header;
+  use crate::headers::Header;
+  use crate::keys::*;
   use crate::{common::Footer, traits::Base64Encodable};
   use crate::{
+    common::{Payload, PurposeLocal, Version2},
     crypto::{PreAuthenticationEncoding, RawPayload},
-    v2::{PurposeLocal, Version2},
   };
-  use crate::{keys::*, v2::Payload};
 
   use super::{get_aead_encrypt_prerequisites, get_blake2_finalized, Blake2Finalized, Blake2HashContext, Nonce};
 

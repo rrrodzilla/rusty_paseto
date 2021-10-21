@@ -2,7 +2,7 @@ use crate::traits::Base64Encodable;
 use crate::{
   common::{Footer, Payload, PurposeLocal, Version2},
   crypto::get_encrypted_raw_payload,
-  headers::v2::Header,
+  headers::Header,
   keys::{Key, Key192Bit, Key256Bit, NonceKey},
 };
 use std::fmt;
@@ -10,7 +10,7 @@ use std::marker::PhantomData;
 
 /// A V2 Local paseto token that has been encrypted with a V2LocalSharedKey
 #[derive(Debug, PartialEq)]
-pub struct Token<Version, Purpose> {
+pub struct GenericToken<Version, Purpose> {
   purpose: PhantomData<Purpose>,
   version: PhantomData<Version>,
   header: String,
@@ -18,13 +18,13 @@ pub struct Token<Version, Purpose> {
   payload: String,
 }
 
-impl Token<Version2, PurposeLocal> {
+impl GenericToken<Version2, PurposeLocal> {
   /// Creates a new token from constituent parts
   pub fn new(
     message: Payload,
     key: &Key<Version2, PurposeLocal>,
     footer: Option<Footer>,
-  ) -> Token<Version2, PurposeLocal> {
+  ) -> GenericToken<Version2, PurposeLocal> {
     //use a random nonce
     let nonce_key = NonceKey::new_random();
     //set a default header for this token type
@@ -40,7 +40,7 @@ impl Token<Version2, PurposeLocal> {
     key: &SHAREDKEY,
     footer: Option<FOOTER>,
     nonce_key: &NONCEKEY,
-  ) -> Token<Version2, PurposeLocal>
+  ) -> GenericToken<Version2, PurposeLocal>
   where
     HEADER: AsRef<str> + std::fmt::Display,
     MESSAGE: AsRef<str>,
@@ -53,7 +53,7 @@ impl Token<Version2, PurposeLocal> {
 
     //produce the token with the values
     //the payload and footer are both base64 encoded
-    Token::<Version2, PurposeLocal> {
+    GenericToken::<Version2, PurposeLocal> {
       purpose: PhantomData,
       version: PhantomData,
       header: header.to_string(), //the header is not base64 encoded
@@ -63,7 +63,7 @@ impl Token<Version2, PurposeLocal> {
   }
 }
 
-impl fmt::Display for Token<Version2, PurposeLocal> {
+impl fmt::Display for GenericToken<Version2, PurposeLocal> {
   /// Formats the token for display and subsequently allows a to_string implementation
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     if let Some(footer) = &self.footer {
@@ -77,11 +77,11 @@ impl fmt::Display for Token<Version2, PurposeLocal> {
 #[cfg(test)]
 mod v2_test_vectors {
 
+  use crate::common::{Footer, Payload};
   use crate::common::{PurposeLocal, Version2};
-  use crate::headers::v2::Header;
+  use crate::headers::Header;
   use crate::keys::{HexKey, Key, Key192Bit, Key256Bit, NonceKey};
-  use crate::tokens::Token;
-  use crate::v2::{Footer, Payload};
+  use crate::tokens::GenericToken;
   use anyhow::Result;
   use serde_json::{json, Value};
 
@@ -100,7 +100,7 @@ mod v2_test_vectors {
     let header = Header::<Version2, PurposeLocal>::default();
 
     //  //create a local v2 token
-    let token = Token::<Version2, PurposeLocal>::build_token::<
+    let token = GenericToken::<Version2, PurposeLocal>::build_token::<
       Header<Version2, PurposeLocal>,
       Payload,
       Footer,
@@ -112,8 +112,11 @@ mod v2_test_vectors {
     assert_eq!(token.to_string(), expected_token);
 
     //now let's try to decrypt it
-    let decrypted_payload =
-      crate::decrypted_tokens::DecryptedToken::<Version2, PurposeLocal>::parse(token.to_string().as_str(), None, key);
+    let decrypted_payload = crate::decrypted_tokens::GenericTokenDecrypted::<Version2, PurposeLocal>::parse(
+      token.to_string().as_str(),
+      None,
+      key,
+    );
     if let Ok(payload) = decrypted_payload {
       assert_eq!(payload.as_ref(), message.as_ref());
     }

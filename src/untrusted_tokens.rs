@@ -1,7 +1,7 @@
+use crate::common::Payload;
 use crate::common::{Footer, PurposeLocal, Version2};
 use crate::errors::PasetoTokenParseError;
-use crate::headers::v2::Header;
-use crate::v2::Payload;
+use crate::headers::Header;
 use std::marker::PhantomData;
 use std::str::FromStr;
 

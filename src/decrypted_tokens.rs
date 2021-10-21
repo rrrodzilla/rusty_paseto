@@ -1,10 +1,10 @@
+use crate::common::Payload;
 use crate::common::{Footer, PurposeLocal, Version2};
 use crate::crypto::{try_decrypt_payload, validate_footer_against_hex_encoded_footer_in_constant_time};
 use crate::errors::PasetoTokenParseError;
-use crate::headers::v2::*;
+use crate::headers::Header;
 use crate::keys::Key;
 use crate::untrusted_tokens::UntrustedEncryptedToken;
-use crate::v2::Payload;
 use std::cmp::PartialEq;
 use std::convert::AsRef;
 use std::default::Default;
@@ -14,13 +14,13 @@ use std::str::FromStr;
 
 /// Parses a V2 Local paseto token string and provides the decrypted payload string
 #[derive(Debug, PartialEq)]
-pub struct DecryptedToken<Version, Purpose> {
+pub struct GenericTokenDecrypted<Version, Purpose> {
   version: PhantomData<Version>,
   purpose: PhantomData<Purpose>,
   token: String,
 }
 
-impl<R, Version, Purpose> PartialEq<R> for DecryptedToken<Version, Purpose>
+impl<R, Version, Purpose> PartialEq<R> for GenericTokenDecrypted<Version, Purpose>
 where
   R: AsRef<str>,
 {
@@ -28,26 +28,26 @@ where
     self.as_ref() == other.as_ref()
   }
 }
-impl<Version, Purpose> fmt::Display for DecryptedToken<Version, Purpose> {
+impl<Version, Purpose> fmt::Display for GenericTokenDecrypted<Version, Purpose> {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "{}", self.token)
   }
 }
 
-impl<Version, Purpose> AsRef<String> for DecryptedToken<Version, Purpose> {
+impl<Version, Purpose> AsRef<String> for GenericTokenDecrypted<Version, Purpose> {
   fn as_ref(&self) -> &String {
     &self.token
   }
 }
 
-impl DecryptedToken<Version2, PurposeLocal> {
+impl GenericTokenDecrypted<Version2, PurposeLocal> {
   // Given an arbitrary string, an encryption key and an optional footer,
   // validate and decrypt this token raising errors as needed
   pub fn parse<T>(
     potential_token: &T,
     potential_footer: Option<Footer>,
     key: &Key<Version2, PurposeLocal>,
-  ) -> Result<DecryptedToken<Version2, PurposeLocal>, PasetoTokenParseError>
+  ) -> Result<GenericTokenDecrypted<Version2, PurposeLocal>, PasetoTokenParseError>
   where
     T: AsRef<str> + ?Sized,
   {

@@ -1,23 +1,23 @@
 use crate::{
   common::{Footer, Payload, PurposeLocal, Version2},
-  errors::TokenBuilderError,
+  errors::GenericTokenBuilderError,
   keys::Key,
-  tokens::Token,
+  tokens::GenericToken,
   traits::PasetoClaim,
 };
 use core::marker::PhantomData;
 use std::{collections::HashMap, mem::take};
 
-pub struct TokenBuilder<'a, Version, Purpose> {
+pub struct GenericTokenBuilder<'a, Version, Purpose> {
   version: PhantomData<Version>,
   purpose: PhantomData<Purpose>,
   claims: HashMap<String, Box<dyn erased_serde::Serialize>>,
   footer: Option<Footer<'a>>,
 }
 
-impl<Version, Purpose> TokenBuilder<'_, Version, Purpose> {
+impl<Version, Purpose> GenericTokenBuilder<'_, Version, Purpose> {
   pub fn new() -> Self {
-    TokenBuilder::<Version, Purpose> {
+    GenericTokenBuilder::<Version, Purpose> {
       version: PhantomData::<Version>,
       purpose: PhantomData::<Purpose>,
       claims: HashMap::with_capacity(10),
@@ -36,14 +36,14 @@ impl<Version, Purpose> TokenBuilder<'_, Version, Purpose> {
   }
 }
 
-impl<Version, Purpose> Default for TokenBuilder<'_, Version, Purpose> {
+impl<Version, Purpose> Default for GenericTokenBuilder<'_, Version, Purpose> {
   fn default() -> Self {
     Self::new()
   }
 }
 
-impl<'a> TokenBuilder<'a, Version2, PurposeLocal> {
-  pub fn build(&mut self, key: &Key<Version2, PurposeLocal>) -> Result<String, TokenBuilderError> {
+impl<'a> GenericTokenBuilder<'a, Version2, PurposeLocal> {
+  pub fn build(&mut self, key: &Key<Version2, PurposeLocal>) -> Result<String, GenericTokenBuilderError> {
     //here we need to go through all the claims and serialize them to build a payload
     let mut payload = String::from('{');
 
@@ -60,7 +60,7 @@ impl<'a> TokenBuilder<'a, Version2, PurposeLocal> {
     payload = payload.trim_end_matches(',').to_string();
     payload.push('}');
 
-    Ok(Token::<Version2, PurposeLocal>::new(Payload::from(payload.as_str()), key, self.footer).to_string())
+    Ok(GenericToken::<Version2, PurposeLocal>::new(Payload::from(payload.as_str()), key, self.footer).to_string())
   }
 }
 
@@ -74,8 +74,8 @@ mod builders {
     TokenIdentifierClaim,
   };
   use crate::common::*;
+  use crate::decrypted_tokens::GenericTokenDecrypted;
   use crate::keys::Key;
-  use crate::v2::local::DecryptedToken;
   use anyhow::Result;
   use serde_json::value::Value;
 
@@ -86,7 +86,7 @@ mod builders {
     let footer = Some(Footer::from("some footer"));
 
     //create a builder, add some claims and then build the token with the key
-    let token = TokenBuilder::<Version2, PurposeLocal>::default()
+    let token = GenericTokenBuilder::<Version2, PurposeLocal>::default()
       .set_claim(AudienceClaim::from("customers"))
       .set_claim(SubjectClaim::from("loyal subjects"))
       .set_claim(IssuerClaim::from("me"))
@@ -101,7 +101,7 @@ mod builders {
       .build(&key)?;
 
     //now let's decrypt the token and verify the values
-    let decrypted = DecryptedToken::<Version2, PurposeLocal>::parse(&token, footer, &key)?;
+    let decrypted = GenericTokenDecrypted::<Version2, PurposeLocal>::parse(&token, footer, &key)?;
     let json: Value = serde_json::from_str(decrypted.as_ref())?;
 
     assert_eq!(json["aud"], "customers");
@@ -130,7 +130,7 @@ mod builders {
     let key = Key::<Version2, PurposeLocal>::from(*b"wubbalubbadubdubwubbalubbadubdub");
 
     //create a builder, add some claims dynamically
-    let mut builder = TokenBuilder::<Version2, PurposeLocal>::default();
+    let mut builder = GenericTokenBuilder::<Version2, PurposeLocal>::default();
     builder.set_claim(ExpirationClaim::try_from("2019-01-01T00:00:00+00:00")?);
 
     for n in 1..10 {
@@ -141,7 +141,7 @@ mod builders {
     let token = builder.build(&key)?;
 
     //now let's decrypt the token and verify the values
-    let decrypted = DecryptedToken::<Version2, PurposeLocal>::parse(&token, None, &key)?;
+    let decrypted = GenericTokenDecrypted::<Version2, PurposeLocal>::parse(&token, None, &key)?;
     let json: Value = serde_json::from_str(decrypted.as_ref())?;
 
     for n in 1..10 {
@@ -159,10 +159,10 @@ mod builders {
     let key = Key::<Version2, PurposeLocal>::from(*b"wubbalubbadubdubwubbalubbadubdub");
 
     //create a builder, add no claims and then build the token with the key
-    let token = TokenBuilder::<Version2, PurposeLocal>::default().build(&key)?;
+    let token = GenericTokenBuilder::<Version2, PurposeLocal>::default().build(&key)?;
 
     //now let's decrypt the token and verify the values
-    let decrypted = DecryptedToken::<Version2, PurposeLocal>::parse(&token, None, &key)?;
+    let decrypted = GenericTokenDecrypted::<Version2, PurposeLocal>::parse(&token, None, &key)?;
     assert_eq!(decrypted.as_ref(), "{}");
     Ok(())
   }

@@ -115,13 +115,6 @@ mod builders {
     assert_eq!(json["pi to 6 digits"], 3.141526);
     assert_eq!(json["seats"], 4);
     Ok(())
-    //TODO: implement a parser like so:
-    //let token = TokenParser::<Version2, PurposeLocal>::default()
-    //.set_footer(None)
-    //.validate_claim(CustomClaim::try_from(("data", "this is a secret message"))?, None)
-    //.validate_claim(SubjectClaim::from("loyal subjects"), None)
-    //.validate_claim(CustomClaim::try_from(("seats", 4))?, Some(|v: i32| v > 2 ))
-    //.parse(rawToken, &key)?;
   }
 
   #[test]

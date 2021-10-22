@@ -11,7 +11,7 @@ Not quite ready for publishing but rapidly approaching stabilization of the API.
 
 | APIs, Tests & Documentation | v1.<br />local| v1.<br />public | v2.<br />local | v2.<br />public |v3.<br />local | v3.<br />public | v4.<br />local | v4.<br />public |
 | ------------: | :-----------: | :----------:    |:-----------:   |:-----------:    |:-----------:  |:-----------:    |:-----------:   |:-----------:    |
-| PASETO Token Builder		| :new_moon: | :new_moon: | :waxing_gibbous_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: |
+| PASETO Token Builder		| :new_moon: | :new_moon: | :full_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: |
 | PASETO Token Parser		| :new_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: |
 | Flexible Claim Validation	| :new_moon: | :new_moon: | :full_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: |
 | Generic Token Builder		| :new_moon: | :new_moon: | :full_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: |

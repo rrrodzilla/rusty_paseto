@@ -11,7 +11,7 @@ Not quite ready for publishing but rapidly approaching stabilization of the API.
 | ------------: | :-----------: | :----------:    |:-----------:   |:-----------:    |:-----------:  |:-----------:    |:-----------:   |:-----------:    |
 | PASETO Token Builder		| :new_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: |
 | PASETO Token Parser		| :new_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: |
-| Flexible Claim Validation	| :new_moon: | :new_moon: | :waxing_gibbous_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: |
+| Flexible Claim Validation	| :new_moon: | :new_moon: | :full_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: |
 | Generic Token Builder		| :new_moon: | :new_moon: | :full_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: |
 | Generic Token Parser		| :new_moon: | :new_moon: | :full_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: |
 | Basic Token Encryption	| :new_moon: | :new_moon: | :full_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: |

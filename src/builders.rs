@@ -15,7 +15,7 @@ pub struct GenericTokenBuilder<'a, Version, Purpose> {
   footer: Option<Footer<'a>>,
 }
 
-impl<Version, Purpose> GenericTokenBuilder<'_, Version, Purpose> {
+impl<'a, Version, Purpose> GenericTokenBuilder<'a, Version, Purpose> {
   pub fn new() -> Self {
     GenericTokenBuilder::<Version, Purpose> {
       version: PhantomData::<Version>,
@@ -25,12 +25,17 @@ impl<Version, Purpose> GenericTokenBuilder<'_, Version, Purpose> {
     }
   }
 
+  pub fn extend_claims(&mut self, value: HashMap<String, Box<dyn erased_serde::Serialize>>) -> &mut Self {
+    self.claims.extend(value);
+    self
+  }
+
   pub fn set_claim<T: PasetoClaim + erased_serde::Serialize + 'static>(&mut self, value: T) -> &mut Self {
     self.claims.insert(value.get_key().to_owned(), Box::new(value));
     self
   }
 
-  pub fn set_footer(&mut self, footer: Option<Footer<'static>>) -> &mut Self {
+  pub fn set_footer(&mut self, footer: Option<Footer<'a>>) -> &mut Self {
     self.footer = footer;
     self
   }

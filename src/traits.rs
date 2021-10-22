@@ -24,7 +24,7 @@ pub(crate) trait Base64Encodable<T: ?Sized + std::convert::AsRef<[u8]>>: Display
 }
 
 /// a simple marker trait to identify claims
-pub trait PasetoClaim {
+pub trait PasetoClaim: erased_serde::Serialize {
   fn get_key(&self) -> &str;
 }
 

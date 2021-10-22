@@ -1,6 +1,6 @@
 [package]
 name = "rusty_paseto"
-version = "0.1.12"
+version = "0.1.13"
 edition = "2018"
 resolver = "2"
 
@@ -16,7 +16,7 @@ serde_json = { version = "^1.0.68"}
 thiserror = "1.0.29"
 iso8601 = "0.4.0"
 erased-serde = "0.3.16"
+chrono = "0.4.19"
 
 [dev-dependencies]
 anyhow = "1.0.44"
-chrono = "0.4.19"

@@ -1,12 +1,12 @@
 use crate::builders::GenericTokenBuilder;
-use crate::generic_builders::IssuedAtClaim;
+use crate::claims::{ExpirationClaim, IssuedAtClaim};
 use crate::{
   common::{Footer, PurposeLocal, Version2},
   errors::GenericTokenBuilderError,
   keys::Key,
   traits::PasetoClaim,
 };
-use chrono::prelude::*;
+use chrono::{prelude::*, Duration};
 use core::marker::PhantomData;
 use std::collections::HashMap;
 use std::convert::TryFrom;
@@ -53,7 +53,9 @@ impl PasetoTokenBuilder<'_, Version2, PurposeLocal> {
     //create a builder, add some default claims, then add all the user provided claims and then build the token with the key
     let token = GenericTokenBuilder::<Version2, PurposeLocal>::default()
       //adding a default IssuedAtClaim set to NOW UTC
-      .set_claim(IssuedAtClaim::try_from(Utc::now().to_rfc3339().as_str()).unwrap())
+      .set_claim(IssuedAtClaim::try_from(Utc::now().to_rfc3339()).unwrap())
+      //adding a default ExpirationClaim set to 24 hours from NOW UTC
+      .set_claim(ExpirationClaim::try_from((Utc::now() + Duration::hours(24)).to_rfc3339()).unwrap())
       .extend_claims(claims)
       .set_footer(self.footer)
       .build(key)?;
@@ -139,6 +141,77 @@ mod paseto_builder {
           assert_eq!(key, "iat");
           //date should be today
           assert_eq!(datetime.date.to_string(), Utc::now().date().naive_utc().to_string());
+
+          Ok(())
+        }),
+      )
+      .parse(&token, &key)?;
+
+    Ok(())
+  }
+
+  #[test]
+  fn update_default_expiration_claim_test() -> Result<()> {
+    let key = Key::<Version2, PurposeLocal>::from(*b"wubbalubbadubdubwubbalubbadubdub");
+    let in_4_days = (Utc::now() + Duration::days(4)).to_rfc3339();
+
+    //create a builder, with default IssuedAtClaim
+    let token = PasetoTokenBuilder::<Version2, PurposeLocal>::default()
+      .set_claim(ExpirationClaim::try_from(in_4_days).unwrap())
+      .build(&key)?;
+
+    //now let's decrypt the token and verify the values
+    //the IssuedAtClaim should exist and the date should be set to tomorrow
+    GenericTokenParser::<Version2, PurposeLocal>::default()
+      .validate_claim(
+        ExpirationClaim::default(),
+        Some(&|key, value| {
+          //let's get the value
+          let val = value
+            .as_str()
+            .ok_or(PasetoTokenParseError::InvalidClaimValueType(key.to_string()))?;
+
+          let datetime = iso8601::datetime(val).unwrap();
+
+          let in_4_days = Utc::now() + Duration::days(4);
+          //the claimm should exist
+          assert_eq!(key, "exp");
+          //date should be tomorrow
+          assert_eq!(datetime.date.to_string(), in_4_days.date().naive_utc().to_string());
+
+          Ok(())
+        }),
+      )
+      .parse(&token, &key)?;
+
+    Ok(())
+  }
+
+  #[test]
+  fn check_for_default_expiration_claim_test() -> Result<()> {
+    let key = Key::<Version2, PurposeLocal>::from(*b"wubbalubbadubdubwubbalubbadubdub");
+
+    //create a builder, with default IssuedAtClaim
+    let token = PasetoTokenBuilder::<Version2, PurposeLocal>::default().build(&key)?;
+
+    //now let's decrypt the token and verify the values
+    //the IssuedAtClaim should exist
+    GenericTokenParser::<Version2, PurposeLocal>::default()
+      .validate_claim(
+        ExpirationClaim::default(),
+        Some(&|key, value| {
+          //let's get the value
+          let val = value
+            .as_str()
+            .ok_or(PasetoTokenParseError::InvalidClaimValueType(key.to_string()))?;
+
+          let datetime = iso8601::datetime(val).unwrap();
+
+          let tomorrow = Utc::now() + Duration::hours(24);
+          //the claimm should exist
+          assert_eq!(key, "exp");
+          //date should be today
+          assert_eq!(datetime.date.to_string(), tomorrow.date().naive_utc().to_string());
 
           Ok(())
         }),

@@ -31,8 +31,12 @@ pub enum GenericTokenBuilderError {
 /// Potential errors from attempting to parse a token string
 #[derive(Debug, Error)]
 pub enum PasetoTokenParseError {
+  #[error("The claim {0} was not the expected type")]
+  InvalidClaimValueType(String),
   #[error("The claim {0} failed downcasting")]
   DowncastClaim(String),
+  #[error("A custom claim validator for claim '{0}' failed for value '{1}'")]
+  CustomClaimValidation(String, String),
   #[error("The claim '{0}' failed validation")]
   InvalidClaim(String),
   #[error("This string has an incorrect number of parts and cannot be parsed into a token")]

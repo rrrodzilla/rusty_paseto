@@ -61,38 +61,38 @@ impl<T: serde::Serialize> serde::Serialize for CustomClaim<T> {
 }
 
 #[derive(Clone)]
-pub struct IssuedAtClaim<'a>((&'a str, &'a str));
-impl<'a> PasetoClaim for IssuedAtClaim<'a> {
+pub struct IssuedAtClaim((String, String));
+impl PasetoClaim for IssuedAtClaim {
   fn get_key(&self) -> &str {
-    self.0 .0
+    &self.0 .0
   }
 }
 
-impl<'a> Default for IssuedAtClaim<'a> {
+impl Default for IssuedAtClaim {
   fn default() -> Self {
-    Self(("iat", "2019-01-01T00:00:00+00:00"))
+    Self(("iat".to_string(), "2019-01-01T00:00:00+00:00".to_string()))
   }
 }
 
-impl<'a> TryFrom<&'a str> for IssuedAtClaim<'a> {
+impl TryFrom<&str> for IssuedAtClaim {
   type Error = Iso8601ParseError;
 
-  fn try_from(value: &'a str) -> Result<Self, Self::Error> {
+  fn try_from(value: &str) -> Result<Self, Self::Error> {
     match iso8601::datetime(value) {
-      Ok(_) => Ok(Self(("iat", value))),
+      Ok(_) => Ok(Self(("iat".to_string(), value.to_string()))),
       Err(_) => Err(Iso8601ParseError::new(value)),
     }
   }
 }
 
 //want to receive a reference as a tuple
-impl<'a> AsRef<(&'a str, &'a str)> for IssuedAtClaim<'a> {
-  fn as_ref(&self) -> &(&'a str, &'a str) {
+impl AsRef<(String, String)> for IssuedAtClaim {
+  fn as_ref(&self) -> &(String, String) {
     &self.0
   }
 }
 
-impl<'a> serde::Serialize for IssuedAtClaim<'a> {
+impl serde::Serialize for IssuedAtClaim {
   fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
   where
     S: serde::Serializer,

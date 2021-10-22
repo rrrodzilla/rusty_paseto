@@ -1,9 +1,7 @@
-//  //use crate::common::{PurposeLocal, V2};
 use crate::errors::{Iso8601ParseError, TokenClaimError};
 use crate::traits::PasetoClaim;
 use serde::ser::SerializeMap;
 use std::convert::From;
-//  use std::marker::PhantomData;
 use std::convert::{AsRef, TryFrom};
 
 #[derive(Clone, Debug)]
@@ -12,6 +10,20 @@ pub struct CustomClaim<T>((String, T));
 impl<T> PasetoClaim for CustomClaim<T> {
   fn get_key(&self) -> &str {
     &self.0 .0
+  }
+}
+
+impl TryFrom<&str> for CustomClaim<&str> {
+  type Error = TokenClaimError;
+
+  fn try_from(val: &str) -> Result<Self, Self::Error> {
+    let key = val;
+    match key {
+      key if ["iss", "sub", "aud", "exp", "nbf", "iat", "jti"].contains(&key) => {
+        Err(TokenClaimError::ReservedClaim(key.into()))
+      }
+      _ => Ok(Self((String::from(val), ""))),
+    }
   }
 }
 
@@ -56,6 +68,12 @@ impl<'a> PasetoClaim for IssuedAtClaim<'a> {
   }
 }
 
+impl<'a> Default for IssuedAtClaim<'a> {
+  fn default() -> Self {
+    Self(("iat", "2019-01-01T00:00:00+00:00"))
+  }
+}
+
 impl<'a> TryFrom<&'a str> for IssuedAtClaim<'a> {
   type Error = Iso8601ParseError;
 
@@ -91,6 +109,12 @@ pub struct NotBeforeClaim<'a>((&'a str, &'a str));
 impl<'a> PasetoClaim for NotBeforeClaim<'a> {
   fn get_key(&self) -> &str {
     self.0 .0
+  }
+}
+
+impl<'a> Default for NotBeforeClaim<'a> {
+  fn default() -> Self {
+    Self(("nbf", "2019-01-01T00:00:00+00:00"))
   }
 }
 
@@ -132,6 +156,12 @@ impl<'a> PasetoClaim for ExpirationClaim<'a> {
   }
 }
 
+impl<'a> Default for ExpirationClaim<'a> {
+  fn default() -> Self {
+    Self(("exp", "2019-01-01T00:00:00+00:00"))
+  }
+}
+
 impl<'a> TryFrom<&'a str> for ExpirationClaim<'a> {
   type Error = Iso8601ParseError;
 
@@ -170,6 +200,12 @@ impl<'a> PasetoClaim for TokenIdentifierClaim<'a> {
   }
 }
 
+impl<'a> Default for TokenIdentifierClaim<'a> {
+  fn default() -> Self {
+    Self(("jti", ""))
+  }
+}
+
 //created using the From trait
 impl<'a> From<&'a str> for TokenIdentifierClaim<'a> {
   fn from(s: &'a str) -> Self {
@@ -202,6 +238,12 @@ pub struct AudienceClaim<'a>((&'a str, &'a str));
 impl<'a> PasetoClaim for AudienceClaim<'a> {
   fn get_key(&self) -> &str {
     self.0 .0
+  }
+}
+
+impl<'a> Default for AudienceClaim<'a> {
+  fn default() -> Self {
+    Self(("aud", ""))
   }
 }
 
@@ -241,6 +283,12 @@ impl<'a> PasetoClaim for SubjectClaim<'a> {
   }
 }
 
+impl<'a> Default for SubjectClaim<'a> {
+  fn default() -> Self {
+    Self(("sub", ""))
+  }
+}
+
 //created using the From trait
 impl<'a> From<&'a str> for SubjectClaim<'a> {
   fn from(s: &'a str) -> Self {
@@ -272,6 +320,12 @@ pub struct IssuerClaim<'a>((&'a str, &'a str));
 impl<'a> PasetoClaim for IssuerClaim<'a> {
   fn get_key(&self) -> &str {
     self.0 .0
+  }
+}
+
+impl<'a> Default for IssuerClaim<'a> {
+  fn default() -> Self {
+    Self(("iss", ""))
   }
 }
 

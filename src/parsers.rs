@@ -9,10 +9,14 @@ use core::marker::PhantomData;
 use serde_json::Value;
 use std::{collections::HashMap, mem::take};
 
+type ValidatorFn = dyn Fn(&str, &Value) -> Result<(), PasetoTokenParseError>;
+type ValidatorMap = HashMap<String, Box<ValidatorFn>>;
+
 pub struct GenericTokenParser<'a, Version, Purpose> {
   version: PhantomData<Version>,
   purpose: PhantomData<Purpose>,
   claims: HashMap<String, Box<dyn erased_serde::Serialize>>,
+  claim_validators: ValidatorMap,
   footer: Option<Footer<'a>>,
 }
 
@@ -22,12 +26,24 @@ impl<Version, Purpose> GenericTokenParser<'_, Version, Purpose> {
       version: PhantomData::<Version>,
       purpose: PhantomData::<Purpose>,
       claims: HashMap::new(),
+      claim_validators: HashMap::new(),
       footer: None,
     }
   }
 
-  pub fn validate_claim<T: PasetoClaim + 'static + serde::Serialize>(&mut self, value: T) -> &mut Self {
-    self.claims.insert(value.get_key().to_owned(), Box::new(value));
+  pub fn validate_claim<T: PasetoClaim + 'static + serde::Serialize>(
+    &mut self,
+    value: T,
+    validation_closure: Option<&'static ValidatorFn>,
+  ) -> &mut Self {
+    let key = value.get_key().to_string();
+    //first store the claim
+    self.claims.insert(key.clone(), Box::new(value));
+
+    //if there's a closure, then store that
+    if let Some(closure) = validation_closure {
+      self.claim_validators.insert(key, Box::new(closure));
+    }
     self
   }
 
@@ -47,15 +63,28 @@ impl<'a> GenericTokenParser<'a, Version2, PurposeLocal> {
   pub fn parse(&mut self, token: &'a str, key: &Key<Version2, PurposeLocal>) -> Result<Value, PasetoTokenParseError> {
     let decrypted = GenericTokenDecrypted::<Version2, PurposeLocal>::parse(token, self.footer, key)?;
     let json: Value = serde_json::from_str(decrypted.as_ref())?;
-    // here we want to traverse all of the claims to validate and verify their values
     let claims = take(&mut self.claims);
 
+    // here we want to traverse all of the claims to validate and verify their values
     for (key, box_val) in claims {
+      //ensure the claim exists
+      //get the raw value of the claim
       let raw = serde_json::to_value(&box_val)?;
-      if raw[&key] != json[&key] {
-        return Err(PasetoTokenParseError::InvalidClaim(key));
+
+      //now let's run any custom validation if there is any
+      if self.claim_validators.contains_key(&key) {
+        let box_validator = &self.claim_validators[&key];
+        let validator = box_validator.as_ref();
+        validator(&key, &json[&key])?;
+      } else {
+        //otherwise, simply verify the claim matches the value passed in
+        if raw[&key] != json[&key] {
+          return Err(PasetoTokenParseError::InvalidClaim(key));
+        }
       }
     }
+
+    //return the full json value to the user
     Ok(json)
   }
 }
@@ -73,6 +102,7 @@ mod parsers {
   use crate::common::*;
   use crate::keys::Key;
   use anyhow::Result;
+
   #[test]
   fn full_parser_test() -> Result<()> {
     //create a key
@@ -96,16 +126,16 @@ mod parsers {
 
     //now let's decrypt the token and verify the values
     let json = GenericTokenParser::<Version2, PurposeLocal>::default()
-      .validate_claim(AudienceClaim::from("customers"))
-      .validate_claim(SubjectClaim::from("loyal subjects"))
-      .validate_claim(IssuerClaim::from("me"))
-      .validate_claim(TokenIdentifierClaim::from("me"))
-      .validate_claim(IssuedAtClaim::try_from("2019-01-01T00:00:00+00:00")?)
-      .validate_claim(NotBeforeClaim::try_from("2019-01-01T00:00:00+00:00")?)
-      .validate_claim(ExpirationClaim::try_from("2019-01-01T00:00:00+00:00")?)
-      .validate_claim(CustomClaim::try_from(("data", "this is a secret message"))?)
-      .validate_claim(CustomClaim::try_from(("seats", 4))?)
-      .validate_claim(CustomClaim::try_from(("pi to 6 digits", 3.141526))?)
+      .validate_claim(AudienceClaim::from("customers"), None)
+      .validate_claim(SubjectClaim::from("loyal subjects"), None)
+      .validate_claim(IssuerClaim::from("me"), None)
+      .validate_claim(TokenIdentifierClaim::from("me"), None)
+      .validate_claim(IssuedAtClaim::try_from("2019-01-01T00:00:00+00:00")?, None)
+      .validate_claim(NotBeforeClaim::try_from("2019-01-01T00:00:00+00:00")?, None)
+      .validate_claim(ExpirationClaim::try_from("2019-01-01T00:00:00+00:00")?, None)
+      .validate_claim(CustomClaim::try_from(("data", "this is a secret message"))?, None)
+      .validate_claim(CustomClaim::try_from(("seats", 4))?, None)
+      .validate_claim(CustomClaim::try_from(("pi to 6 digits", 3.141526))?, None)
       .set_footer(footer)
       .parse(&token, &key)?;
 
@@ -124,7 +154,7 @@ mod parsers {
   }
 
   #[test]
-  fn claim_validation_test() {
+  fn basic_claim_validation_test() {
     //create a key
     let key = Key::<Version2, PurposeLocal>::from(*b"wubbalubbadubdubwubbalubbadubdub");
 
@@ -138,13 +168,139 @@ mod parsers {
     let actual_error_kind = format!(
       "{}",
       GenericTokenParser::<Version2, PurposeLocal>::default()
-        .validate_claim(AudienceClaim::from("not the same customers"))
+        .validate_claim(AudienceClaim::from("not the same customers"), None)
         .parse(&token, &key)
         .unwrap_err()
     );
 
     let expected_error_kind = "The claim 'aud' failed validation";
     assert_eq!(expected_error_kind, actual_error_kind);
+  }
+
+  #[test]
+  fn claim_custom_validator_test() -> Result<()> {
+    //create a key
+    let key = Key::<Version2, PurposeLocal>::from(*b"wubbalubbadubdubwubbalubbadubdub");
+
+    //create a builder, add some claims and then build the token with the key
+    let token = GenericTokenBuilder::<Version2, PurposeLocal>::default()
+      .set_claim(AudienceClaim::from("customers"))
+      .build(&key)
+      .unwrap();
+
+    //now let's decrypt the token and verify the values with a custom validation closure
+    let json = GenericTokenParser::<Version2, PurposeLocal>::default()
+      .validate_claim(
+        //no need to provide a value to check against for the claim when we are using
+        //a custom closure since the value will be passed to the closure for evaluation by your
+        //validation function
+        AudienceClaim::default(),
+        Some(&|key, value| {
+          //we receive the value of the claim so we can do whatever we like with it
+          //get the value of the claim
+          let val = value
+            .as_str()
+            .ok_or(PasetoTokenParseError::InvalidClaimValueType(key.to_string()))?;
+
+          match val {
+            "customers" => Ok(()),
+            _ => Err(PasetoTokenParseError::CustomClaimValidation(
+              key.to_string(),
+              val.to_string(),
+            )),
+          }
+        }),
+      )
+      .parse(&token, &key)?;
+
+    assert_eq!(json["aud"], "customers");
+    Ok(())
+  }
+
+  #[test]
+  fn claim_custom_validator_failure_test() {
+    //create a key
+    let key = Key::<Version2, PurposeLocal>::from(*b"wubbalubbadubdubwubbalubbadubdub");
+
+    //create a builder, add some claims and then build the token with the key
+    let token = GenericTokenBuilder::<Version2, PurposeLocal>::default()
+      .set_claim(AudienceClaim::from("customers"))
+      .build(&key)
+      .unwrap();
+
+    //now let's decrypt the token and verify the values with a custom validation closure
+    let actual_error_kind = format!(
+      "{}",
+      GenericTokenParser::<Version2, PurposeLocal>::default()
+        .validate_claim(
+          //no need to provide a value to check against for the claim when we are using
+          //a custom closure since the value will be passed to the closure for evaluation by your
+          //validation function
+          AudienceClaim::default(),
+          Some(&|key, value| {
+            //we receive the value of the claim so we can do whatever we like with it
+            //get the value of the claim
+            let val = value
+              .as_str()
+              .ok_or(PasetoTokenParseError::InvalidClaimValueType(key.to_string()))?;
+
+            //let's fail on purpose
+            Err(PasetoTokenParseError::CustomClaimValidation(
+              key.to_string(),
+              val.to_string(),
+            ))
+          })
+        )
+        .parse(&token, &key)
+        .unwrap_err()
+    );
+
+    let expected_error_kind = "A custom claim validator for claim 'aud' failed for value 'customers'";
+    assert_eq!(expected_error_kind, actual_error_kind);
+  }
+
+  #[test]
+  fn custom_claim_custom_validator_test() -> Result<()> {
+    //create a key
+    let key = Key::<Version2, PurposeLocal>::from(*b"wubbalubbadubdubwubbalubbadubdub");
+
+    //create a builder, add some claims and then build the token with the key
+    let token = GenericTokenBuilder::<Version2, PurposeLocal>::default()
+      .set_claim(CustomClaim::try_from(("seats", 4))?)
+      .build(&key)
+      .unwrap();
+
+    //now let's decrypt the token and verify the values with a custom validation closure
+    let actual_error_kind = format!(
+      "{}",
+      GenericTokenParser::<Version2, PurposeLocal>::default()
+        .validate_claim(
+          //no need to provide a value to check against for the claim when we are using
+          //a custom closure since the value will be passed to the closure for evaluation by your
+          //validation function
+          CustomClaim::try_from("seats")?,
+          Some(&|key, value| {
+            //we receive the value of the claim so we can do whatever we like with it
+            //get the value of the claim
+            let val = value
+              .as_u64()
+              .ok_or(PasetoTokenParseError::InvalidClaimValueType(key.to_string()))?;
+
+            //let's fail on purpose
+            Err(PasetoTokenParseError::CustomClaimValidation(
+              key.to_string(),
+              val.to_string(),
+            ))
+          })
+        )
+        .parse(&token, &key)
+        .unwrap_err()
+    );
+
+    let expected_error_kind = "A custom claim validator for claim 'seats' failed for value '4'";
+    assert_eq!(expected_error_kind, actual_error_kind);
+
+    Ok(())
   }
 
   #[test]
@@ -161,7 +317,7 @@ mod parsers {
     let actual_error_kind = format!(
       "{}",
       GenericTokenParser::<Version2, PurposeLocal>::default()
-        .validate_claim(AudienceClaim::from("this claim doesn't exist"))
+        .validate_claim(AudienceClaim::from("this claim doesn't exist"), None)
         .parse(&token, &key)
         .unwrap_err()
     );

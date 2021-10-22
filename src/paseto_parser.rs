@@ -1,3 +1,4 @@
+use crate::generic_builders::ExpirationClaim;
 //use crate::claims::{ExpirationClaim, IssuedAtClaim};
 use crate::parsers::GenericTokenParser;
 use crate::{
@@ -6,7 +7,7 @@ use crate::{
   keys::Key,
   traits::PasetoClaim,
 };
-//use chrono::{prelude::*, Duration};
+use chrono::prelude::*;
 use core::marker::PhantomData;
 use serde_json::Value;
 use std::collections::HashMap;
@@ -63,22 +64,26 @@ impl<Version, Purpose> Default for PasetoTokenParser<'_, Version, Purpose> {
 impl<'a> PasetoTokenParser<'_, Version2, PurposeLocal> {
   pub fn parse(&mut self, token: &'a str, key: &Key<Version2, PurposeLocal>) -> Result<Value, PasetoTokenParseError> {
     let json = GenericTokenParser::<Version2, PurposeLocal>::default()
-      //    .validate_claim(
-      //      IssuedAtClaim::default(),
-      //      Some(&|key, value| {
-      //        //let's get the value
-      //        let val = value
-      //          .as_str()
-      //          .ok_or(PasetoTokenParseError::InvalidClaimValueType(key.to_string()))?;
-      //        let datetime = iso8601::datetime(val).unwrap();
-      //        let tomorrow = Utc::now() + Duration::days(1);
-      //        //the claimm should exist
-      //        assert_eq!(key, "iat");
-      //        //date should be tomorrow
-      //        assert_eq!(datetime.date.to_string(), tomorrow.date().naive_utc().to_string());
-      //        Ok(())
-      //      }),
-      //    )
+      .validate_claim(
+        ExpirationClaim::default(),
+        Some(&|key, value| {
+          //let's get the expiration claim value
+          let val = value
+            .as_str()
+            .ok_or_else(|| PasetoTokenParseError::InvalidClaimValueType(key.to_string()))?;
+          //turn the value into a datetime
+          let datetime = DateTime::parse_from_rfc3339(val).map_err(|_| PasetoTokenParseError::InvalidDate)?;
+          //get the current datetime
+          let now = Utc::now();
+
+          //here we do the actual validation check for the expiration claim
+          if datetime <= now {
+            Err(PasetoTokenParseError::ExpiredToken)
+          } else {
+            Ok(())
+          }
+        }),
+      )
       .parse(token, key)?;
 
     //return the full json value to the user
@@ -88,6 +93,8 @@ impl<'a> PasetoTokenParser<'_, Version2, PurposeLocal> {
 
 #[cfg(test)]
 mod paseto_parser {
+
+  use std::convert::TryFrom;
 
   use super::*;
   //use crate::claims::{
@@ -99,9 +106,24 @@ mod paseto_parser {
   //  use crate::errors::PasetoTokenParseError;
   use crate::keys::Key;
   use anyhow::Result;
-  //use chrono::prelude::*;
-  //use chrono::Duration;
-  //  use std::convert::TryFrom;
+  //  use chrono::prelude::*;
+  use chrono::Duration;
+  //use std::convert::TryFrom;
+
+  #[test]
+  fn expired_token_claim() -> Result<()> {
+    let key = Key::<Version2, PurposeLocal>::from(*b"wubbalubbadubdubwubbalubbadubdub");
+
+    let expired = Utc::now() + Duration::minutes(-10);
+    //create a default builder
+    let token = PasetoTokenBuilder::<Version2, PurposeLocal>::default()
+      .set_claim(ExpirationClaim::try_from(expired.to_rfc3339())?)
+      .build(&key)?;
+    let expected_error = format!("{}", PasetoTokenParser::default().parse(&token, &key).unwrap_err());
+
+    assert_eq!(expected_error, "The token has expired");
+    Ok(())
+  }
 
   #[test]
   fn basic_paseto_parser_test() -> Result<()> {

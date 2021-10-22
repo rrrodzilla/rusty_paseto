@@ -33,6 +33,8 @@ pub enum GenericTokenBuilderError {
 /// Potential errors from attempting to parse a token string
 #[derive(Debug, Error)]
 pub enum PasetoTokenParseError {
+  #[error("The token has expired")]
+  ExpiredToken,
   #[error("The claim {0} was not the expected type")]
   InvalidClaimValueType(String),
   #[error("The claim {0} failed downcasting")]
@@ -47,6 +49,8 @@ pub enum PasetoTokenParseError {
   WrongHeader,
   #[error("The provided footer is invalid")]
   FooterInvalid,
+  #[error("An invalid date was found during token parsing")]
+  InvalidDate,
   #[error("Couldn't deserialize payload into json with serde")]
   PayloadJson {
     #[from]

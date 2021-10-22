@@ -92,6 +92,17 @@ impl AsRef<(String, String)> for IssuedAtClaim {
   }
 }
 
+impl TryFrom<String> for IssuedAtClaim {
+  type Error = Iso8601ParseError;
+
+  fn try_from(value: String) -> Result<Self, Self::Error> {
+    match iso8601::datetime(&value) {
+      Ok(_) => Ok(Self(("iat".to_string(), value))),
+      Err(_) => Err(Iso8601ParseError::new(&value)),
+    }
+  }
+}
+
 impl serde::Serialize for IssuedAtClaim {
   fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
   where

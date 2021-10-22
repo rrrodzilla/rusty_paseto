@@ -7,7 +7,7 @@ use std::convert::{AsRef, TryFrom};
 #[derive(Clone, Debug)]
 pub struct CustomClaim<T>((String, T));
 
-impl<T> PasetoClaim for CustomClaim<T> {
+impl<T: serde::Serialize> PasetoClaim for CustomClaim<T> {
   fn get_key(&self) -> &str {
     &self.0 .0
   }
@@ -149,38 +149,49 @@ impl<'a> serde::Serialize for NotBeforeClaim<'a> {
 }
 
 #[derive(Clone)]
-pub struct ExpirationClaim<'a>((&'a str, &'a str));
-impl<'a> PasetoClaim for ExpirationClaim<'a> {
+pub struct ExpirationClaim((String, String));
+impl PasetoClaim for ExpirationClaim {
   fn get_key(&self) -> &str {
-    self.0 .0
+    self.0 .0.as_str()
   }
 }
 
-impl<'a> Default for ExpirationClaim<'a> {
+impl Default for ExpirationClaim {
   fn default() -> Self {
-    Self(("exp", "2019-01-01T00:00:00+00:00"))
+    Self(("exp".to_string(), "2019-01-01T00:00:00+00:00".to_string()))
   }
 }
 
-impl<'a> TryFrom<&'a str> for ExpirationClaim<'a> {
+impl TryFrom<String> for ExpirationClaim {
   type Error = Iso8601ParseError;
 
-  fn try_from(value: &'a str) -> Result<Self, Self::Error> {
+  fn try_from(value: String) -> Result<Self, Self::Error> {
+    match iso8601::datetime(&value) {
+      Ok(_) => Ok(Self(("exp".to_string(), value))),
+      Err(_) => Err(Iso8601ParseError::new(&value)),
+    }
+  }
+}
+
+impl TryFrom<&str> for ExpirationClaim {
+  type Error = Iso8601ParseError;
+
+  fn try_from(value: &str) -> Result<Self, Self::Error> {
     match iso8601::datetime(value) {
-      Ok(_) => Ok(Self(("exp", value))),
+      Ok(_) => Ok(Self(("exp".to_string(), value.to_string()))),
       Err(_) => Err(Iso8601ParseError::new(value)),
     }
   }
 }
 
 //want to receive a reference as a tuple
-impl<'a> AsRef<(&'a str, &'a str)> for ExpirationClaim<'a> {
-  fn as_ref(&self) -> &(&'a str, &'a str) {
+impl AsRef<(String, String)> for ExpirationClaim {
+  fn as_ref(&self) -> &(String, String) {
     &self.0
   }
 }
 
-impl<'a> serde::Serialize for ExpirationClaim<'a> {
+impl serde::Serialize for ExpirationClaim {
   fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
   where
     S: serde::Serializer,

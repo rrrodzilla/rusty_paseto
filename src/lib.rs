@@ -19,6 +19,7 @@ mod errors;
 mod headers;
 mod keys;
 mod parsers;
+mod paseto_builder;
 mod tokens;
 mod traits;
 mod untrusted_tokens;
@@ -43,4 +44,7 @@ pub mod generic_builders {
   pub use crate::parsers::GenericTokenParser;
 
   pub use crate::errors::{GenericTokenBuilderError, PasetoTokenParseError};
+}
+pub mod prelude {
+  pub use crate::paseto_builder::PasetoTokenBuilder;
 }

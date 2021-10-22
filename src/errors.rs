@@ -21,6 +21,8 @@ pub enum TokenClaimError {
 /// Potential errors from attempting to build a v2 local token
 #[derive(Debug, Error)]
 pub enum GenericTokenBuilderError {
+  #[error("The claim '{0}' appears more than once in the top level payload json")]
+  DuplicateTopLevelPayloadClaim(String),
   #[error("The payload was unable to be serialized into json")]
   PayloadJsonError {
     #[from]

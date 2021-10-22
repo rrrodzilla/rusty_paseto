@@ -8,7 +8,7 @@ use crate::{
 };
 use chrono::{prelude::*, Duration};
 use core::marker::PhantomData;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::convert::TryFrom;
 use std::mem::take;
 
@@ -16,7 +16,9 @@ pub struct PasetoTokenBuilder<'a, Version, Purpose> {
   version: PhantomData<Version>,
   purpose: PhantomData<Purpose>,
   claims: HashMap<String, Box<dyn erased_serde::Serialize>>,
+  top_level_claims: HashSet<String>,
   footer: Option<Footer<'a>>,
+  dup_top_level_found: (bool, String),
 }
 
 impl<'a, Version, Purpose> PasetoTokenBuilder<'a, Version, Purpose> {
@@ -24,12 +26,20 @@ impl<'a, Version, Purpose> PasetoTokenBuilder<'a, Version, Purpose> {
     PasetoTokenBuilder::<Version, Purpose> {
       version: PhantomData::<Version>,
       purpose: PhantomData::<Purpose>,
+      top_level_claims: HashSet::new(),
       claims: HashMap::with_capacity(10),
       footer: None,
+      dup_top_level_found: (false, String::default()),
     }
   }
 
   pub fn set_claim<T: PasetoClaim + erased_serde::Serialize + Sized + 'static>(&mut self, value: T) -> &mut Self {
+    //we need to inspect all the claims and verify there are no duplicates
+
+    if !self.top_level_claims.insert(value.get_key().to_string()) {
+      self.dup_top_level_found = (true, value.get_key().to_string());
+    }
+
     self.claims.insert(value.get_key().to_owned(), Box::new(value));
     self
   }
@@ -49,7 +59,13 @@ impl<Version, Purpose> Default for PasetoTokenBuilder<'_, Version, Purpose> {
 impl PasetoTokenBuilder<'_, Version2, PurposeLocal> {
   pub fn build(&mut self, key: &Key<Version2, PurposeLocal>) -> Result<String, GenericTokenBuilderError> {
     let claims = take(&mut self.claims);
-
+    //raise an error if there were duplicates
+    let (dup_found, dup_key) = &self.dup_top_level_found;
+    if *dup_found {
+      return Err(GenericTokenBuilderError::DuplicateTopLevelPayloadClaim(
+        dup_key.to_string(),
+      ));
+    }
     //create a builder, add some default claims, then add all the user provided claims and then build the token with the key
     let token = GenericTokenBuilder::<Version2, PurposeLocal>::default()
       //adding a default IssuedAtClaim set to NOW UTC
@@ -79,6 +95,29 @@ mod paseto_builder {
   use anyhow::Result;
   use chrono::Duration;
   use std::convert::TryFrom;
+
+  #[test]
+  fn duplicate_top_level_claim_test() -> Result<()> {
+    let key = Key::<Version2, PurposeLocal>::from(*b"wubbalubbadubdubwubbalubbadubdub");
+    let tomorrow = (Utc::now() + Duration::days(1)).to_rfc3339();
+
+    //create a builder, with default IssuedAtClaim
+    let expected_error = format!(
+      "{}",
+      PasetoTokenBuilder::<Version2, PurposeLocal>::default()
+        .set_claim(IssuedAtClaim::try_from(tomorrow.as_str()).unwrap())
+        .set_claim(IssuedAtClaim::try_from(tomorrow.as_str()).unwrap())
+        .build(&key)
+        .unwrap_err()
+    );
+
+    assert_eq!(
+      expected_error,
+      "The claim 'iat' appears more than once in the top level payload json"
+    );
+
+    Ok(())
+  }
 
   #[test]
   fn update_default_issued_at_claim_test() -> Result<()> {

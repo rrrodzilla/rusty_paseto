@@ -7,6 +7,8 @@ Not quite ready for publishing but rapidly approaching stabilization of the API.
 ![unit tests](https://github.com/rrrodzilla/rusty_paseto/actions/workflows/rust.yml/badge.svg)
 ![GitHub](https://img.shields.io/github/license/rrrodzilla/rusty_paseto?label=License)
 
+## Roadmap and Current Feature Status
+
 | APIs, Tests & Documentation | v1.<br />local| v1.<br />public | v2.<br />local | v2.<br />public |v3.<br />local | v3.<br />public | v4.<br />local | v4.<br />public |
 | ------------: | :-----------: | :----------:    |:-----------:   |:-----------:    |:-----------:  |:-----------:    |:-----------:   |:-----------:    |
 | PASETO Token Builder		| :new_moon: | :new_moon: | :last_quarter_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: |

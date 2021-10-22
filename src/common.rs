@@ -1,5 +1,11 @@
+use crate::errors::PasetoTokenParseError;
 use crate::traits::Base64Encodable;
+use serde_json::Value;
+use std::collections::HashMap;
 use std::fmt;
+
+pub type ValidatorFn = dyn Fn(&str, &Value) -> Result<(), PasetoTokenParseError>;
+pub type ValidatorMap = HashMap<String, Box<ValidatorFn>>;
 
 #[derive(Debug)]
 pub struct Version2;

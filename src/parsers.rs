@@ -1,16 +1,13 @@
 use crate::decrypted_tokens::GenericTokenDecrypted;
 use crate::errors::PasetoTokenParseError;
 use crate::{
-  common::{Footer, PurposeLocal, Version2},
+  common::{Footer, PurposeLocal, ValidatorFn, ValidatorMap, Version2},
   keys::Key,
   traits::PasetoClaim,
 };
 use core::marker::PhantomData;
 use serde_json::Value;
 use std::{collections::HashMap, mem::take};
-
-type ValidatorFn = dyn Fn(&str, &Value) -> Result<(), PasetoTokenParseError>;
-type ValidatorMap = HashMap<String, Box<ValidatorFn>>;
 
 pub struct GenericTokenParser<'a, Version, Purpose> {
   version: PhantomData<Version>,
@@ -29,6 +26,11 @@ impl<Version, Purpose> GenericTokenParser<'_, Version, Purpose> {
       claim_validators: HashMap::new(),
       footer: None,
     }
+  }
+
+  pub fn extend_validation_claims(&mut self, value: HashMap<String, Box<dyn erased_serde::Serialize>>) -> &mut Self {
+    self.claims.extend(value);
+    self
   }
 
   pub fn validate_claim<T: PasetoClaim + 'static + serde::Serialize>(

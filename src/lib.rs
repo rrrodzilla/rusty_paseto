@@ -20,6 +20,7 @@ mod headers;
 mod keys;
 mod parsers;
 mod paseto_builder;
+mod paseto_parser;
 mod tokens;
 mod traits;
 mod untrusted_tokens;
@@ -47,4 +48,5 @@ pub mod generic_builders {
 }
 pub mod prelude {
   pub use crate::paseto_builder::PasetoTokenBuilder;
+  pub use crate::paseto_parser::PasetoTokenParser;
 }

@@ -90,7 +90,7 @@ impl<'a> PasetoTokenParser<'_, Version2, PurposeLocal> {
           //let's get the expiration claim value
           let val = value.as_str().unwrap_or_default();
           //if there is no value here, then the user didn't provide the claim so we just move on
-          if val == "" {
+          if val.is_empty() {
             return Ok(());
           }
           //otherwise let's continue with the validation
@@ -120,18 +120,11 @@ mod paseto_parser {
   use std::convert::TryFrom;
 
   use super::*;
-  //use crate::claims::{
-  //  AudienceClaim, CustomClaim, ExpirationClaim, IssuedAtClaim, IssuerClaim, NotBeforeClaim, SubjectClaim,
-  //  TokenIdentifierClaim,
-  //};
   use crate::common::*;
-  use crate::prelude::PasetoTokenBuilder;
-  //  use crate::errors::PasetoTokenParseError;
   use crate::keys::Key;
+  use crate::prelude::PasetoTokenBuilder;
   use anyhow::Result;
-  //  use chrono::prelude::*;
   use chrono::Duration;
-  //use std::convert::TryFrom;
 
   #[test]
   fn usage_before_ready_test() -> Result<()> {
@@ -144,7 +137,7 @@ mod paseto_parser {
       .build(&key)?;
     let expected_error = format!("{}", PasetoTokenParser::default().parse(&token, &key).unwrap_err());
 
-    assert_eq!(expected_error, "The token has expired");
+    assert!(expected_error.starts_with("The token is not available for use before "));
     Ok(())
   }
 

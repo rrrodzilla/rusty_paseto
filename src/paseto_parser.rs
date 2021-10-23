@@ -66,11 +66,16 @@ impl<'a> PasetoTokenParser<'_, Version2, PurposeLocal> {
     let json = GenericTokenParser::<Version2, PurposeLocal>::default()
       .validate_claim(
         ExpirationClaim::default(),
-        Some(&|key, value| {
+        Some(&|_, value| {
           //let's get the expiration claim value
-          let val = value
-            .as_str()
-            .ok_or_else(|| PasetoTokenParseError::InvalidClaimValueType(key.to_string()))?;
+          let val = value.as_str().unwrap_or_default();
+
+          //check if this is a non-expiring token
+          if val.is_empty() {
+            //this means the claim wasn't found, which means this is a non-expiring token
+            //and we can just skip this validation
+            return Ok(());
+          }
           //turn the value into a datetime
           let datetime = DateTime::parse_from_rfc3339(val).map_err(|_| PasetoTokenParseError::InvalidDate)?;
           //get the current datetime
@@ -138,6 +143,30 @@ mod paseto_parser {
     let expected_error = format!("{}", PasetoTokenParser::default().parse(&token, &key).unwrap_err());
 
     assert!(expected_error.starts_with("The token is not available for use before "));
+    Ok(())
+  }
+
+  #[test]
+  fn non_expiring_token_claim_test() -> Result<()> {
+    let key = Key::<Version2, PurposeLocal>::from(*b"wubbalubbadubdubwubbalubbadubdub");
+
+    //we're going to set a token expiration date to 10 minutes ago
+    let expired = Utc::now() + Duration::minutes(-10);
+
+    //create a default builder
+    let token = PasetoTokenBuilder::<Version2, PurposeLocal>::default()
+      //setting our claim
+      .set_claim(ExpirationClaim::try_from(expired.to_rfc3339())?)
+      //by setting this we ensure we won't fail
+      .set_no_expiration_date_danger_acknowledged()
+      //without the line above this would have errored as an expired token
+      .build(&key)?;
+
+    let token = PasetoTokenParser::default().parse(&token, &key)?;
+
+    assert!(token["iat"].is_string());
+    assert!(token["exp"].is_null());
+
     Ok(())
   }
 

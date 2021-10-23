@@ -19,6 +19,7 @@ pub struct PasetoTokenBuilder<'a, Version, Purpose> {
   top_level_claims: HashSet<String>,
   footer: Option<Footer<'a>>,
   dup_top_level_found: (bool, String),
+  non_expiring_token: bool,
 }
 
 impl<'a, Version, Purpose> PasetoTokenBuilder<'a, Version, Purpose> {
@@ -29,18 +30,24 @@ impl<'a, Version, Purpose> PasetoTokenBuilder<'a, Version, Purpose> {
       top_level_claims: HashSet::new(),
       claims: HashMap::with_capacity(10),
       footer: None,
+      non_expiring_token: false,
       dup_top_level_found: (false, String::default()),
     }
   }
 
   pub fn set_claim<T: PasetoClaim + erased_serde::Serialize + Sized + 'static>(&mut self, value: T) -> &mut Self {
     //we need to inspect all the claims and verify there are no duplicates
-
     if !self.top_level_claims.insert(value.get_key().to_string()) {
       self.dup_top_level_found = (true, value.get_key().to_string());
     }
 
     self.claims.insert(value.get_key().to_owned(), Box::new(value));
+    self
+  }
+
+  pub fn set_no_expiration_date_danger_acknowledged(&mut self) -> &mut Self {
+    self.top_level_claims.insert("exp".to_string());
+    self.non_expiring_token = true;
     self
   }
 
@@ -58,6 +65,9 @@ impl<Version, Purpose> Default for PasetoTokenBuilder<'_, Version, Purpose> {
 
 impl PasetoTokenBuilder<'_, Version2, PurposeLocal> {
   pub fn build(&mut self, key: &Key<Version2, PurposeLocal>) -> Result<String, GenericTokenBuilderError> {
+    if self.non_expiring_token {
+      self.claims.remove("exp");
+    }
     let claims = take(&mut self.claims);
     //raise an error if there were duplicates
     let (dup_found, dup_key) = &self.dup_top_level_found;
@@ -67,11 +77,14 @@ impl PasetoTokenBuilder<'_, Version2, PurposeLocal> {
       ));
     }
     //create a builder, add some default claims, then add all the user provided claims and then build the token with the key
-    let token = GenericTokenBuilder::<Version2, PurposeLocal>::default()
-      //adding a default IssuedAtClaim set to NOW UTC
-      .set_claim(IssuedAtClaim::try_from(Utc::now().to_rfc3339()).unwrap())
+    let mut builder = GenericTokenBuilder::<Version2, PurposeLocal>::default();
+    //adding a default IssuedAtClaim set to NOW UTC
+    if !self.non_expiring_token {
       //adding a default ExpirationClaim set to 24 hours from NOW UTC
-      .set_claim(ExpirationClaim::try_from((Utc::now() + Duration::hours(24)).to_rfc3339()).unwrap())
+      builder.set_claim(ExpirationClaim::try_from((Utc::now() + Duration::hours(24)).to_rfc3339()).unwrap());
+    }
+    let token = builder
+      .set_claim(IssuedAtClaim::try_from(Utc::now().to_rfc3339()).unwrap())
       .extend_claims(claims)
       .set_footer(self.footer)
       .build(key)?;

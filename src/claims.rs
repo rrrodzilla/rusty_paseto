@@ -27,6 +27,20 @@ impl TryFrom<&str> for CustomClaim<&str> {
   }
 }
 
+impl<T> TryFrom<(String, T)> for CustomClaim<T> {
+  type Error = TokenClaimError;
+
+  fn try_from(val: (String, T)) -> Result<Self, Self::Error> {
+    let key = val.0.as_str();
+    match key {
+      key if ["iss", "sub", "aud", "exp", "nbf", "iat", "jti"].contains(&key) => {
+        Err(TokenClaimError::ReservedClaim(key.into()))
+      }
+      _ => Ok(Self((val.0, val.1))),
+    }
+  }
+}
+
 impl<T> TryFrom<(&str, T)> for CustomClaim<T> {
   type Error = TokenClaimError;
 

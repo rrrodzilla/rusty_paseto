@@ -49,8 +49,8 @@ impl<Version, Purpose> GenericTokenParser<'_, Version, Purpose> {
     self
   }
 
-  pub fn set_footer(&mut self, footer: Option<Footer<'static>>) -> &mut Self {
-    self.footer = footer;
+  pub fn set_footer(&mut self, footer: Footer<'static>) -> &mut Self {
+    self.footer = Some(footer);
     self
   }
 }
@@ -109,7 +109,7 @@ mod parsers {
   fn full_parser_test() -> Result<()> {
     //create a key
     let key = Key::<Version2, PurposeLocal>::from(*b"wubbalubbadubdubwubbalubbadubdub");
-    let footer = Some(Footer::from("some footer"));
+    let footer = Footer::from("some footer");
 
     //create a builder, add some claims and then build the token with the key
     let token = GenericTokenBuilder::<Version2, PurposeLocal>::default()

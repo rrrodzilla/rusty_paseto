@@ -35,8 +35,8 @@ impl<'a, Version, Purpose> GenericTokenBuilder<'a, Version, Purpose> {
     self
   }
 
-  pub fn set_footer(&mut self, footer: Option<Footer<'a>>) -> &mut Self {
-    self.footer = footer;
+  pub fn set_footer(&mut self, footer: Footer<'a>) -> &mut Self {
+    self.footer = Some(footer);
     self
   }
 }
@@ -88,7 +88,7 @@ mod builders {
   fn full_builder_test() -> Result<()> {
     //create a key
     let key = Key::<Version2, PurposeLocal>::from(*b"wubbalubbadubdubwubbalubbadubdub");
-    let footer = Some(Footer::from("some footer"));
+    let footer = Footer::from("some footer");
 
     //create a builder, add some claims and then build the token with the key
     let token = GenericTokenBuilder::<Version2, PurposeLocal>::default()
@@ -106,7 +106,7 @@ mod builders {
       .build(&key)?;
 
     //now let's decrypt the token and verify the values
-    let decrypted = GenericTokenDecrypted::<Version2, PurposeLocal>::parse(&token, footer, &key)?;
+    let decrypted = GenericTokenDecrypted::<Version2, PurposeLocal>::parse(&token, Some(footer), &key)?;
     let json: Value = serde_json::from_str(decrypted.as_ref())?;
 
     assert_eq!(json["aud"], "customers");

@@ -51,8 +51,8 @@ impl<'a, Version, Purpose> PasetoTokenBuilder<'a, Version, Purpose> {
     self
   }
 
-  pub fn set_footer(&mut self, footer: Option<Footer<'a>>) -> &mut Self {
-    self.footer = footer;
+  pub fn set_footer(&mut self, footer: Footer<'a>) -> &mut Self {
+    self.footer = Some(footer);
     self
   }
 }
@@ -83,11 +83,13 @@ impl PasetoTokenBuilder<'_, Version2, PurposeLocal> {
       //adding a default ExpirationClaim set to 24 hours from NOW UTC
       builder.set_claim(ExpirationClaim::try_from((Utc::now() + Duration::hours(24)).to_rfc3339()).unwrap());
     }
-    let token = builder
+    builder
       .set_claim(IssuedAtClaim::try_from(Utc::now().to_rfc3339()).unwrap())
-      .extend_claims(claims)
-      .set_footer(self.footer)
-      .build(key)?;
+      .extend_claims(claims);
+    if let Some(footer) = self.footer {
+      builder.set_footer(footer);
+    }
+    let token = builder.build(key)?;
 
     Ok(token)
   }
@@ -276,7 +278,7 @@ mod paseto_builder {
   #[test]
   fn full_paseto_builder_test() -> Result<()> {
     let key = Key::<Version2, PurposeLocal>::from(*b"wubbalubbadubdubwubbalubbadubdub");
-    let footer = Some(Footer::from("some footer"));
+    let footer = Footer::from("some footer");
 
     //create a builder, add some claims and then build the token with the key
     let token = PasetoTokenBuilder::<Version2, PurposeLocal>::default()

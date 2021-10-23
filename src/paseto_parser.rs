@@ -1,4 +1,4 @@
-use crate::generic_builders::ExpirationClaim;
+use crate::generic_builders::{ExpirationClaim, NotBeforeClaim};
 //use crate::claims::{ExpirationClaim, IssuedAtClaim};
 use crate::parsers::GenericTokenParser;
 use crate::{
@@ -84,6 +84,29 @@ impl<'a> PasetoTokenParser<'_, Version2, PurposeLocal> {
           }
         }),
       )
+      .validate_claim(
+        NotBeforeClaim::default(),
+        Some(&|_, value| {
+          //let's get the expiration claim value
+          let val = value.as_str().unwrap_or_default();
+          //if there is no value here, then the user didn't provide the claim so we just move on
+          if val.is_empty() {
+            return Ok(());
+          }
+          //otherwise let's continue with the validation
+          //turn the value into a datetime
+          let not_before_time = DateTime::parse_from_rfc3339(val).map_err(|_| PasetoTokenParseError::InvalidDate)?;
+          //get the current datetime
+          let now = Utc::now();
+
+          //here we do the actual validation check for the expiration claim
+          if now <= not_before_time {
+            Err(PasetoTokenParseError::UseBeforeAvailable(not_before_time.to_string()))
+          } else {
+            Ok(())
+          }
+        }),
+      )
       .parse(token, key)?;
 
     //return the full json value to the user
@@ -97,21 +120,29 @@ mod paseto_parser {
   use std::convert::TryFrom;
 
   use super::*;
-  //use crate::claims::{
-  //  AudienceClaim, CustomClaim, ExpirationClaim, IssuedAtClaim, IssuerClaim, NotBeforeClaim, SubjectClaim,
-  //  TokenIdentifierClaim,
-  //};
   use crate::common::*;
-  use crate::prelude::PasetoTokenBuilder;
-  //  use crate::errors::PasetoTokenParseError;
   use crate::keys::Key;
+  use crate::prelude::PasetoTokenBuilder;
   use anyhow::Result;
-  //  use chrono::prelude::*;
   use chrono::Duration;
-  //use std::convert::TryFrom;
 
   #[test]
-  fn expired_token_claim() -> Result<()> {
+  fn usage_before_ready_test() -> Result<()> {
+    let key = Key::<Version2, PurposeLocal>::from(*b"wubbalubbadubdubwubbalubbadubdub");
+
+    let not_before = Utc::now() + Duration::hours(1);
+    //create a default builder
+    let token = PasetoTokenBuilder::<Version2, PurposeLocal>::default()
+      .set_claim(NotBeforeClaim::try_from(not_before.to_rfc3339())?)
+      .build(&key)?;
+    let expected_error = format!("{}", PasetoTokenParser::default().parse(&token, &key).unwrap_err());
+
+    assert!(expected_error.starts_with("The token is not available for use before "));
+    Ok(())
+  }
+
+  #[test]
+  fn expired_token_claim_test() -> Result<()> {
     let key = Key::<Version2, PurposeLocal>::from(*b"wubbalubbadubdubwubbalubbadubdub");
 
     let expired = Utc::now() + Duration::minutes(-10);

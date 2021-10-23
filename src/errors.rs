@@ -33,6 +33,8 @@ pub enum GenericTokenBuilderError {
 /// Potential errors from attempting to parse a token string
 #[derive(Debug, Error)]
 pub enum PasetoTokenParseError {
+  #[error("The token is not available for use before {0}")]
+  UseBeforeAvailable(String),
   #[error("The token has expired")]
   ExpiredToken,
   #[error("The claim {0} was not the expected type")]

@@ -5,7 +5,7 @@
 //! [PASETO]: https://github.com/paseto-standard/paseto-spec
 
 #![doc(html_no_source)]
-#![warn(rustdoc::missing_crate_level_docs)]
+#![deny(rustdoc::missing_crate_level_docs)]
 
 extern crate erased_serde;
 
@@ -25,12 +25,9 @@ mod tokens;
 mod traits;
 mod untrusted_tokens;
 
-pub mod protocols {
-
-  pub use crate::common::{PurposeLocal, Version2};
-}
 pub mod generic_tokens {
   pub use crate::common::{Footer, Payload};
+  pub use crate::common::{PurposeLocal, Version2};
   pub use crate::decrypted_tokens::GenericTokenDecrypted;
   pub use crate::keys::{HexKey, Key, Key256Bit};
   pub use crate::tokens::GenericToken;
@@ -42,11 +39,19 @@ pub mod generic_builders {
     AudienceClaim, CustomClaim, ExpirationClaim, IssuedAtClaim, IssuerClaim, NotBeforeClaim, SubjectClaim,
     TokenIdentifierClaim,
   };
+  pub use crate::common::{PurposeLocal, Version2};
   pub use crate::parsers::GenericTokenParser;
 
   pub use crate::errors::{GenericTokenBuilderError, PasetoTokenParseError};
 }
 pub mod prelude {
+  pub use crate::claims::{
+    AudienceClaim, CustomClaim, ExpirationClaim, IssuedAtClaim, IssuerClaim, NotBeforeClaim, SubjectClaim,
+    TokenIdentifierClaim,
+  };
+  pub use crate::common::Footer;
+  pub use crate::common::{PurposeLocal, Version2};
+  pub use crate::keys::{HexKey, Key, Key256Bit};
   pub use crate::paseto_builder::PasetoTokenBuilder;
   pub use crate::paseto_parser::PasetoTokenParser;
 }

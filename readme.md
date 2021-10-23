@@ -2,7 +2,10 @@
 
 A type-driven, ergonomic implementation of the [PASETO](https://github.com/paseto-standard/paseto-spec) protocol for secure stateless tokens.
 
-Not quite ready for publishing but rapidly approaching stabilization of the API.
+### PASETO: Platform-Agnostic Security Tokens
+
+Paseto is everything you love about JOSE (JWT, JWE, JWS) without any of the
+[many design deficits that plague the JOSE standards](https://paragonie.com/blog/2017/03/jwt-json-web-tokens-is-bad-standard-that-everyone-should-avoid).
 
 ![unit tests](https://github.com/rrrodzilla/rusty_paseto/actions/workflows/rust.yml/badge.svg)
 ![GitHub](https://img.shields.io/github/license/rrrodzilla/rusty_paseto?label=License)

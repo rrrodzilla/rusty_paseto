@@ -1,7 +1,6 @@
 use anyhow::Result;
-use rusty_paseto::generic_tokens::{Footer, Key, Key256Bit, Payload};
+use rusty_paseto::generic_tokens::{Footer, Key, Key256Bit, Payload, PurposeLocal, Version2};
 use rusty_paseto::generic_tokens::{GenericToken, GenericTokenDecrypted};
-use rusty_paseto::protocols::{PurposeLocal, Version2};
 
 #[test]
 fn basic_usage_test_random_key_and_footer() -> Result<()> {

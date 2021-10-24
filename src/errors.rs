@@ -20,6 +20,11 @@ pub enum TokenClaimError {
 
 #[derive(Debug, Error)]
 pub enum GenericTokenBuilderError {
+  #[error("Use of a reserved PASETO claim key")]
+  TokenClaimError {
+    #[from]
+    source: crate::errors::TokenClaimError,
+  },
   #[error("Invalid iso8601 string")]
   Iso8601ParseError {
     #[from]

@@ -45,7 +45,7 @@ impl<'a, Version, Purpose> PasetoTokenBuilder<'a, Version, Purpose> {
     self
   }
 
-  pub fn set_no_expiration_date_danger_acknowledged(&mut self) -> &mut Self {
+  pub fn set_no_expiration_danger_acknowledged(&mut self) -> &mut Self {
     self.top_level_claims.insert("exp".to_string());
     self.non_expiring_token = true;
     self

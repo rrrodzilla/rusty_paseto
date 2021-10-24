@@ -152,7 +152,7 @@ mod paseto_parser {
       //setting our claim
       .set_claim(ExpirationClaim::try_from(expired.to_rfc3339())?)
       //by setting this we ensure we won't fail
-      .set_no_expiration_date_danger_acknowledged()
+      .set_no_expiration_danger_acknowledged()
       //without the line above this would have errored as an expired token
       .build(&key)?;
 

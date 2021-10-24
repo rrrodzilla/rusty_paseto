@@ -80,8 +80,8 @@ impl PasetoTokenBuilder<'_, Version2, PurposeLocal> {
     let mut builder = GenericTokenBuilder::<Version2, PurposeLocal>::default();
     //adding a default IssuedAtClaim set to NOW UTC
     if !self.non_expiring_token {
-      //adding a default ExpirationClaim set to 24 hours from NOW UTC
-      builder.set_claim(ExpirationClaim::try_from((Utc::now() + Duration::hours(24)).to_rfc3339()).unwrap());
+      //adding a default ExpirationClaim set to 1 hour from NOW UTC
+      builder.set_claim(ExpirationClaim::try_from((Utc::now() + Duration::hours(1)).to_rfc3339()).unwrap());
     }
     builder
       .set_claim(IssuedAtClaim::try_from(Utc::now().to_rfc3339()).unwrap())

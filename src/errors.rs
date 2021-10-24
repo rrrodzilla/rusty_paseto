@@ -18,9 +18,13 @@ pub enum TokenClaimError {
   ReservedClaim(String),
 }
 
-/// Potential errors from attempting to build a v2 local token
 #[derive(Debug, Error)]
 pub enum GenericTokenBuilderError {
+  #[error("Invalid iso8601 string")]
+  Iso8601ParseError {
+    #[from]
+    source: crate::errors::Iso8601ParseError,
+  },
   #[error("The claim '{0}' appears more than once in the top level payload json")]
   DuplicateTopLevelPayloadClaim(String),
   #[error("The payload was unable to be serialized into json")]

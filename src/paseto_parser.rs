@@ -64,54 +64,48 @@ impl<Version, Purpose> Default for PasetoTokenParser<'_, Version, Purpose> {
 impl<'a> PasetoTokenParser<'_, Version2, PurposeLocal> {
   pub fn parse(&mut self, token: &'a str, key: &Key<Version2, PurposeLocal>) -> Result<Value, PasetoTokenParseError> {
     let json = GenericTokenParser::<Version2, PurposeLocal>::default()
-      .validate_claim(
-        ExpirationClaim::default(),
-        Some(&|_, value| {
-          //let's get the expiration claim value
-          let val = value.as_str().unwrap_or_default();
+      .validate_claim(ExpirationClaim::default(), &|_, value| {
+        //let's get the expiration claim value
+        let val = value.as_str().unwrap_or_default();
 
-          //check if this is a non-expiring token
-          if val.is_empty() {
-            //this means the claim wasn't found, which means this is a non-expiring token
-            //and we can just skip this validation
-            return Ok(());
-          }
-          //turn the value into a datetime
-          let datetime = DateTime::parse_from_rfc3339(val).map_err(|_| PasetoTokenParseError::InvalidDate)?;
-          //get the current datetime
-          let now = Utc::now();
+        //check if this is a non-expiring token
+        if val.is_empty() {
+          //this means the claim wasn't found, which means this is a non-expiring token
+          //and we can just skip this validation
+          return Ok(());
+        }
+        //turn the value into a datetime
+        let datetime = DateTime::parse_from_rfc3339(val).map_err(|_| PasetoTokenParseError::InvalidDate)?;
+        //get the current datetime
+        let now = Utc::now();
 
-          //here we do the actual validation check for the expiration claim
-          if datetime <= now {
-            Err(PasetoTokenParseError::ExpiredToken)
-          } else {
-            Ok(())
-          }
-        }),
-      )
-      .validate_claim(
-        NotBeforeClaim::default(),
-        Some(&|_, value| {
-          //let's get the expiration claim value
-          let val = value.as_str().unwrap_or_default();
-          //if there is no value here, then the user didn't provide the claim so we just move on
-          if val.is_empty() {
-            return Ok(());
-          }
-          //otherwise let's continue with the validation
-          //turn the value into a datetime
-          let not_before_time = DateTime::parse_from_rfc3339(val).map_err(|_| PasetoTokenParseError::InvalidDate)?;
-          //get the current datetime
-          let now = Utc::now();
+        //here we do the actual validation check for the expiration claim
+        if datetime <= now {
+          Err(PasetoTokenParseError::ExpiredToken)
+        } else {
+          Ok(())
+        }
+      })
+      .validate_claim(NotBeforeClaim::default(), &|_, value| {
+        //let's get the expiration claim value
+        let val = value.as_str().unwrap_or_default();
+        //if there is no value here, then the user didn't provide the claim so we just move on
+        if val.is_empty() {
+          return Ok(());
+        }
+        //otherwise let's continue with the validation
+        //turn the value into a datetime
+        let not_before_time = DateTime::parse_from_rfc3339(val).map_err(|_| PasetoTokenParseError::InvalidDate)?;
+        //get the current datetime
+        let now = Utc::now();
 
-          //here we do the actual validation check for the expiration claim
-          if now <= not_before_time {
-            Err(PasetoTokenParseError::UseBeforeAvailable(not_before_time.to_string()))
-          } else {
-            Ok(())
-          }
-        }),
-      )
+        //here we do the actual validation check for the expiration claim
+        if now <= not_before_time {
+          Err(PasetoTokenParseError::UseBeforeAvailable(not_before_time.to_string()))
+        } else {
+          Ok(())
+        }
+      })
       .parse(token, key)?;
 
     //return the full json value to the user

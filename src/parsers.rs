@@ -33,7 +33,7 @@ impl<Version, Purpose> GenericTokenParser<'_, Version, Purpose> {
     self
   }
 
-  pub fn validate_claim<T: PasetoClaim + 'static + serde::Serialize>(
+  fn set_validation_claim<T: PasetoClaim + 'static + serde::Serialize>(
     &mut self,
     value: T,
     validation_closure: Option<&'static ValidatorFn>,
@@ -47,6 +47,18 @@ impl<Version, Purpose> GenericTokenParser<'_, Version, Purpose> {
       self.claim_validators.insert(key, Box::new(closure));
     }
     self
+  }
+
+  pub fn validate_claim<T: PasetoClaim + 'static + serde::Serialize>(
+    &mut self,
+    value: T,
+    validation_closure: &'static ValidatorFn,
+  ) -> &mut Self {
+    self.set_validation_claim(value, Some(validation_closure))
+  }
+
+  pub fn check_claim<T: PasetoClaim + 'static + serde::Serialize>(&mut self, value: T) -> &mut Self {
+    self.set_validation_claim(value, None)
   }
 
   pub fn set_footer(&mut self, footer: Footer<'static>) -> &mut Self {
@@ -128,16 +140,16 @@ mod parsers {
 
     //now let's decrypt the token and verify the values
     let json = GenericTokenParser::<Version2, PurposeLocal>::default()
-      .validate_claim(AudienceClaim::from("customers"), None)
-      .validate_claim(SubjectClaim::from("loyal subjects"), None)
-      .validate_claim(IssuerClaim::from("me"), None)
-      .validate_claim(TokenIdentifierClaim::from("me"), None)
-      .validate_claim(IssuedAtClaim::try_from("2019-01-01T00:00:00+00:00")?, None)
-      .validate_claim(NotBeforeClaim::try_from("2019-01-01T00:00:00+00:00")?, None)
-      .validate_claim(ExpirationClaim::try_from("2019-01-01T00:00:00+00:00")?, None)
-      .validate_claim(CustomClaim::try_from(("data", "this is a secret message"))?, None)
-      .validate_claim(CustomClaim::try_from(("seats", 4))?, None)
-      .validate_claim(CustomClaim::try_from(("pi to 6 digits", 3.141526))?, None)
+      .check_claim(AudienceClaim::from("customers"))
+      .check_claim(SubjectClaim::from("loyal subjects"))
+      .check_claim(IssuerClaim::from("me"))
+      .check_claim(TokenIdentifierClaim::from("me"))
+      .check_claim(IssuedAtClaim::try_from("2019-01-01T00:00:00+00:00")?)
+      .check_claim(NotBeforeClaim::try_from("2019-01-01T00:00:00+00:00")?)
+      .check_claim(ExpirationClaim::try_from("2019-01-01T00:00:00+00:00")?)
+      .check_claim(CustomClaim::try_from(("data", "this is a secret message"))?)
+      .check_claim(CustomClaim::try_from(("seats", 4))?)
+      .check_claim(CustomClaim::try_from(("pi to 6 digits", 3.141526))?)
       .set_footer(footer)
       .parse(&token, &key)?;
 
@@ -170,7 +182,7 @@ mod parsers {
     let actual_error_kind = format!(
       "{}",
       GenericTokenParser::<Version2, PurposeLocal>::default()
-        .validate_claim(AudienceClaim::from("not the same customers"), None)
+        .check_claim(AudienceClaim::from("not the same customers"))
         .parse(&token, &key)
         .unwrap_err()
     );
@@ -197,7 +209,7 @@ mod parsers {
         //a custom closure since the value will be passed to the closure for evaluation by your
         //validation function
         AudienceClaim::default(),
-        Some(&|key, value| {
+        &|key, value| {
           //we receive the value of the claim so we can do whatever we like with it
           //get the value of the claim
           let val = value
@@ -211,7 +223,7 @@ mod parsers {
               val.to_string(),
             )),
           }
-        }),
+        },
       )
       .parse(&token, &key)?;
 
@@ -239,7 +251,7 @@ mod parsers {
           //a custom closure since the value will be passed to the closure for evaluation by your
           //validation function
           AudienceClaim::default(),
-          Some(&|key, value| {
+          &|key, value| {
             //we receive the value of the claim so we can do whatever we like with it
             //get the value of the claim
             let val = value
@@ -251,7 +263,7 @@ mod parsers {
               key.to_string(),
               val.to_string(),
             ))
-          })
+          }
         )
         .parse(&token, &key)
         .unwrap_err()
@@ -281,7 +293,7 @@ mod parsers {
           //a custom closure since the value will be passed to the closure for evaluation by your
           //validation function
           CustomClaim::try_from("seats")?,
-          Some(&|key, value| {
+          &|key, value| {
             //we receive the value of the claim so we can do whatever we like with it
             //get the value of the claim
             let val = value
@@ -293,7 +305,7 @@ mod parsers {
               key.to_string(),
               val.to_string(),
             ))
-          })
+          }
         )
         .parse(&token, &key)
         .unwrap_err()
@@ -319,7 +331,7 @@ mod parsers {
     let actual_error_kind = format!(
       "{}",
       GenericTokenParser::<Version2, PurposeLocal>::default()
-        .validate_claim(AudienceClaim::from("this claim doesn't exist"), None)
+        .check_claim(AudienceClaim::from("this claim doesn't exist"))
         .parse(&token, &key)
         .unwrap_err()
     );

@@ -23,7 +23,7 @@ pub struct PasetoTokenBuilder<'a, Version, Purpose> {
 }
 
 impl<'a, Version, Purpose> PasetoTokenBuilder<'a, Version, Purpose> {
-  pub fn new() -> Self {
+  fn new() -> Self {
     PasetoTokenBuilder::<Version, Purpose> {
       version: PhantomData::<Version>,
       purpose: PhantomData::<Purpose>,
@@ -147,25 +147,22 @@ mod paseto_builder {
     //now let's decrypt the token and verify the values
     //the IssuedAtClaim should exist and the date should be set to tomorrow
     GenericTokenParser::<Version2, PurposeLocal>::default()
-      .validate_claim(
-        IssuedAtClaim::default(),
-        Some(&|key, value| {
-          //let's get the value
-          let val = value
-            .as_str()
-            .ok_or(PasetoTokenParseError::InvalidClaimValueType(key.to_string()))?;
+      .validate_claim(IssuedAtClaim::default(), &|key, value| {
+        //let's get the value
+        let val = value
+          .as_str()
+          .ok_or(PasetoTokenParseError::InvalidClaimValueType(key.to_string()))?;
 
-          let datetime = iso8601::datetime(val).unwrap();
+        let datetime = iso8601::datetime(val).unwrap();
 
-          let tomorrow = Utc::now() + Duration::days(1);
-          //the claimm should exist
-          assert_eq!(key, "iat");
-          //date should be tomorrow
-          assert_eq!(datetime.date.to_string(), tomorrow.date().naive_utc().to_string());
+        let tomorrow = Utc::now() + Duration::days(1);
+        //the claimm should exist
+        assert_eq!(key, "iat");
+        //date should be tomorrow
+        assert_eq!(datetime.date.to_string(), tomorrow.date().naive_utc().to_string());
 
-          Ok(())
-        }),
-      )
+        Ok(())
+      })
       .parse(&token, &key)?;
 
     Ok(())
@@ -181,24 +178,21 @@ mod paseto_builder {
     //now let's decrypt the token and verify the values
     //the IssuedAtClaim should exist
     GenericTokenParser::<Version2, PurposeLocal>::default()
-      .validate_claim(
-        IssuedAtClaim::default(),
-        Some(&|key, value| {
-          //let's get the value
-          let val = value
-            .as_str()
-            .ok_or(PasetoTokenParseError::InvalidClaimValueType(key.to_string()))?;
+      .validate_claim(IssuedAtClaim::default(), &|key, value| {
+        //let's get the value
+        let val = value
+          .as_str()
+          .ok_or(PasetoTokenParseError::InvalidClaimValueType(key.to_string()))?;
 
-          let datetime = iso8601::datetime(val).unwrap();
+        let datetime = iso8601::datetime(val).unwrap();
 
-          //the claimm should exist
-          assert_eq!(key, "iat");
-          //date should be today
-          assert_eq!(datetime.date.to_string(), Utc::now().date().naive_utc().to_string());
+        //the claimm should exist
+        assert_eq!(key, "iat");
+        //date should be today
+        assert_eq!(datetime.date.to_string(), Utc::now().date().naive_utc().to_string());
 
-          Ok(())
-        }),
-      )
+        Ok(())
+      })
       .parse(&token, &key)?;
 
     Ok(())
@@ -217,25 +211,22 @@ mod paseto_builder {
     //now let's decrypt the token and verify the values
     //the IssuedAtClaim should exist and the date should be set to tomorrow
     GenericTokenParser::<Version2, PurposeLocal>::default()
-      .validate_claim(
-        ExpirationClaim::default(),
-        Some(&|key, value| {
-          //let's get the value
-          let val = value
-            .as_str()
-            .ok_or(PasetoTokenParseError::InvalidClaimValueType(key.to_string()))?;
+      .validate_claim(ExpirationClaim::default(), &|key, value| {
+        //let's get the value
+        let val = value
+          .as_str()
+          .ok_or(PasetoTokenParseError::InvalidClaimValueType(key.to_string()))?;
 
-          let datetime = iso8601::datetime(val).unwrap();
+        let datetime = iso8601::datetime(val).unwrap();
 
-          let in_4_days = Utc::now() + Duration::days(4);
-          //the claimm should exist
-          assert_eq!(key, "exp");
-          //date should be tomorrow
-          assert_eq!(datetime.date.to_string(), in_4_days.date().naive_utc().to_string());
+        let in_4_days = Utc::now() + Duration::days(4);
+        //the claimm should exist
+        assert_eq!(key, "exp");
+        //date should be tomorrow
+        assert_eq!(datetime.date.to_string(), in_4_days.date().naive_utc().to_string());
 
-          Ok(())
-        }),
-      )
+        Ok(())
+      })
       .parse(&token, &key)?;
 
     Ok(())
@@ -251,25 +242,22 @@ mod paseto_builder {
     //now let's decrypt the token and verify the values
     //the IssuedAtClaim should exist
     GenericTokenParser::<Version2, PurposeLocal>::default()
-      .validate_claim(
-        ExpirationClaim::default(),
-        Some(&|key, value| {
-          //let's get the value
-          let val = value
-            .as_str()
-            .ok_or(PasetoTokenParseError::InvalidClaimValueType(key.to_string()))?;
+      .validate_claim(ExpirationClaim::default(), &|key, value| {
+        //let's get the value
+        let val = value
+          .as_str()
+          .ok_or(PasetoTokenParseError::InvalidClaimValueType(key.to_string()))?;
 
-          let datetime = iso8601::datetime(val).unwrap();
+        let datetime = iso8601::datetime(val).unwrap();
 
-          let tomorrow = Utc::now() + Duration::hours(24);
-          //the claimm should exist
-          assert_eq!(key, "exp");
-          //date should be today
-          assert_eq!(datetime.date.to_string(), tomorrow.date().naive_utc().to_string());
+        let tomorrow = Utc::now() + Duration::hours(24);
+        //the claimm should exist
+        assert_eq!(key, "exp");
+        //date should be today
+        assert_eq!(datetime.date.to_string(), tomorrow.date().naive_utc().to_string());
 
-          Ok(())
-        }),
-      )
+        Ok(())
+      })
       .parse(&token, &key)?;
 
     Ok(())
@@ -297,16 +285,16 @@ mod paseto_builder {
 
     //now let's decrypt the token and verify the values
     let json = GenericTokenParser::<Version2, PurposeLocal>::default()
-      .validate_claim(AudienceClaim::from("customers"), None)
-      .validate_claim(SubjectClaim::from("loyal subjects"), None)
-      .validate_claim(IssuerClaim::from("me"), None)
-      .validate_claim(TokenIdentifierClaim::from("me"), None)
-      .validate_claim(IssuedAtClaim::try_from("2019-01-01T00:00:00+00:00")?, None)
-      .validate_claim(NotBeforeClaim::try_from("2019-01-01T00:00:00+00:00")?, None)
-      .validate_claim(ExpirationClaim::try_from("2019-01-01T00:00:00+00:00")?, None)
-      .validate_claim(CustomClaim::try_from(("data", "this is a secret message"))?, None)
-      .validate_claim(CustomClaim::try_from(("seats", 4))?, None)
-      .validate_claim(CustomClaim::try_from(("pi to 6 digits", 3.141526))?, None)
+      .check_claim(AudienceClaim::from("customers"))
+      .check_claim(SubjectClaim::from("loyal subjects"))
+      .check_claim(IssuerClaim::from("me"))
+      .check_claim(TokenIdentifierClaim::from("me"))
+      .check_claim(IssuedAtClaim::try_from("2019-01-01T00:00:00+00:00")?)
+      .check_claim(NotBeforeClaim::try_from("2019-01-01T00:00:00+00:00")?)
+      .check_claim(ExpirationClaim::try_from("2019-01-01T00:00:00+00:00")?)
+      .check_claim(CustomClaim::try_from(("data", "this is a secret message"))?)
+      .check_claim(CustomClaim::try_from(("seats", 4))?)
+      .check_claim(CustomClaim::try_from(("pi to 6 digits", 3.141526))?)
       .set_footer(footer)
       .parse(&token, &key)?;
 

@@ -16,7 +16,7 @@ pub struct GenericTokenBuilder<'a, Version, Purpose> {
 }
 
 impl<'a, Version, Purpose> GenericTokenBuilder<'a, Version, Purpose> {
-  pub fn new() -> Self {
+  fn new() -> Self {
     GenericTokenBuilder::<Version, Purpose> {
       version: PhantomData::<Version>,
       purpose: PhantomData::<Purpose>,
@@ -132,7 +132,7 @@ mod builders {
     builder.set_claim(ExpirationClaim::try_from("2019-01-01T00:00:00+00:00")?);
 
     for n in 1..10 {
-      builder.set_claim(CustomClaim::try_from((format!("n{}", n).as_str(), n))?);
+      builder.set_claim(CustomClaim::try_from((format!("n{}", n), n))?);
     }
 
     //and then build the token with the key

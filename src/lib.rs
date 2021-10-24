@@ -13,8 +13,8 @@
 //!
 //! ## Getting Started
 //!
-//! Here's the most basic token you can create:
-//! ```rust
+//! Here's a basic, default token:
+//! ```
 //! use rusty_paseto::prelude::*;
 //!
 //! // create a key specifying the PASETO version and purpose
@@ -26,10 +26,10 @@
 //! The token variable will contain a PASETO tokenized string resembling something similar to the following:
 //! "v2.local.97TTOvgwIxNGd9AvEGnoNBY3BnqHORy8a5cC8aKpbA0En8XELw2yDk2f1sVODyfnDbi6rEGMY3pSfCbLWMM2oHJxvlEl2XbQ"
 //!
-//! ### A few key properties about default tokens
+//! ## Default tokens
 //!
-//! * It contains a claim to expire the token in 24 hours
-//! * It contains a claim indicating when it was created
+//! * Contain a claim to expire the token in 24 hours
+//! * Contain a claim indicating when it was created
 
 #![doc(html_no_source)]
 #![deny(rustdoc::missing_crate_level_docs)]
@@ -52,7 +52,7 @@ mod tokens;
 mod traits;
 mod untrusted_tokens;
 
-pub mod generic_tokens {
+pub mod core_tokens {
   pub use crate::common::{Footer, Payload};
   pub use crate::common::{PurposeLocal, Version2};
   pub use crate::decrypted_tokens::GenericTokenDecrypted;

@@ -52,6 +52,17 @@ pub struct Key<Version, Purpose> {
   key: Box<dyn Any>,
 }
 
+impl From<&Key256Bit> for Key<Version2, PurposeLocal> {
+  /// Creates a V2LocalSharedKey from a Key256Bit structure
+  fn from(key: &Key256Bit) -> Self {
+    Self {
+      version: PhantomData,
+      purpose: PhantomData,
+      key: Box::new(*key),
+    }
+  }
+}
+
 impl From<Key256Bit> for Key<Version2, PurposeLocal> {
   /// Creates a V2LocalSharedKey from a Key256Bit structure
   fn from(key: Key256Bit) -> Self {

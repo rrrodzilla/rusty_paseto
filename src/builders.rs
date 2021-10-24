@@ -87,7 +87,7 @@ mod builders {
   #[test]
   fn full_builder_test() -> Result<()> {
     //create a key
-    let key = Key::<Version2, PurposeLocal>::from(*b"wubbalubbadubdubwubbalubbadubdub");
+    let key = Key::<Version2, PurposeLocal>::from(b"wubbalubbadubdubwubbalubbadubdub");
     let footer = Footer::from("some footer");
 
     //create a builder, add some claims and then build the token with the key

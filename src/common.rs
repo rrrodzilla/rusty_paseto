@@ -22,7 +22,7 @@ pub struct PurposePublic;
 /// # Examples
 ///
 /// ```
-/// # use rusty_paseto::generic_tokens::*;
+/// # use rusty_paseto::core_tokens::*;
 /// # let key = &Key::<Version2, PurposeLocal>::new_random();
 /// let footer = Some(Footer::from("wubbulubbadubdub"));
 /// # let payload = Payload::from("I'm Pickle Rick!");

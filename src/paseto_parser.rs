@@ -49,8 +49,8 @@ impl<'a, Version, Purpose> PasetoTokenParser<'a, Version, Purpose> {
     self
   }
 
-  pub fn set_footer(&mut self, footer: Option<Footer<'a>>) -> &mut Self {
-    self.footer = footer;
+  pub fn set_footer(&mut self, footer: Footer<'a>) -> &mut Self {
+    self.footer = Some(footer);
     self
   }
 }

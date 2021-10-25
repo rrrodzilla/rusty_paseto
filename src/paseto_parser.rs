@@ -12,7 +12,7 @@ use core::marker::PhantomData;
 use serde_json::Value;
 use std::collections::HashMap;
 //use std::convert::TryFrom;
-//use std::mem::take;
+use std::mem::take;
 
 pub struct PasetoTokenParser<'a, Version, Purpose> {
   version: PhantomData<Version>,
@@ -90,6 +90,8 @@ impl<Version, Purpose> Default for PasetoTokenParser<'_, Version, Purpose> {
 
 impl<'a> PasetoTokenParser<'_, Version2, PurposeLocal> {
   pub fn parse(&mut self, token: &'a str, key: &Key<Version2, PurposeLocal>) -> Result<Value, PasetoTokenParseError> {
+    let claims = take(&mut self.claims);
+    let validation_claims = take(&mut self.claim_validators);
     let json = GenericTokenParser::<Version2, PurposeLocal>::default()
       .validate_claim(ExpirationClaim::default(), &|_, value| {
         //let's get the expiration claim value
@@ -133,6 +135,8 @@ impl<'a> PasetoTokenParser<'_, Version2, PurposeLocal> {
           Ok(())
         }
       })
+      .extend_check_claims(claims)
+      .extend_validation_claims(validation_claims)
       .parse(token, key)?;
 
     //return the full json value to the user
@@ -345,7 +349,7 @@ mod paseto_parser {
 
         let datetime = iso8601::datetime(val).unwrap();
 
-        let tomorrow = Utc::now() + Duration::hours(24);
+        let tomorrow = Utc::now() + Duration::hours(1);
         //the claimm should exist
         assert_eq!(key, "exp");
         //date should be today

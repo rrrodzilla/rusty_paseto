@@ -27,9 +27,13 @@ impl<Version, Purpose> GenericTokenParser<'_, Version, Purpose> {
       footer: None,
     }
   }
-
-  pub fn extend_validation_claims(&mut self, value: HashMap<String, Box<dyn erased_serde::Serialize>>) -> &mut Self {
+  pub fn extend_check_claims(&mut self, value: HashMap<String, Box<dyn erased_serde::Serialize>>) -> &mut Self {
     self.claims.extend(value);
+    self
+  }
+
+  pub fn extend_validation_claims(&mut self, value: ValidatorMap) -> &mut Self {
+    self.claim_validators.extend(value);
     self
   }
 

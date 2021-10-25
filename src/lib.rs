@@ -16,6 +16,7 @@
 //!
 //! ```text
 //! // in Cargo.toml
+//! [dependencies]
 //! rusty_paseto = "0.1.14"
 //! ```
 //!
@@ -23,12 +24,9 @@
 //! // at the top of your source file
 //! use rusty_paseto::prelude::*;
 //! ```
-//! # Examples: Building tokens
+//! # Examples: Building and parsing tokens
 //!
-//! First let's talk about creating and configuring tokens. Decrypting, verifying and validating
-//! tokens will be discussed later.  
-//!
-//! In the meantime, here's a basic, default token:
+//! Here's a basic, default token:
 //! ```
 //! use rusty_paseto::prelude::*;
 //!
@@ -36,12 +34,12 @@
 //! let key = Key::<Version2, PurposeLocal>::from(b"wubbalubbadubdubwubbalubbadubdub");
 //! // use a default token builder with the same PASETO version and purpose
 //! let token = PasetoTokenBuilder::<Version2, PurposeLocal>::default().build(&key)?;
+//! // token is a String in the form: "v2.local.encoded-payload"
 //!
 //! // or the key uses the Version and Purpose provided to the builder when used directly:
 //! let another_token = PasetoTokenBuilder::<Version2, PurposeLocal>::default()
 //!   .build(&Key::from(b"wubbalubbadubdubwubbalubbadubdub"))?;
 //!
-//! // token is a String in the form: "v2.local.encoded-payload"
 //! # Ok::<(),GenericTokenBuilderError>(())
 //! ```
 //!
@@ -50,6 +48,31 @@
 //! * Has no [footer](https://github.com/paseto-standard/paseto-spec/tree/master/docs)
 //! * Expires in **1 hour** after creation (due to an included default ExpirationClaim)
 //! * Contains an IssuedAtClaim indicating when it was created
+//!
+//!
+//! You can parse and validate an existing token with the following:
+//! ```
+//! # use rusty_paseto::prelude::*;
+//! # let key = Key::<Version2, PurposeLocal>::from(b"wubbalubbadubdubwubbalubbadubdub");
+//! # // use a default token builder with the same PASETO version and purpose
+//! # let token = PasetoTokenBuilder::<Version2, PurposeLocal>::default().build(&key).unwrap();
+//! // now we can parse and validate the token with a parser that returns a serde_json::Value
+//! let json_value = PasetoTokenParser::<Version2, PurposeLocal>::default().parse(&token, &key)?;
+//!
+//! //the ExpirationClaim
+//! assert!(json_value["exp"].is_string());
+//! //the IssuedAtClaim
+//! assert!(json_value["iat"].is_string());
+//!
+//! # Ok::<(),PasetoTokenParseError>(())
+//! ```
+//!
+//! ## A default parser
+//!
+//! * Validates the token structure and decryptes/decodes the content as needed
+//! * Validates the [footer](https://github.com/paseto-standard/paseto-spec/tree/master/docs) if
+//! one was provided
+//! * Verifies the token hasn't expired based on the ExpirationClaim if one was provided
 //!
 //! ## A token with a footer
 //!
@@ -68,10 +91,28 @@
 //!
 //! # Ok::<(),GenericTokenBuilderError>(())
 //! ```
+//! And parse it by passing in the same expected footer
+//! ```
+//! # use rusty_paseto::prelude::*;
+//! # let key = Key::<Version2, PurposeLocal>::from(b"wubbalubbadubdubwubbalubbadubdub");
+//! # // use a default token builder with the same PASETO version and purpose
+//! # let token = PasetoTokenBuilder::<Version2, PurposeLocal>::default().build(&key).unwrap();
+//! // now we can parse and validate the token with a parser that returns a serde_json::Value
+//! let json_value = PasetoTokenParser::<Version2, PurposeLocal>::default()
+//!   .set_footer(Footer::from("Sometimes science is more art than science"))
+//!   .parse(&token, &key)?;
+//!
+//! //the ExpirationClaim
+//! assert!(json_value["exp"].is_string());
+//! //the IssuedAtClaim
+//! assert!(json_value["iat"].is_string());
+//!
+//! # Ok::<(),PasetoTokenParseError>(())
+//! ```
 //!
 //! ## Setting a different expiration time
 //!
-//! As mentioned, default tokens expire 1 hour from creation time.  You can set your own
+//! As mentioned, default tokens expire **1 hour** from creation time.  You can set your own
 //! expiration time by adding an ExpirationClaim which takes an ISO 8601 compliant datetime string.
 //! #### Note: *claims taking an ISO 8601 string use the TryFrom trait and return a Result<(), GenericTokenBuilderError>*
 //! ```rust
@@ -94,6 +135,7 @@
 //!
 //! # Ok::<(),GenericTokenBuilderError>(())
 //! ```
+
 //!
 //! ## Tokens that never expire
 //!
@@ -188,33 +230,113 @@
 //!
 //! # Ok::<(),GenericTokenBuilderError>(())
 //! ```
-//! # Decrypting tokens
+//! # Validating claims
+//! rusty_paseto allows for flexible claim validation at parse time
 //!
-//! If we have the raw token string, a key and an optional footer, we can parse the string to
-//! decrypt the token and validate that it is valid to trust. If successful, you'll receive a
-//! serde_json::Value so you can get to the contents of your json payload.
-//! Here's how we can parse a token:
+//! ## Checking claims
+//!
+//! Let's see how we can check particular claims exist with expected values.
 //! ```
-//! use rusty_paseto::prelude::*;
+//! # use rusty_paseto::prelude::*;
 //! # use std::convert::TryFrom;
 //!
-//! // create a key specifying the PASETO version and purpose
-//! let key = Key::<Version2, PurposeLocal>::from(b"wubbalubbadubdubwubbalubbadubdub");
+//! # // create a key specifying the PASETO version and purpose
+//! # let key = Key::<Version2, PurposeLocal>::from(b"wubbalubbadubdubwubbalubbadubdub");
 //! // use a default token builder with the same PASETO version and purpose
 //! let token = PasetoTokenBuilder::<Version2, PurposeLocal>::default()
 //!   .set_claim(SubjectClaim::from("Get schwifty"))
-//!   .set_claim(CustomClaim::try_from(("Co-star", "Morty Smith"))?)
+//!   .set_claim(CustomClaim::try_from(("Contestant", "Earth"))?)
 //!   .set_claim(CustomClaim::try_from(("Universe", 137))?)
 //!   .build(&key)?;
 //!
-//! let json_value = PasetoTokenParser::<Version2, PurposeLocal>::default().parse(&token, &key)?;
+//! PasetoTokenParser::<Version2, PurposeLocal>::default()
+//!   // you can check any claim even custom claims
+//!   .check_claim(SubjectClaim::from("Get schwifty"))
+//!   .check_claim(CustomClaim::try_from(("Contestant", "Earth"))?)
+//!   .check_claim(CustomClaim::try_from(("Universe", 137))?)
+//!   .parse(&token, &key)?;
 //!
-//! assert_eq!(json_value["sub"], "Get schwifty");
-//! assert_eq!(json_value["Co-star"], "Morty Smith");
-//! assert_eq!(json_value["Universe"], 137);
+//! // no need for the assertions below since the check_claim methods
+//! // above accomplish the same but at parse time!
+//!
+//! //assert_eq!(json_value["sub"], "Get schwifty");
+//! //assert_eq!(json_value["Contestant"], "Earth");
+//! //assert_eq!(json_value["Universe"], 137);
 //! # Ok::<(),anyhow::Error>(())
 //! ```
-
+//!
+//! # Custom validation
+//!
+//! What if we have more complex validation requirements? You can pass in a reference to a closure which receives
+//! the key and value of the claim you want to validate so you can implement any validation logic
+//! you choose.  
+//!
+//! Let's see how we can validate our tokens only contain universes with prime numbers:
+//! ```
+//! # use rusty_paseto::prelude::*;
+//! # use std::convert::TryFrom;
+//!
+//! # // create a key specifying the PASETO version and purpose
+//! # let key = Key::<Version2, PurposeLocal>::from(b"wubbalubbadubdubwubbalubbadubdub");
+//! // use a default token builder with the same PASETO version and purpose
+//! let token = PasetoTokenBuilder::<Version2, PurposeLocal>::default()
+//!   .set_claim(SubjectClaim::from("Get schwifty"))
+//!   .set_claim(CustomClaim::try_from(("Contestant", "Earth"))?)
+//!   .set_claim(CustomClaim::try_from(("Universe", 137))?)
+//!   .build(&key)?;
+//!
+//! PasetoTokenParser::<Version2, PurposeLocal>::default()
+//!   .check_claim(SubjectClaim::from("Get schwifty"))
+//!   .check_claim(CustomClaim::try_from(("Contestant", "Earth"))?)
+//!    .validate_claim(CustomClaim::try_from("Universe")?, &|key, value| {
+//!      //let's get the value
+//!      let universe = value
+//!        .as_u64()
+//!        .ok_or(PasetoTokenParseError::InvalidClaimValueType(key.to_string()))?;
+//!      // we only accept prime universes in this app
+//!      if primes::is_prime(universe) {
+//!        Ok(())
+//!      } else {
+//!        Err(PasetoTokenParseError::InvalidClaim(key.to_string()))
+//!      }
+//!    })
+//!   .parse(&token, &key)?;
+//!
+//! # Ok::<(),anyhow::Error>(())
+//! ```
+//!
+//! This token will fail to parse with the validation code above:
+//! ```should_panic
+//! # use rusty_paseto::prelude::*;
+//! # use std::convert::TryFrom;
+//!
+//! # // create a key specifying the PASETO version and purpose
+//! # let key = Key::<Version2, PurposeLocal>::from(b"wubbalubbadubdubwubbalubbadubdub");
+//! // 136 is not a prime number
+//! let token = PasetoTokenBuilder::<Version2, PurposeLocal>::default()
+//!   .set_claim(CustomClaim::try_from(("Universe", 136))?)
+//!   .build(&key)?;
+//!
+//!# let json_value = PasetoTokenParser::<Version2, PurposeLocal>::default()
+//!#  // you can check any claim even custom claims
+//!#   .validate_claim(CustomClaim::try_from("Universe")?, &|key, value| {
+//!#     //let's get the value
+//!#     let universe = value
+//!#       .as_u64()
+//!#       .ok_or(PasetoTokenParseError::InvalidClaimValueType(key.to_string()))?;
+//!#     // we only accept prime universes in this token
+//!#     if primes::is_prime(universe) {
+//!#       Ok(())
+//!#     } else {
+//!#       Err(PasetoTokenParseError::InvalidClaim(key.to_string()))
+//!#     }
+//!#   })
+//!
+//!#  .parse(&token, &key)?;
+//!
+//! # assert_eq!(json_value["Universe"], 136);
+//! # Ok::<(),anyhow::Error>(())
+//! ```
 extern crate erased_serde;
 
 //all the various types

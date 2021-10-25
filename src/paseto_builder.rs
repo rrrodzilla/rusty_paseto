@@ -250,7 +250,7 @@ mod paseto_builder {
 
         let datetime = iso8601::datetime(val).unwrap();
 
-        let tomorrow = Utc::now() + Duration::hours(24);
+        let tomorrow = Utc::now() + Duration::hours(1);
         //the claimm should exist
         assert_eq!(key, "exp");
         //date should be today

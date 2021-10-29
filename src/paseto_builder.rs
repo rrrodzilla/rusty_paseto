@@ -8,16 +8,14 @@ use crate::{
 };
 use chrono::{prelude::*, Duration};
 use core::marker::PhantomData;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::convert::TryFrom;
-use std::mem::take;
 
 pub struct PasetoTokenBuilder<Version, Purpose> {
   version: PhantomData<Version>,
   purpose: PhantomData<Purpose>,
-  claims: HashMap<String, Box<dyn erased_serde::Serialize>>,
+  builder: GenericTokenBuilder<Version, Purpose>,
   top_level_claims: HashSet<String>,
-  footer: Option<Footer>,
   dup_top_level_found: (bool, String),
   non_expiring_token: bool,
 }
@@ -27,9 +25,8 @@ impl<Version, Purpose> PasetoTokenBuilder<Version, Purpose> {
     PasetoTokenBuilder::<Version, Purpose> {
       version: PhantomData::<Version>,
       purpose: PhantomData::<Purpose>,
+      builder: GenericTokenBuilder::default(),
       top_level_claims: HashSet::new(),
-      claims: HashMap::with_capacity(10),
-      footer: None,
       non_expiring_token: false,
       dup_top_level_found: (false, String::default()),
     }
@@ -41,7 +38,7 @@ impl<Version, Purpose> PasetoTokenBuilder<Version, Purpose> {
       self.dup_top_level_found = (true, value.get_key().to_string());
     }
 
-    self.claims.insert(value.get_key().to_owned(), Box::new(value));
+    self.builder.set_claim(value);
     self
   }
 
@@ -52,45 +49,34 @@ impl<Version, Purpose> PasetoTokenBuilder<Version, Purpose> {
   }
 
   pub fn set_footer(&mut self, footer: Footer) -> &mut Self {
-    self.footer = Some(footer);
+    self.builder.set_footer(footer);
     self
   }
 }
 
 impl<Version, Purpose> Default for PasetoTokenBuilder<Version, Purpose> {
   fn default() -> Self {
-    Self::new()
+    let mut me = Self::new();
+    me.builder
+      .set_claim(ExpirationClaim::try_from((Utc::now() + Duration::hours(1)).to_rfc3339()).unwrap())
+      .set_claim(IssuedAtClaim::try_from(Utc::now().to_rfc3339()).unwrap());
+    me
   }
 }
 
 impl PasetoTokenBuilder<Version2, PurposeLocal> {
   pub fn build(&mut self, key: &Key<Version2, PurposeLocal>) -> Result<String, GenericTokenBuilderError> {
     if self.non_expiring_token {
-      self.claims.remove("exp");
+      self.builder.remove_claim("exp");
     }
-    let claims = take(&mut self.claims);
-    //raise an error if there were duplicates
+    //  //raise an error if there were duplicates
     let (dup_found, dup_key) = &self.dup_top_level_found;
     if *dup_found {
       return Err(GenericTokenBuilderError::DuplicateTopLevelPayloadClaim(
         dup_key.to_string(),
       ));
     }
-    //create a builder, add some default claims, then add all the user provided claims and then build the token with the key
-    let mut builder = GenericTokenBuilder::<Version2, PurposeLocal>::default();
-    //adding a default IssuedAtClaim set to NOW UTC
-    if !self.non_expiring_token {
-      //adding a default ExpirationClaim set to 1 hour from NOW UTC
-      builder.set_claim(ExpirationClaim::try_from((Utc::now() + Duration::hours(1)).to_rfc3339()).unwrap());
-    }
-    builder
-      .set_claim(IssuedAtClaim::try_from(Utc::now().to_rfc3339()).unwrap())
-      .extend_claims(claims);
-    if let Some(footer) = self.footer.clone() {
-      builder.set_footer(footer);
-    }
-    let token = builder.build(key)?;
-
+    let token = self.builder.build(key)?;
     Ok(token)
   }
 }

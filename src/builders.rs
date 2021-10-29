@@ -25,6 +25,11 @@ impl<Version, Purpose> GenericTokenBuilder<Version, Purpose> {
     }
   }
 
+  pub fn remove_claim(&mut self, claim_key: &str) -> &mut Self {
+    self.claims.remove(claim_key);
+    self
+  }
+
   pub fn extend_claims(&mut self, value: HashMap<String, Box<dyn erased_serde::Serialize>>) -> &mut Self {
     self.claims.extend(value);
     self

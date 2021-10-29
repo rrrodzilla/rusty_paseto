@@ -96,7 +96,9 @@
 //! # use rusty_paseto::prelude::*;
 //! # let key = Key::<Version2, PurposeLocal>::from(b"wubbalubbadubdubwubbalubbadubdub");
 //! # // use a default token builder with the same PASETO version and purpose
-//! # let token = PasetoTokenBuilder::<Version2, PurposeLocal>::default().build(&key).unwrap();
+//! # let token = PasetoTokenBuilder::<Version2, PurposeLocal>::default()
+//! #   .set_footer(Footer::from("Sometimes science is more art than science"))
+//! #   .build(&key).unwrap();
 //! // now we can parse and validate the token with a parser that returns a serde_json::Value
 //! let json_value = PasetoTokenParser::<Version2, PurposeLocal>::default()
 //!   .set_footer(Footer::from("Sometimes science is more art than science"))

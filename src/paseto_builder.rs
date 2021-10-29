@@ -57,6 +57,7 @@ impl<Version, Purpose> PasetoTokenBuilder<Version, Purpose> {
 impl<Version, Purpose> Default for PasetoTokenBuilder<Version, Purpose> {
   fn default() -> Self {
     let mut me = Self::new();
+    //set some defaults
     me.builder
       .set_claim(ExpirationClaim::try_from((Utc::now() + Duration::hours(1)).to_rfc3339()).unwrap())
       .set_claim(IssuedAtClaim::try_from(Utc::now().to_rfc3339()).unwrap());

@@ -1,8 +1,7 @@
 use crate::generic_builders::{ExpirationClaim, NotBeforeClaim};
-//use crate::claims::{ExpirationClaim, IssuedAtClaim};
 use crate::parsers::GenericTokenParser;
 use crate::{
-  common::{Footer, PurposeLocal, ValidatorFn, ValidatorMap, Version2},
+  common::{Footer, PurposeLocal, ValidatorFn, Version2},
   errors::PasetoTokenParseError,
   keys::Key,
   traits::PasetoClaim,
@@ -10,17 +9,11 @@ use crate::{
 use chrono::prelude::*;
 use core::marker::PhantomData;
 use serde_json::Value;
-use std::collections::HashMap;
-//use std::convert::TryFrom;
-use std::mem::take;
 
 pub struct PasetoTokenParser<Version, Purpose> {
   version: PhantomData<Version>,
-  claim_validators: ValidatorMap,
-
   purpose: PhantomData<Purpose>,
-  claims: HashMap<String, Box<dyn erased_serde::Serialize>>,
-  footer: Option<Footer>,
+  parser: GenericTokenParser<Version, Purpose>,
 }
 
 impl<Version, Purpose> PasetoTokenParser<Version, Purpose> {
@@ -28,40 +21,8 @@ impl<Version, Purpose> PasetoTokenParser<Version, Purpose> {
     PasetoTokenParser::<Version, Purpose> {
       version: PhantomData::<Version>,
       purpose: PhantomData::<Purpose>,
-      claim_validators: HashMap::new(),
-      claims: HashMap::with_capacity(10),
-      footer: None,
+      parser: GenericTokenParser::default(),
     }
-  }
-  //pub fn validate_claim<T: PasetoClaim + 'static + serde::Serialize>(
-  //  &mut self,
-  //  value: T,
-  //  validation_closure: Option<&'static ValidatorFn>,
-  //) -> &mut Self {
-  //  let key = value.get_key().to_string();
-  //  //first store the claim
-  //  self.claims.insert(key.clone(), Box::new(value));
-
-  //  //if there's a closure, then store that
-  //  if let Some(closure) = validation_closure {
-  //    self.claim_validators.insert(key, Box::new(closure));
-  //  }
-  //  self
-  //}
-  fn set_validation_claim<T: PasetoClaim + 'static + serde::Serialize>(
-    &mut self,
-    value: T,
-    validation_closure: Option<&'static ValidatorFn>,
-  ) -> &mut Self {
-    let key = value.get_key().to_string();
-    //first store the claim
-    self.claims.insert(key.clone(), Box::new(value));
-
-    //if there's a closure, then store that
-    if let Some(closure) = validation_closure {
-      self.claim_validators.insert(key, Box::new(closure));
-    }
-    self
   }
 
   pub fn validate_claim<T: PasetoClaim + 'static + serde::Serialize>(
@@ -69,78 +30,74 @@ impl<Version, Purpose> PasetoTokenParser<Version, Purpose> {
     value: T,
     validation_closure: &'static ValidatorFn,
   ) -> &mut Self {
-    self.set_validation_claim(value, Some(validation_closure))
+    self.parser.validate_claim(value, validation_closure);
+    self
   }
 
   pub fn check_claim<T: PasetoClaim + 'static + serde::Serialize>(&mut self, value: T) -> &mut Self {
-    self.set_validation_claim(value, None)
+    self.parser.check_claim(value);
+    self
   }
 
   pub fn set_footer(&mut self, footer: Footer) -> &mut Self {
-    self.footer = Some(footer);
+    self.parser.set_footer(footer);
     self
   }
 }
 
 impl<Version, Purpose> Default for PasetoTokenParser<Version, Purpose> {
   fn default() -> Self {
-    Self::new()
+    let mut me = Self::new();
+    me.validate_claim(ExpirationClaim::default(), &|_, value| {
+      //let's get the expiration claim value
+      let val = value.as_str().unwrap_or_default();
+
+      //check if this is a non-expiring token
+      if val.is_empty() {
+        //this means the claim wasn't found, which means this is a non-expiring token
+        //and we can just skip this validation
+        return Ok(());
+      }
+      //turn the value into a datetime
+      let datetime = DateTime::parse_from_rfc3339(val).map_err(|_| PasetoTokenParseError::InvalidDate)?;
+      //get the current datetime
+      let now = Utc::now();
+
+      //here we do the actual validation check for the expiration claim
+      if datetime <= now {
+        Err(PasetoTokenParseError::ExpiredToken)
+      } else {
+        Ok(())
+      }
+    })
+    .validate_claim(NotBeforeClaim::default(), &|_, value| {
+      //let's get the expiration claim value
+      let val = value.as_str().unwrap_or_default();
+      //if there is no value here, then the user didn't provide the claim so we just move on
+      if val.is_empty() {
+        return Ok(());
+      }
+      //otherwise let's continue with the validation
+      //turn the value into a datetime
+      let not_before_time = DateTime::parse_from_rfc3339(val).map_err(|_| PasetoTokenParseError::InvalidDate)?;
+      //get the current datetime
+      let now = Utc::now();
+
+      //here we do the actual validation check for the expiration claim
+      if now <= not_before_time {
+        Err(PasetoTokenParseError::UseBeforeAvailable(not_before_time.to_string()))
+      } else {
+        Ok(())
+      }
+    });
+    me
   }
 }
 
 impl PasetoTokenParser<Version2, PurposeLocal> {
   pub fn parse(&mut self, token: &str, key: &Key<Version2, PurposeLocal>) -> Result<Value, PasetoTokenParseError> {
-    let claims = take(&mut self.claims);
-    let validation_claims = take(&mut self.claim_validators);
-    let json = GenericTokenParser::<Version2, PurposeLocal>::default()
-      .validate_claim(ExpirationClaim::default(), &|_, value| {
-        //let's get the expiration claim value
-        let val = value.as_str().unwrap_or_default();
-
-        //check if this is a non-expiring token
-        if val.is_empty() {
-          //this means the claim wasn't found, which means this is a non-expiring token
-          //and we can just skip this validation
-          return Ok(());
-        }
-        //turn the value into a datetime
-        let datetime = DateTime::parse_from_rfc3339(val).map_err(|_| PasetoTokenParseError::InvalidDate)?;
-        //get the current datetime
-        let now = Utc::now();
-
-        //here we do the actual validation check for the expiration claim
-        if datetime <= now {
-          Err(PasetoTokenParseError::ExpiredToken)
-        } else {
-          Ok(())
-        }
-      })
-      .validate_claim(NotBeforeClaim::default(), &|_, value| {
-        //let's get the expiration claim value
-        let val = value.as_str().unwrap_or_default();
-        //if there is no value here, then the user didn't provide the claim so we just move on
-        if val.is_empty() {
-          return Ok(());
-        }
-        //otherwise let's continue with the validation
-        //turn the value into a datetime
-        let not_before_time = DateTime::parse_from_rfc3339(val).map_err(|_| PasetoTokenParseError::InvalidDate)?;
-        //get the current datetime
-        let now = Utc::now();
-
-        //here we do the actual validation check for the expiration claim
-        if now <= not_before_time {
-          Err(PasetoTokenParseError::UseBeforeAvailable(not_before_time.to_string()))
-        } else {
-          Ok(())
-        }
-      })
-      .extend_check_claims(claims)
-      .extend_validation_claims(validation_claims)
-      .parse(token, key)?;
-
     //return the full json value to the user
-    Ok(json)
+    self.parser.parse(token, key)
   }
 }
 

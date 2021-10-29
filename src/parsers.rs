@@ -9,15 +9,15 @@ use core::marker::PhantomData;
 use serde_json::Value;
 use std::{collections::HashMap, mem::take};
 
-pub struct GenericTokenParser<'a, Version, Purpose> {
+pub struct GenericTokenParser<Version, Purpose> {
   version: PhantomData<Version>,
   purpose: PhantomData<Purpose>,
   claims: HashMap<String, Box<dyn erased_serde::Serialize>>,
   claim_validators: ValidatorMap,
-  footer: Option<Footer<'a>>,
+  footer: Option<Footer>,
 }
 
-impl<Version, Purpose> GenericTokenParser<'_, Version, Purpose> {
+impl<Version, Purpose> GenericTokenParser<Version, Purpose> {
   pub fn new() -> Self {
     GenericTokenParser::<Version, Purpose> {
       version: PhantomData::<Version>,
@@ -65,21 +65,21 @@ impl<Version, Purpose> GenericTokenParser<'_, Version, Purpose> {
     self.set_validation_claim(value, None)
   }
 
-  pub fn set_footer(&mut self, footer: Footer<'static>) -> &mut Self {
+  pub fn set_footer(&mut self, footer: Footer) -> &mut Self {
     self.footer = Some(footer);
     self
   }
 }
 
-impl<Version, Purpose> Default for GenericTokenParser<'_, Version, Purpose> {
+impl<Version, Purpose> Default for GenericTokenParser<Version, Purpose> {
   fn default() -> Self {
     Self::new()
   }
 }
 
-impl<'a> GenericTokenParser<'a, Version2, PurposeLocal> {
-  pub fn parse(&mut self, token: &'a str, key: &Key<Version2, PurposeLocal>) -> Result<Value, PasetoTokenParseError> {
-    let decrypted = GenericTokenDecrypted::<Version2, PurposeLocal>::parse(token, self.footer, key)?;
+impl GenericTokenParser<Version2, PurposeLocal> {
+  pub fn parse(&mut self, token: &str, key: &Key<Version2, PurposeLocal>) -> Result<Value, PasetoTokenParseError> {
+    let decrypted = GenericTokenDecrypted::<Version2, PurposeLocal>::parse(token, self.footer.clone(), key)?;
     let json: Value = serde_json::from_str(decrypted.as_ref())?;
     let claims = take(&mut self.claims);
 
@@ -139,7 +139,7 @@ mod parsers {
       .set_claim(CustomClaim::try_from(("data", "this is a secret message"))?)
       .set_claim(CustomClaim::try_from(("seats", 4))?)
       .set_claim(CustomClaim::try_from(("pi to 6 digits", 3.141526))?)
-      .set_footer(footer)
+      .set_footer(footer.clone())
       .build(&key)?;
 
     //now let's decrypt the token and verify the values

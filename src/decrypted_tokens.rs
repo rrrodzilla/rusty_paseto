@@ -59,7 +59,7 @@ impl GenericTokenDecrypted<Version2, PurposeLocal> {
 
     //verify any provided and/or discovered footers are valid
     //can raise exceptions
-    validate_footer_against_hex_encoded_footer_in_constant_time(potential_footer, found_footer)?;
+    validate_footer_against_hex_encoded_footer_in_constant_time(potential_footer.clone(), found_footer)?;
 
     let raw_payload = Payload::from(parsed_payload.as_str());
 

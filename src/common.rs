@@ -30,37 +30,43 @@ pub struct PurposePublic;
 /// // Use in any token that accepts an optional footer
 /// let token = GenericToken::<Version2, PurposeLocal>::new(payload, key, footer);
 /// ```
-#[derive(Debug, Clone, Copy)]
-pub struct Footer<'a>(&'a str);
+#[derive(Debug, Clone, Default)]
+pub struct Footer(String);
 
-impl<'a> Base64Encodable<str> for Footer<'a> {}
+impl Base64Encodable<str> for Footer {}
 
-impl<'a> AsRef<str> for Footer<'a> {
+impl AsRef<str> for Footer {
   fn as_ref(&self) -> &str {
-    self.0
+    &self.0
   }
 }
-impl<'a> Default for Footer<'a> {
-  fn default() -> Self {
-    Self("")
+//  impl Default for &Footer {
+//    fn default() -> Self {
+//      Self(String::default())
+
+//    }
+//  }
+//  impl Default for Footer {
+//    fn default() -> Self {
+//      Self(String::default())
+//    }
+//  }
+impl From<&str> for Footer {
+  fn from(s: &str) -> Self {
+    Self(s.to_string())
   }
 }
-impl<'a> From<&'a str> for Footer<'a> {
-  fn from(s: &'a str) -> Self {
-    Self(s)
-  }
-}
-impl<'a> fmt::Display for Footer<'a> {
+impl fmt::Display for Footer {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "{}", self.0)
   }
 }
-impl<'a> PartialEq for Footer<'a> {
+impl PartialEq for Footer {
   fn eq(&self, other: &Self) -> bool {
     self.0 == other.0
   }
 }
-impl<'a> Eq for Footer<'a> {}
+impl Eq for Footer {}
 
 /// The token payload
 #[derive(PartialEq, Debug, Clone, Copy)]

@@ -12,17 +12,17 @@ use std::collections::{HashMap, HashSet};
 use std::convert::TryFrom;
 use std::mem::take;
 
-pub struct PasetoTokenBuilder<'a, Version, Purpose> {
+pub struct PasetoTokenBuilder<Version, Purpose> {
   version: PhantomData<Version>,
   purpose: PhantomData<Purpose>,
   claims: HashMap<String, Box<dyn erased_serde::Serialize>>,
   top_level_claims: HashSet<String>,
-  footer: Option<Footer<'a>>,
+  footer: Option<Footer>,
   dup_top_level_found: (bool, String),
   non_expiring_token: bool,
 }
 
-impl<'a, Version, Purpose> PasetoTokenBuilder<'a, Version, Purpose> {
+impl<Version, Purpose> PasetoTokenBuilder<Version, Purpose> {
   fn new() -> Self {
     PasetoTokenBuilder::<Version, Purpose> {
       version: PhantomData::<Version>,
@@ -51,19 +51,19 @@ impl<'a, Version, Purpose> PasetoTokenBuilder<'a, Version, Purpose> {
     self
   }
 
-  pub fn set_footer(&mut self, footer: Footer<'a>) -> &mut Self {
+  pub fn set_footer(&mut self, footer: Footer) -> &mut Self {
     self.footer = Some(footer);
     self
   }
 }
 
-impl<Version, Purpose> Default for PasetoTokenBuilder<'_, Version, Purpose> {
+impl<Version, Purpose> Default for PasetoTokenBuilder<Version, Purpose> {
   fn default() -> Self {
     Self::new()
   }
 }
 
-impl PasetoTokenBuilder<'_, Version2, PurposeLocal> {
+impl PasetoTokenBuilder<Version2, PurposeLocal> {
   pub fn build(&mut self, key: &Key<Version2, PurposeLocal>) -> Result<String, GenericTokenBuilderError> {
     if self.non_expiring_token {
       self.claims.remove("exp");
@@ -86,7 +86,7 @@ impl PasetoTokenBuilder<'_, Version2, PurposeLocal> {
     builder
       .set_claim(IssuedAtClaim::try_from(Utc::now().to_rfc3339()).unwrap())
       .extend_claims(claims);
-    if let Some(footer) = self.footer {
+    if let Some(footer) = self.footer.clone() {
       builder.set_footer(footer);
     }
     let token = builder.build(key)?;
@@ -280,7 +280,7 @@ mod paseto_builder {
       .set_claim(CustomClaim::try_from(("data", "this is a secret message"))?)
       .set_claim(CustomClaim::try_from(("seats", 4))?)
       .set_claim(CustomClaim::try_from(("pi to 6 digits", 3.141526))?)
-      .set_footer(footer)
+      .set_footer(footer.clone())
       .build(&key)?;
 
     //now let's decrypt the token and verify the values

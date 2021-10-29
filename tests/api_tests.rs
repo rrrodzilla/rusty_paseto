@@ -10,7 +10,7 @@ fn basic_usage_test_random_key_and_footer() -> Result<()> {
   let payload = Payload::from("I'm Pickle Rick!");
 
   //create a local v2 token
-  let token = GenericToken::<Version2, PurposeLocal>::new(payload, key, footer);
+  let token = GenericToken::<Version2, PurposeLocal>::new(payload, key, footer.clone());
 
   //now let's decrypt it
   let decrypted = GenericTokenDecrypted::<Version2, PurposeLocal>::parse(&token.to_string(), footer, key)?;
@@ -31,7 +31,7 @@ fn basic_usage_test_random_key_and_no_footer() -> Result<()> {
   let payload = Payload::from("I'm Pickle Rick!");
 
   //create a local v2 token
-  let token = GenericToken::<Version2, PurposeLocal>::new(payload, key, footer);
+  let token = GenericToken::<Version2, PurposeLocal>::new(payload, key, footer.clone());
 
   //now let's decrypt it
   let decrypted = GenericTokenDecrypted::<Version2, PurposeLocal>::parse(&token.to_string(), footer, key)?;
@@ -54,7 +54,7 @@ fn basic_usage_test_non_random_key_and_no_footer() -> Result<()> {
   let payload = Payload::from("I'm Pickle Rick!");
 
   //create a local v2 token
-  let token = GenericToken::<Version2, PurposeLocal>::new(payload, key, footer);
+  let token = GenericToken::<Version2, PurposeLocal>::new(payload, key, footer.clone());
 
   //now let's decrypt it
   let decrypted = GenericTokenDecrypted::<Version2, PurposeLocal>::parse(&token.to_string(), footer, key)?;

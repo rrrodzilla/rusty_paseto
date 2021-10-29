@@ -14,16 +14,16 @@ use std::collections::HashMap;
 //use std::convert::TryFrom;
 use std::mem::take;
 
-pub struct PasetoTokenParser<'a, Version, Purpose> {
+pub struct PasetoTokenParser<Version, Purpose> {
   version: PhantomData<Version>,
   claim_validators: ValidatorMap,
 
   purpose: PhantomData<Purpose>,
   claims: HashMap<String, Box<dyn erased_serde::Serialize>>,
-  footer: Option<Footer<'a>>,
+  footer: Option<Footer>,
 }
 
-impl<'a, Version, Purpose> PasetoTokenParser<'a, Version, Purpose> {
+impl<Version, Purpose> PasetoTokenParser<Version, Purpose> {
   pub fn new() -> Self {
     PasetoTokenParser::<Version, Purpose> {
       version: PhantomData::<Version>,
@@ -76,20 +76,20 @@ impl<'a, Version, Purpose> PasetoTokenParser<'a, Version, Purpose> {
     self.set_validation_claim(value, None)
   }
 
-  pub fn set_footer(&mut self, footer: Footer<'a>) -> &mut Self {
+  pub fn set_footer(&mut self, footer: Footer) -> &mut Self {
     self.footer = Some(footer);
     self
   }
 }
 
-impl<Version, Purpose> Default for PasetoTokenParser<'_, Version, Purpose> {
+impl<Version, Purpose> Default for PasetoTokenParser<Version, Purpose> {
   fn default() -> Self {
     Self::new()
   }
 }
 
-impl<'a> PasetoTokenParser<'_, Version2, PurposeLocal> {
-  pub fn parse(&mut self, token: &'a str, key: &Key<Version2, PurposeLocal>) -> Result<Value, PasetoTokenParseError> {
+impl PasetoTokenParser<Version2, PurposeLocal> {
+  pub fn parse(&mut self, token: &str, key: &Key<Version2, PurposeLocal>) -> Result<Value, PasetoTokenParseError> {
     let claims = take(&mut self.claims);
     let validation_claims = take(&mut self.claim_validators);
     let json = GenericTokenParser::<Version2, PurposeLocal>::default()
@@ -379,7 +379,7 @@ mod paseto_parser {
       .set_claim(CustomClaim::try_from(("data", "this is a secret message"))?)
       .set_claim(CustomClaim::try_from(("seats", 4))?)
       .set_claim(CustomClaim::try_from(("pi to 6 digits", 3.141526))?)
-      .set_footer(footer)
+      .set_footer(footer.clone())
       .build(&key)?;
 
     //now let's decrypt the token and verify the values

@@ -8,14 +8,14 @@ use crate::{
 use core::marker::PhantomData;
 use std::{collections::HashMap, mem::take};
 
-pub struct GenericTokenBuilder<'a, Version, Purpose> {
+pub struct GenericTokenBuilder<Version, Purpose> {
   version: PhantomData<Version>,
   purpose: PhantomData<Purpose>,
   claims: HashMap<String, Box<dyn erased_serde::Serialize>>,
-  footer: Option<Footer<'a>>,
+  footer: Option<Footer>,
 }
 
-impl<'a, Version, Purpose> GenericTokenBuilder<'a, Version, Purpose> {
+impl<Version, Purpose> GenericTokenBuilder<Version, Purpose> {
   fn new() -> Self {
     GenericTokenBuilder::<Version, Purpose> {
       version: PhantomData::<Version>,
@@ -35,19 +35,19 @@ impl<'a, Version, Purpose> GenericTokenBuilder<'a, Version, Purpose> {
     self
   }
 
-  pub fn set_footer(&mut self, footer: Footer<'a>) -> &mut Self {
+  pub fn set_footer(&mut self, footer: Footer) -> &mut Self {
     self.footer = Some(footer);
     self
   }
 }
 
-impl<Version, Purpose> Default for GenericTokenBuilder<'_, Version, Purpose> {
+impl<Version, Purpose> Default for GenericTokenBuilder<Version, Purpose> {
   fn default() -> Self {
     Self::new()
   }
 }
 
-impl<'a> GenericTokenBuilder<'a, Version2, PurposeLocal> {
+impl GenericTokenBuilder<Version2, PurposeLocal> {
   pub fn build(&mut self, key: &Key<Version2, PurposeLocal>) -> Result<String, GenericTokenBuilderError> {
     //here we need to go through all the claims and serialize them to build a payload
     let mut payload = String::from('{');
@@ -65,7 +65,10 @@ impl<'a> GenericTokenBuilder<'a, Version2, PurposeLocal> {
     payload = payload.trim_end_matches(',').to_string();
     payload.push('}');
 
-    Ok(GenericToken::<Version2, PurposeLocal>::new(Payload::from(payload.as_str()), key, self.footer).to_string())
+    Ok(
+      GenericToken::<Version2, PurposeLocal>::new(Payload::from(payload.as_str()), key, self.footer.clone())
+        .to_string(),
+    )
   }
 }
 
@@ -102,7 +105,7 @@ mod builders {
       .set_claim(CustomClaim::try_from(("data", "this is a secret message"))?)
       .set_claim(CustomClaim::try_from(("seats", 4))?)
       .set_claim(CustomClaim::try_from(("pi to 6 digits", 3.141526))?)
-      .set_footer(footer)
+      .set_footer(footer.clone())
       .build(&key)?;
 
     //now let's decrypt the token and verify the values

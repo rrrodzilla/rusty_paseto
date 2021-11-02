@@ -7,6 +7,18 @@ use std::convert::{AsRef, TryFrom};
 #[derive(Clone, Debug)]
 pub struct CustomClaim<T>((String, T));
 
+impl<T> CustomClaim<T> {
+  //TODO: this needs to be refactored to be configurable
+  pub(self) const RESERVED_CLAIMS: [&'static str; 7] = ["iss", "sub", "aud", "exp", "nbf", "iat", "jti"];
+
+  fn check_if_reserved_claim_key(key: &str) -> Result<(), TokenClaimError> {
+    match key {
+      key if Self::RESERVED_CLAIMS.contains(&key) => Err(TokenClaimError::ReservedClaim(key.into())),
+      _ => Ok(()),
+    }
+  }
+}
+
 impl<T: serde::Serialize> PasetoClaim for CustomClaim<T> {
   fn get_key(&self) -> &str {
     &self.0 .0
@@ -16,14 +28,9 @@ impl<T: serde::Serialize> PasetoClaim for CustomClaim<T> {
 impl TryFrom<&str> for CustomClaim<&str> {
   type Error = TokenClaimError;
 
-  fn try_from(val: &str) -> Result<Self, Self::Error> {
-    let key = val;
-    match key {
-      key if ["iss", "sub", "aud", "exp", "nbf", "iat", "jti"].contains(&key) => {
-        Err(TokenClaimError::ReservedClaim(key.into()))
-      }
-      _ => Ok(Self((String::from(val), ""))),
-    }
+  fn try_from(key: &str) -> Result<Self, Self::Error> {
+    Self::check_if_reserved_claim_key(key)?;
+    Ok(Self((String::from(key), "")))
   }
 }
 
@@ -31,13 +38,8 @@ impl<T> TryFrom<(String, T)> for CustomClaim<T> {
   type Error = TokenClaimError;
 
   fn try_from(val: (String, T)) -> Result<Self, Self::Error> {
-    let key = val.0.as_str();
-    match key {
-      key if ["iss", "sub", "aud", "exp", "nbf", "iat", "jti"].contains(&key) => {
-        Err(TokenClaimError::ReservedClaim(key.into()))
-      }
-      _ => Ok(Self((val.0, val.1))),
-    }
+    Self::check_if_reserved_claim_key(val.0.as_str())?;
+    Ok(Self((val.0, val.1)))
   }
 }
 
@@ -45,13 +47,12 @@ impl<T> TryFrom<(&str, T)> for CustomClaim<T> {
   type Error = TokenClaimError;
 
   fn try_from(val: (&str, T)) -> Result<Self, Self::Error> {
-    let key = val.0;
-    match key {
-      key if ["iss", "sub", "aud", "exp", "nbf", "iat", "jti"].contains(&key) => {
-        Err(TokenClaimError::ReservedClaim(key.into()))
-      }
-      _ => Ok(Self((String::from(val.0), val.1))),
-    }
+    Self::check_if_reserved_claim_key(val.0)?;
+    Ok(Self((String::from(val.0), val.1)))
+    //  match key {
+    //    key if RESERVED_CLAIMS.contains(&key) => Err(TokenClaimError::ReservedClaim(key.into())),
+    //    _ => Ok(Self((String::from(val.0), val.1))),
+    //  }
   }
 }
 

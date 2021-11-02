@@ -17,8 +17,8 @@ Paseto is everything you love about JOSE (JWT, JWE, JWS) without any of the
 | PASETO Token Builder		| :new_moon: | :new_moon: | :full_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: |
 | PASETO Token Parser		| :new_moon: | :new_moon: | :full_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: |
 | Flexible Claim Validation	| :new_moon: | :new_moon: | :full_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: |
-| Generic Token Builder		| :new_moon: | :new_moon: | :full_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: |
-| Generic Token Parser		| :new_moon: | :new_moon: | :full_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: |
+| Generic Token Builder		| :new_moon: | :new_moon: | :full_moon: | :full_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: |
+| Generic Token Parser		| :new_moon: | :new_moon: | :full_moon: | :full_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: |
 | Basic Token Encryption	| :new_moon: | :new_moon: | :full_moon: | :full_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: |
 | Basic Token Decryption	| :new_moon: | :new_moon: | :full_moon: | :full_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: |
 | [PASETO Test vectors](https://github.com/paseto-standard/test-vectors)  | :new_moon: | :new_moon: | :full_moon: | :waxing_crescent_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: |

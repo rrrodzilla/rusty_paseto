@@ -1,5 +1,5 @@
 use crate::{
-  common::{Footer, Payload, PurposeLocal, Version2},
+  common::{Footer, Payload, PurposeLocal, PurposePublic, Version2},
   errors::GenericTokenBuilderError,
   keys::Key,
   tokens::GenericToken,
@@ -49,6 +49,31 @@ impl<Version, Purpose> GenericTokenBuilder<Version, Purpose> {
 impl<Version, Purpose> Default for GenericTokenBuilder<Version, Purpose> {
   fn default() -> Self {
     Self::new()
+  }
+}
+
+impl GenericTokenBuilder<Version2, PurposePublic> {
+  pub fn build(&mut self, key: &Key<Version2, PurposePublic>) -> Result<String, GenericTokenBuilderError> {
+    //here we need to go through all the claims and serialize them to build a payload
+    let mut payload = String::from('{');
+
+    let claims = take(&mut self.claims);
+
+    for claim in claims.into_values() {
+      let raw = serde_json::to_string(&claim)?;
+      let trimmed = raw.trim_start_matches('{').trim_end_matches('}');
+      payload.push_str(&format!("{},", trimmed));
+    }
+
+    //get rid of that trailing comma (this feels like a dirty approach, there's probably a better
+    //way to do this)
+    payload = payload.trim_end_matches(',').to_string();
+    payload.push('}');
+
+    Ok(
+      GenericToken::<Version2, PurposePublic>::new(Payload::from(payload.as_str()), key, self.footer.clone())
+        .to_string(),
+    )
   }
 }
 

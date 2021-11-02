@@ -362,6 +362,7 @@ pub mod core_tokens {
   pub use crate::common::{Footer, Payload};
   pub use crate::common::{PurposeLocal, Version2};
   pub use crate::decrypted_tokens::GenericTokenDecrypted;
+  pub use crate::errors::HeaderParseError;
   pub use crate::keys::{HexKey, Key, Key256Bit};
   pub use crate::tokens::GenericToken;
 }

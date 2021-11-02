@@ -14,11 +14,6 @@ impl Iso8601ParseError {
 #[derive(Error, Debug)]
 #[error("{0} is an invalid header for this paseto version and/or purpose")]
 pub struct HeaderParseError(String);
-impl HeaderParseError {
-  pub(crate) fn new(s: &str) -> Self {
-    Self(s.to_string())
-  }
-}
 
 /// Potential errors from attempting to build a token claim
 #[derive(Debug, Error)]

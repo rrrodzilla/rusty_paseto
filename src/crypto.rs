@@ -8,8 +8,8 @@ use chacha20poly1305::{
   aead::{Aead, NewAead, Payload as AeadPayload},
   XChaCha20Poly1305, XNonce,
 };
-use ed25519_dalek::{Keypair, Signature, SignatureError, Signer, Verifier};
-use std::convert::{AsMut, AsRef, From, TryFrom, TryInto};
+use ed25519_dalek::{Keypair, Signature, Signer};
+use std::convert::{AsMut, AsRef, From, TryFrom};
 
 pub(crate) fn try_verify_signed_payload<P, H, F, K>(
   payload: &P,

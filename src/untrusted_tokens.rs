@@ -41,17 +41,13 @@ impl FromStr for UntrustedEncryptedToken {
     match potential_parts.len() {
       //no footer
       3 => Ok(Self {
-        encrypted_token_parts: (
-          Payload::from(potential_parts[2]).to_string(),
-          potential_header.to_string(),
-          None,
-        ),
+        encrypted_token_parts: (Payload::from(potential_parts[2]).to_string(), potential_header, None),
       }),
       //otherwise there must be
       _ => Ok(Self {
         encrypted_token_parts: (
           Payload::from(potential_parts[2]).to_string(),
-          potential_header.to_string(),
+          potential_header,
           Some(Footer::from(potential_parts[3]).to_string()),
         ),
       }),

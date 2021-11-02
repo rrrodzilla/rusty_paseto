@@ -7,7 +7,7 @@ use crate::errors::PasetoTokenParseError;
 use crate::headers::Header;
 use crate::keys::Key;
 use crate::untrusted_tokens::UntrustedEncryptedToken;
-use ed25519_dalek::{Keypair, SignatureError};
+//use ed25519_dalek::{Keypair, SignatureError};
 use std::cmp::PartialEq;
 use std::convert::AsRef;
 use std::default::Default;
@@ -105,7 +105,7 @@ impl GenericTokenDecrypted<Version2, PurposePublic> {
 
     //verify any provided and/or discovered footers are valid
     //can raise exceptions
-    validate_footer_against_hex_encoded_footer_in_constant_time(potential_footer, found_footer)?;
+    validate_footer_against_hex_encoded_footer_in_constant_time(potential_footer.clone(), found_footer)?;
 
     let raw_payload = Payload::from(parsed_payload.as_str());
 

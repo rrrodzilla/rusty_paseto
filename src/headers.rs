@@ -1,7 +1,5 @@
 use crate::common::{PurposeLocal, PurposePublic, Version2};
-use crate::errors::HeaderParseError;
 use std::fmt::Display;
-use std::str::FromStr;
 use std::{fmt, marker::PhantomData};
 
 #[derive(PartialEq, Debug)]

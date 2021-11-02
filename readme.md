@@ -21,6 +21,6 @@ Paseto is everything you love about JOSE (JWT, JWE, JWS) without any of the
 | Generic Token Parser		| :new_moon: | :new_moon: | :full_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: |
 | Basic Token Encryption	| :new_moon: | :new_moon: | :full_moon: | :full_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: |
 | Basic Token Decryption	| :new_moon: | :new_moon: | :full_moon: | :full_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: |
-| [PASETO Test vectors](https://github.com/paseto-standard/test-vectors)  | :waxing_crescent_moon: | :new_moon: | :full_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: |
+| [PASETO Test vectors](https://github.com/paseto-standard/test-vectors)  | :new_moon: | :new_moon: | :full_moon: | :waxing_crescent_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: |
 | Documentation			| :new_moon: | :new_moon: | :last_quarter_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: |
 

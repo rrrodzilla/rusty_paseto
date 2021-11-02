@@ -10,9 +10,38 @@ pub type ValidatorMap = HashMap<String, Box<ValidatorFn>>;
 #[derive(Debug)]
 pub struct Version2;
 #[derive(Debug)]
+pub struct Version4;
+#[derive(Debug)]
 pub struct PurposeLocal;
 #[derive(Debug)]
 pub struct PurposePublic;
+
+#[derive(Debug, Clone, Default)]
+pub struct ImplicitAssertion(String);
+
+impl Base64Encodable<str> for ImplicitAssertion {}
+
+impl AsRef<str> for ImplicitAssertion {
+  fn as_ref(&self) -> &str {
+    &self.0
+  }
+}
+impl From<&str> for ImplicitAssertion {
+  fn from(s: &str) -> Self {
+    Self(s.to_string())
+  }
+}
+impl fmt::Display for ImplicitAssertion {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{}", self.0)
+  }
+}
+impl PartialEq for ImplicitAssertion {
+  fn eq(&self, other: &Self) -> bool {
+    self.0 == other.0
+  }
+}
+impl Eq for ImplicitAssertion {}
 
 /// An optional footer for the PASETO token.
 ///
@@ -40,17 +69,6 @@ impl AsRef<str> for Footer {
     &self.0
   }
 }
-//  impl Default for &Footer {
-//    fn default() -> Self {
-//      Self(String::default())
-
-//    }
-//  }
-//  impl Default for Footer {
-//    fn default() -> Self {
-//      Self(String::default())
-//    }
-//  }
 impl From<&str> for Footer {
   fn from(s: &str) -> Self {
     Self(s.to_string())

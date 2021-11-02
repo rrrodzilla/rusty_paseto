@@ -1,4 +1,4 @@
-use crate::common::{PurposeLocal, PurposePublic, Version2};
+use crate::common::{PurposeLocal, PurposePublic, Version2, Version4};
 use ed25519_dalek::{Keypair, SignatureError};
 use hex::{FromHex, FromHexError};
 use ring::rand::{SecureRandom, SystemRandom};
@@ -54,6 +54,18 @@ pub struct Key<Version, Purpose> {
 }
 
 impl TryFrom<&Key512Bit> for Key<Version2, PurposePublic> {
+  type Error = SignatureError;
+  fn try_from(k: &Key512Bit) -> Result<Self, Self::Error> {
+    let key = Keypair::from_bytes(k)?;
+    Ok(Self {
+      version: PhantomData,
+      purpose: PhantomData,
+      key: Box::new(key),
+    })
+  }
+}
+
+impl TryFrom<&Key512Bit> for Key<Version4, PurposePublic> {
   type Error = SignatureError;
   fn try_from(k: &Key512Bit) -> Result<Self, Self::Error> {
     let key = Keypair::from_bytes(k)?;

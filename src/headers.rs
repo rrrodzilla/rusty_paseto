@@ -1,41 +1,45 @@
 use crate::common::{PurposeLocal, PurposePublic, Version2};
+use crate::errors::HeaderParseError;
 use std::fmt::Display;
+use std::str::FromStr;
 use std::{fmt, marker::PhantomData};
 
 #[derive(PartialEq, Debug)]
 pub(crate) struct Header<Version, Purpose> {
   version: PhantomData<Version>,
   purpose: PhantomData<Purpose>,
+  header: String,
 }
-impl AsRef<str> for Header<Version2, PurposeLocal> {
+
+impl<Version, Purpose> AsRef<str> for Header<Version, Purpose> {
   fn as_ref(&self) -> &str {
-    "v2.local."
-  }
-}
-impl AsRef<str> for Header<Version2, PurposePublic> {
-  fn as_ref(&self) -> &str {
-    "v2.public."
+    self.header.as_ref()
   }
 }
 
-impl<Version, Purpose> Default for Header<Version, Purpose> {
+impl Default for Header<Version2, PurposePublic> {
   fn default() -> Self {
     Self {
       version: PhantomData,
       purpose: PhantomData,
+      header: "v2.public.".to_string(),
     }
   }
 }
 
-impl Display for Header<Version2, PurposeLocal> {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "{}", self.as_ref())
+impl Default for Header<Version2, PurposeLocal> {
+  fn default() -> Self {
+    Self {
+      version: PhantomData,
+      purpose: PhantomData,
+      header: "v2.local.".to_string(),
+    }
   }
 }
 
-impl Display for Header<Version2, PurposePublic> {
+impl<Version, Purpose> Display for Header<Version, Purpose> {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "{}", self.as_ref())
+    write!(f, "{}", self.header)
   }
 }
 

@@ -1,18 +1,19 @@
 use crate::common::Payload;
-use crate::common::{Footer, PurposeLocal, Version2};
-use crate::crypto::{try_decrypt_payload, validate_footer_against_hex_encoded_footer_in_constant_time};
+use crate::common::{Footer, PurposeLocal, PurposePublic, Version2};
+use crate::crypto::{
+  try_decrypt_payload, try_verify_signed_payload, validate_footer_against_hex_encoded_footer_in_constant_time,
+};
 use crate::errors::PasetoTokenParseError;
 use crate::headers::Header;
 use crate::keys::Key;
 use crate::untrusted_tokens::UntrustedEncryptedToken;
+use ed25519_dalek::{Keypair, SignatureError};
 use std::cmp::PartialEq;
 use std::convert::AsRef;
 use std::default::Default;
 use std::fmt;
 use std::marker::PhantomData;
-use std::str::FromStr;
 
-/// Parses a V2 Local paseto token string and provides the decrypted payload string
 #[derive(Debug, PartialEq)]
 pub struct GenericTokenDecrypted<Version, Purpose> {
   version: PhantomData<Version>,
@@ -39,7 +40,6 @@ impl<Version, Purpose> AsRef<String> for GenericTokenDecrypted<Version, Purpose>
     &self.token
   }
 }
-
 impl GenericTokenDecrypted<Version2, PurposeLocal> {
   // Given an arbitrary string, an encryption key and an optional footer,
   // validate and decrypt this token raising errors as needed
@@ -53,9 +53,13 @@ impl GenericTokenDecrypted<Version2, PurposeLocal> {
   {
     //an initial parse of the incoming string to see what we find and validate its structure
     //can raise exceptions
-    let parsed_values = UntrustedEncryptedToken::<Version2, PurposeLocal>::from_str(potential_token.as_ref())?;
+    let parsed_values = potential_token.as_ref().parse::<UntrustedEncryptedToken>()?;
     //if all went well, we can extract the values
-    let (parsed_payload, found_footer) = parsed_values.as_ref();
+    let (parsed_payload, potential_header, found_footer) = parsed_values.as_ref(); //  verify the header
+
+    if potential_header.ne(Header::<Version2, PurposeLocal>::default().as_ref()) {
+      return Err(PasetoTokenParseError::WrongHeader);
+    }
 
     //verify any provided and/or discovered footers are valid
     //can raise exceptions
@@ -68,6 +72,48 @@ impl GenericTokenDecrypted<Version2, PurposeLocal> {
     let payload = try_decrypt_payload(
       &raw_payload,
       &Header::<Version2, PurposeLocal>::default(),
+      &potential_footer.unwrap_or_default(),
+      key,
+    )?;
+    Ok(Self {
+      version: PhantomData,
+      purpose: PhantomData,
+      token: payload,
+    })
+  }
+}
+impl GenericTokenDecrypted<Version2, PurposePublic> {
+  // Given an arbitrary string, an encryption key and an optional footer,
+  // validate and decrypt this token raising errors as needed
+  pub fn parse<T>(
+    potential_token: &T,
+    potential_footer: Option<Footer>,
+    key: &Key<Version2, PurposePublic>,
+  ) -> Result<GenericTokenDecrypted<Version2, PurposePublic>, PasetoTokenParseError>
+  where
+    T: AsRef<str> + ?Sized,
+  {
+    //an initial parse of the incoming string to see what we find and validate its structure
+    //can raise exceptions
+    let parsed_values = potential_token.as_ref().parse::<UntrustedEncryptedToken>()?;
+    //if all went well, we can extract the values
+    let (parsed_payload, potential_header, found_footer) = parsed_values.as_ref(); //  verify the header
+
+    if potential_header.ne(Header::<Version2, PurposePublic>::default().as_ref()) {
+      return Err(PasetoTokenParseError::WrongHeader);
+    }
+
+    //verify any provided and/or discovered footers are valid
+    //can raise exceptions
+    validate_footer_against_hex_encoded_footer_in_constant_time(potential_footer, found_footer)?;
+
+    let raw_payload = Payload::from(parsed_payload.as_str());
+
+    //decrypt the payload
+    //can raise exceptions
+    let payload = try_verify_signed_payload(
+      &raw_payload,
+      &Header::<Version2, PurposePublic>::default(),
       &potential_footer.unwrap_or_default(),
       key,
     )?;

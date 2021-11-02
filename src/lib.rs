@@ -339,6 +339,7 @@
 //! # assert_eq!(json_value["Universe"], 136);
 //! # Ok::<(),anyhow::Error>(())
 //! ```
+extern crate ed25519_dalek;
 extern crate erased_serde;
 
 //all the various types

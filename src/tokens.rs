@@ -1,10 +1,11 @@
 use crate::traits::Base64Encodable;
 use crate::{
-  common::{Footer, Payload, PurposeLocal, Version2},
-  crypto::get_encrypted_raw_payload,
+  common::{Footer, Payload, PurposeLocal, PurposePublic, Version2},
+  crypto::{get_encrypted_raw_payload, get_signed_raw_payload},
   headers::Header,
   keys::{Key, Key192Bit, Key256Bit, NonceKey},
 };
+use ed25519_dalek::Keypair;
 use std::fmt;
 use std::marker::PhantomData;
 
@@ -16,6 +17,48 @@ pub struct GenericToken<Version, Purpose> {
   header: String,
   footer: Option<String>,
   payload: String,
+}
+impl GenericToken<Version2, PurposePublic> {
+  /// Creates a new token from constituent parts
+  pub fn new(
+    message: Payload,
+    key: &Key<Version2, PurposePublic>,
+    footer: Option<Footer>,
+  ) -> GenericToken<Version2, PurposePublic> {
+    //set a default header for this token type
+    let header = Header::<Version2, PurposePublic>::default();
+    //build and return the token
+    Self::build_token(header, message, key, footer)
+  }
+
+  //split for unit and test vectors
+  pub(super) fn build_token<HEADER, MESSAGE, FOOTER, PUBLICKEY>(
+    header: HEADER,
+    message: MESSAGE,
+    key: &PUBLICKEY,
+    footer: Option<FOOTER>,
+  ) -> GenericToken<Version2, PurposePublic>
+  where
+    HEADER: AsRef<str> + std::fmt::Display,
+    MESSAGE: AsRef<str>,
+    FOOTER: Base64Encodable<str> + Default + Clone,
+    PUBLICKEY: AsRef<Keypair>,
+  {
+    //encrypt the payload
+    //let payload = Payload::from("test");
+    //let key = Ed25519KeyPair::from_pkcs8(key.as_ref())?;
+    let payload = &get_signed_raw_payload(&message, &header, &footer.clone().unwrap_or_default(), &key);
+
+    //produce the token with the values
+    //the payload and footer are both base64 encoded
+    GenericToken::<Version2, PurposePublic> {
+      purpose: PhantomData,
+      version: PhantomData,
+      header: header.to_string(), //the header is not base64 encoded
+      payload: payload.encode(),
+      footer: footer.as_ref().map(|f| f.encode()),
+    }
+  }
 }
 
 impl GenericToken<Version2, PurposeLocal> {
@@ -63,7 +106,7 @@ impl GenericToken<Version2, PurposeLocal> {
   }
 }
 
-impl fmt::Display for GenericToken<Version2, PurposeLocal> {
+impl<Version, Purpose> fmt::Display for GenericToken<Version, Purpose> {
   /// Formats the token for display and subsequently allows a to_string implementation
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     if let Some(footer) = &self.footer {
@@ -78,12 +121,13 @@ impl fmt::Display for GenericToken<Version2, PurposeLocal> {
 mod v2_test_vectors {
 
   use crate::common::{Footer, Payload};
-  use crate::common::{PurposeLocal, Version2};
+  use crate::common::{PurposeLocal, PurposePublic, Version2};
   use crate::headers::Header;
-  use crate::keys::{HexKey, Key, Key192Bit, Key256Bit, NonceKey};
+  use crate::keys::{HexKey, Key, Key192Bit, Key256Bit, Key512Bit, NonceKey};
   use crate::tokens::GenericToken;
   use anyhow::Result;
   use serde_json::{json, Value};
+  use std::convert::TryFrom;
 
   fn test_vector(nonce: &str, key: &str, expected_token: &str, payload: &Value, footer: Option<Footer>) -> Result<()> {
     // parse the hex string to ensure it will make a valid key
@@ -116,6 +160,42 @@ mod v2_test_vectors {
       token.to_string().as_str(),
       None,
       key,
+    );
+    if let Ok(payload) = decrypted_payload {
+      assert_eq!(payload.as_ref(), message.as_ref());
+    }
+    Ok(())
+  }
+
+  #[test]
+  fn test_2_s_1() -> Result<()> {
+    //then generate the V2 local key for it
+    let secret_key = "b4cbfb43df4ce210727d953e4a713307fa19bb7d9f85041438d9e11b942a37741eb9dbbbbc047c03fd70604e0071f0987e16b28b757225c11f00415d0e20b1a2"
+        .parse::<HexKey<Key512Bit>>()?;
+    let key = Key::<Version2, PurposePublic>::try_from(secret_key.as_ref())?;
+    let payload = json!({"data": "this is a signed message","exp": "2019-01-01T00:00:00+00:00"}).to_string();
+
+    //create message for test vector
+    //  eprintln!("\nJSON INFO: {}\n", json);
+    let message = Payload::from(payload.as_str());
+    let header = Header::<Version2, PurposePublic>::default();
+
+    //  //  //create a local v2 token
+    let token = GenericToken::<Version2, PurposePublic>::build_token::<
+      Header<Version2, PurposePublic>,
+      Payload,
+      Footer,
+      Key<Version2, PurposePublic>,
+    >(header, message, &key, None);
+
+    //  //validate the test vector
+    assert_eq!(token.to_string(), "v2.public.eyJkYXRhIjoidGhpcyBpcyBhIHNpZ25lZCBtZXNzYWdlIiwiZXhwIjoiMjAxOS0wMS0wMVQwMDowMDowMCswMDowMCJ9HQr8URrGntTu7Dz9J2IF23d1M7-9lH9xiqdGyJNvzp4angPW5Esc7C5huy_M8I8_DjJK2ZXC2SUYuOFM-Q_5Cw");
+
+    //now let's try to decrypt it
+    let decrypted_payload = crate::decrypted_tokens::GenericTokenDecrypted::<Version2, PurposePublic>::parse(
+      token.to_string().as_str(),
+      None,
+      &key,
     );
     if let Ok(payload) = decrypted_payload {
       assert_eq!(payload.as_ref(), message.as_ref());
@@ -214,33 +294,26 @@ mod v2_test_vectors {
 #[cfg(test)]
 mod unit_tests {
 
-  use crate::common::*;
   use crate::untrusted_tokens::*;
 
   #[test]
   fn test_v2_local_encrypted_parse_with_footer() {
-    let potential_token =
-      "v2.local.some_stuff.aGVyZXNfYV9mb290ZXI".parse::<UntrustedEncryptedToken<Version2, PurposeLocal>>();
+    let potential_token = "v2.local.some_stuff.aGVyZXNfYV9mb290ZXI".parse::<UntrustedEncryptedToken>();
     assert!(potential_token.is_ok());
     let token_parts = potential_token.unwrap();
-    let (payload, base64_encoded_footer) = token_parts.as_ref();
+    let (payload, header, base64_encoded_footer) = token_parts.as_ref();
     assert!(base64_encoded_footer.is_some());
-    //  TODO: revisit
-    //  assert_eq!(
-    //    base64_encoded_footer,
-    //    Base64EncodedString::from("heres_a_footer".to_string())
-    //      .as_ref()
-    //      .to_string()
-    //  );
     assert_eq!(payload, "some_stuff");
+    assert_eq!(header, "v2.local.");
   }
 
   #[test]
   fn test_v2_local_encrypted_parse_no_footer() {
-    let potential_token = "v2.local.some_stuff".parse::<UntrustedEncryptedToken<Version2, PurposeLocal>>();
+    let potential_token = "v2.local.some_stuff".parse::<UntrustedEncryptedToken>();
     assert!(potential_token.is_ok());
     let token_parts = potential_token.unwrap();
-    let (payload, footer) = token_parts.as_ref();
+    let (payload, header, footer) = token_parts.as_ref();
+    assert_eq!(header, "v2.local.");
     assert!(footer.is_none());
     assert_eq!(payload, "some_stuff");
   }

@@ -1,7 +1,7 @@
 use crate::generic_builders::{ExpirationClaim, NotBeforeClaim};
 use crate::parsers::GenericTokenParser;
 use crate::{
-  common::{Footer, PurposeLocal, ValidatorFn, Version2},
+  common::{Footer, PurposeLocal, PurposePublic, ValidatorFn, Version2},
   errors::PasetoTokenParseError,
   keys::Key,
   traits::PasetoClaim,
@@ -101,6 +101,13 @@ impl PasetoTokenParser<Version2, PurposeLocal> {
   }
 }
 
+impl PasetoTokenParser<Version2, PurposePublic> {
+  pub fn parse(&mut self, token: &str, key: &Key<Version2, PurposePublic>) -> Result<Value, PasetoTokenParseError> {
+    //return the full json value to the user
+    self.parser.parse(token, key)
+  }
+}
+
 #[cfg(test)]
 mod paseto_parser {
 
@@ -109,7 +116,7 @@ mod paseto_parser {
   use super::*;
   use crate::claims::*;
   use crate::common::*;
-  use crate::keys::Key;
+  use crate::keys::*;
   use crate::prelude::PasetoTokenBuilder;
   use anyhow::Result;
   use chrono::Duration;
@@ -123,7 +130,12 @@ mod paseto_parser {
     let token = PasetoTokenBuilder::<Version2, PurposeLocal>::default()
       .set_claim(NotBeforeClaim::try_from(not_before.to_rfc3339())?)
       .build(&key)?;
-    let expected_error = format!("{}", PasetoTokenParser::default().parse(&token, &key).unwrap_err());
+    let expected_error = format!(
+      "{}",
+      PasetoTokenParser::<Version2, PurposeLocal>::default()
+        .parse(&token, &key)
+        .unwrap_err()
+    );
 
     assert!(expected_error.starts_with("The token is not available for use before "));
     Ok(())
@@ -145,7 +157,7 @@ mod paseto_parser {
       //without the line above this would have errored as an expired token
       .build(&key)?;
 
-    let token = PasetoTokenParser::default().parse(&token, &key)?;
+    let token = PasetoTokenParser::<Version2, PurposeLocal>::default().parse(&token, &key)?;
 
     assert!(token["iat"].is_string());
     assert!(token["exp"].is_null());
@@ -162,9 +174,37 @@ mod paseto_parser {
     let token = PasetoTokenBuilder::<Version2, PurposeLocal>::default()
       .set_claim(ExpirationClaim::try_from(expired.to_rfc3339())?)
       .build(&key)?;
-    let expected_error = format!("{}", PasetoTokenParser::default().parse(&token, &key).unwrap_err());
+    let expected_error = format!(
+      "{}",
+      PasetoTokenParser::<Version2, PurposeLocal>::default()
+        .parse(&token, &key)
+        .unwrap_err()
+    );
 
     assert_eq!(expected_error, "The token has expired");
+    Ok(())
+  }
+  #[test]
+  fn basic_paseto_parser_test_v2_public() -> Result<()> {
+    let pk = "b4cbfb43df4ce210727d953e4a713307fa19bb7d9f85041438d9e11b942a37741eb9dbbbbc047c03fd70604e0071f0987e16b28b757225c11f00415d0e20b1a2"
+        .parse::<HexKey<Key512Bit>>()?;
+    let key = Key::<Version2, PurposePublic>::try_from(pk.as_ref())?;
+
+    //create a default builder
+    let token = PasetoTokenBuilder::<Version2, PurposePublic>::default().build(&key)?;
+
+    //default parser
+    let json = PasetoTokenParser::<Version2, PurposePublic>::default().parse(&token, &key)?;
+
+    //verify the default claims and no others are in the token
+    assert!(json["exp"].is_string());
+    assert!(json["iat"].is_string());
+    assert!(json["nbf"].is_null());
+    assert!(json["sub"].is_null());
+    assert!(json["iss"].is_null());
+    assert!(json["jti"].is_null());
+    assert!(json["aud"].is_null());
+    assert!(!json["aud"].is_string());
     Ok(())
   }
 
@@ -176,7 +216,7 @@ mod paseto_parser {
     let token = PasetoTokenBuilder::<Version2, PurposeLocal>::default().build(&key)?;
 
     //default parser
-    let json = PasetoTokenParser::default().parse(&token, &key)?;
+    let json = PasetoTokenParser::<Version2, PurposeLocal>::default().parse(&token, &key)?;
 
     //verify the default claims and no others are in the token
     assert!(json["exp"].is_string());

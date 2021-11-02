@@ -1,7 +1,7 @@
 use crate::builders::GenericTokenBuilder;
 use crate::claims::{ExpirationClaim, IssuedAtClaim};
 use crate::{
-  common::{Footer, PurposeLocal, Version2},
+  common::{Footer, PurposeLocal, PurposePublic, Version2},
   errors::GenericTokenBuilderError,
   keys::Key,
   traits::PasetoClaim,
@@ -62,6 +62,23 @@ impl<Version, Purpose> Default for PasetoTokenBuilder<Version, Purpose> {
       .set_claim(ExpirationClaim::try_from((Utc::now() + Duration::hours(1)).to_rfc3339()).unwrap())
       .set_claim(IssuedAtClaim::try_from(Utc::now().to_rfc3339()).unwrap());
     me
+  }
+}
+
+impl PasetoTokenBuilder<Version2, PurposePublic> {
+  pub fn build(&mut self, key: &Key<Version2, PurposePublic>) -> Result<String, GenericTokenBuilderError> {
+    if self.non_expiring_token {
+      self.builder.remove_claim("exp");
+    }
+    //  //raise an error if there were duplicates
+    let (dup_found, dup_key) = &self.dup_top_level_found;
+    if *dup_found {
+      return Err(GenericTokenBuilderError::DuplicateTopLevelPayloadClaim(
+        dup_key.to_string(),
+      ));
+    }
+    let token = self.builder.build(key)?;
+    Ok(token)
   }
 }
 

@@ -1,8 +1,7 @@
+use crate::common::Footer;
 use crate::common::Payload;
-use crate::common::{Footer, PurposeLocal, Version2};
 use crate::errors::PasetoTokenParseError;
-use crate::headers::Header;
-use std::marker::PhantomData;
+use std::convert::AsRef;
 use std::str::FromStr;
 
 /// A type alias to simplify usage of this tuple (payload, potential footer)
@@ -10,19 +9,17 @@ use std::str::FromStr;
 //pub(crate) type V2LocalUntrustedEncryptedTokenParts = (String, Option<String>);
 
 /// A private struct for parsing an incoming token string
-pub(crate) struct UntrustedEncryptedToken<Version, Purpose> {
-  version: PhantomData<Version>,
-  purpose: PhantomData<Purpose>,
-  encrypted_token_parts: (String, Option<String>),
+pub(crate) struct UntrustedEncryptedToken {
+  encrypted_token_parts: (String, String, Option<String>),
 }
 
-impl AsRef<(String, Option<String>)> for UntrustedEncryptedToken<Version2, PurposeLocal> {
-  fn as_ref(&self) -> &(String, Option<String>) {
+impl AsRef<(String, String, Option<String>)> for UntrustedEncryptedToken {
+  fn as_ref(&self) -> &(String, String, Option<String>) {
     &self.encrypted_token_parts
   }
 }
 
-impl FromStr for UntrustedEncryptedToken<Version2, PurposeLocal> {
+impl FromStr for UntrustedEncryptedToken {
   type Err = PasetoTokenParseError;
 
   /// This is where the real work is done to parse any ole string which may or may not
@@ -37,28 +34,24 @@ impl FromStr for UntrustedEncryptedToken<Version2, PurposeLocal> {
       return Err(PasetoTokenParseError::IncorrectSize);
     };
 
-    //now let's check the header
-    //first reconstruct it from the incoming string parts
+    //grab the header
     let potential_header = format!("{}.{}.", potential_parts[0], potential_parts[1]);
-    //if the recreated header is not equal to a valid known Header, then the header is invalid
-    if potential_header.ne(Header::<Version2, PurposeLocal>::default().as_ref()) {
-      return Err(PasetoTokenParseError::WrongHeader);
-    }
 
     //produce the struct based on whether there is a potential footer or not
     match potential_parts.len() {
       //no footer
       3 => Ok(Self {
-        version: PhantomData,
-        purpose: PhantomData,
-        encrypted_token_parts: (Payload::from(potential_parts[2]).to_string(), None),
+        encrypted_token_parts: (
+          Payload::from(potential_parts[2]).to_string(),
+          potential_header.to_string(),
+          None,
+        ),
       }),
       //otherwise there must be
       _ => Ok(Self {
-        version: PhantomData,
-        purpose: PhantomData,
         encrypted_token_parts: (
           Payload::from(potential_parts[2]).to_string(),
+          potential_header.to_string(),
           Some(Footer::from(potential_parts[3]).to_string()),
         ),
       }),

@@ -8,8 +8,39 @@ use chacha20poly1305::{
   aead::{Aead, NewAead, Payload as AeadPayload},
   XChaCha20Poly1305, XNonce,
 };
-use std::convert::{AsMut, AsRef, From};
+use ed25519_dalek::{Keypair, Signature, SignatureError, Signer, Verifier};
+use std::convert::{AsMut, AsRef, From, TryFrom, TryInto};
 
+pub(crate) fn try_verify_signed_payload<P, H, F, K>(
+  payload: &P,
+  header: &H,
+  footer: &F,
+  key: &K,
+) -> Result<String, PasetoTokenParseError>
+where
+  P: AsRef<str> + Base64Encodable<str>,
+  H: AsRef<str>,
+  F: AsRef<str>,
+  K: AsRef<Keypair>,
+{
+  let payload = payload.decode()?;
+  let msg = payload[..(payload.len() - ed25519_dalek::SIGNATURE_LENGTH)].as_ref();
+  let sig = payload[msg.len()..msg.len() + ed25519_dalek::SIGNATURE_LENGTH].as_ref();
+  //let (msg, sig) = payload.split_at_mut(len - 64);
+
+  //let s: [u8; 64] = sig.try_into()?.into();
+
+  let signature = Signature::try_from(sig)?;
+  let pae = PreAuthenticationEncoding::parse(&[header.as_ref().as_bytes(), msg, footer.as_ref().as_bytes()]);
+  match key
+    .as_ref()
+    .verify(pae.as_ref(), &signature)
+    .map_err(|_| PasetoTokenParseError::InvalidSignature)
+  {
+    Ok(_) => String::from_utf8(Vec::from(msg)).map_err(|_| PasetoTokenParseError::Decrypt),
+    Err(_) => Err(PasetoTokenParseError::InvalidSignature),
+  }
+}
 pub(crate) fn try_decrypt_payload<P, H, F, K>(
   payload: &P,
   header: &H,
@@ -38,6 +69,25 @@ where
     Ok(decrypted) => String::from_utf8(decrypted).map_err(|_| PasetoTokenParseError::Decrypt),
     Err(_) => Err(PasetoTokenParseError::Decrypt),
   }
+}
+
+pub(crate) fn get_signed_raw_payload<P, H, F, K>(message: &P, header: &H, footer: &F, key: &K) -> RawPayload
+where
+  P: AsRef<str>,
+  H: AsRef<str>,
+  F: AsRef<str>,
+  K: AsRef<Keypair>,
+{
+  let pae = PreAuthenticationEncoding::parse(&[
+    header.as_ref().as_bytes(),
+    message.as_ref().as_bytes(),
+    footer.as_ref().as_bytes(),
+  ]);
+  let sig = key.as_ref().sign(pae.as_ref());
+  let mut raw_payload = Vec::from(message.as_ref().as_bytes());
+  raw_payload.extend_from_slice(sig.as_ref());
+
+  RawPayload::from(raw_payload)
 }
 
 pub(crate) fn get_encrypted_raw_payload<P, H, F, K, NK>(

@@ -1,16 +1,17 @@
+use crate::common::{PurposeLocal, PurposePublic, Version2};
+use ed25519_dalek::{Keypair, SignatureError};
 use hex::{FromHex, FromHexError};
 use ring::rand::{SecureRandom, SystemRandom};
 use std::any::Any;
-use std::convert::{AsRef, From};
+use std::convert::{AsRef, From, TryFrom};
 use std::default::Default;
 use std::marker::PhantomData;
 use std::str::FromStr;
 
-use crate::common::{PurposeLocal, Version2};
-
 /// A type to ensure u8 arrays with exactly 32 elements
 /// to allow for the creation of 256 bit keys
 pub type Key256Bit = [u8; 32];
+pub type Key512Bit = [u8; 64];
 /// A type to ensure u8 arrays with exactly 24 elements
 /// to allow for the creation of 192 bit keys
 pub type Key192Bit = [u8; 24];
@@ -52,6 +53,18 @@ pub struct Key<Version, Purpose> {
   key: Box<dyn Any>,
 }
 
+impl TryFrom<&Key512Bit> for Key<Version2, PurposePublic> {
+  type Error = SignatureError;
+  fn try_from(k: &Key512Bit) -> Result<Self, Self::Error> {
+    let key = Keypair::from_bytes(k)?;
+    Ok(Self {
+      version: PhantomData,
+      purpose: PhantomData,
+      key: Box::new(key),
+    })
+  }
+}
+
 impl From<&Key256Bit> for Key<Version2, PurposeLocal> {
   /// Creates a V2LocalSharedKey from a Key256Bit structure
   fn from(key: &Key256Bit) -> Self {
@@ -71,6 +84,12 @@ impl From<Key256Bit> for Key<Version2, PurposeLocal> {
       purpose: PhantomData,
       key: Box::new(key),
     }
+  }
+}
+
+impl AsRef<Keypair> for Key<Version2, PurposePublic> {
+  fn as_ref(&self) -> &Keypair {
+    self.key.as_ref().downcast_ref().unwrap()
   }
 }
 
@@ -154,10 +173,23 @@ impl NonceKey {
 mod unit_tests {
 
   use super::*;
+  use anyhow::Result;
+  use std::convert::{AsRef, From};
 
   //this doesn't compile without a properly sized key
   //which is what we want
   const KEY: Key256Bit = *b"wubbalubbadubdubwubbalubbadubdub";
+
+  #[test]
+  fn test_key_pair() -> Result<()> {
+    let pk = "b4cbfb43df4ce210727d953e4a713307fa19bb7d9f85041438d9e11b942a37741eb9dbbbbc047c03fd70604e0071f0987e16b28b757225c11f00415d0e20b1a2"
+        .parse::<HexKey<Key512Bit>>()?;
+    let keypair = Key::<Version2, PurposePublic>::try_from(pk.as_ref())?;
+    let key = keypair.as_ref();
+    let secret = &key.secret;
+    assert_eq!(secret.as_bytes().len(), 32);
+    Ok(())
+  }
 
   #[test]
   fn test_new_random_key() {

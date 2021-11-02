@@ -11,6 +11,15 @@ impl Iso8601ParseError {
   }
 }
 
+#[derive(Error, Debug)]
+#[error("{0} is an invalid header for this paseto version and/or purpose")]
+pub struct HeaderParseError(String);
+impl HeaderParseError {
+  pub(crate) fn new(s: &str) -> Self {
+    Self(s.to_string())
+  }
+}
+
 /// Potential errors from attempting to build a token claim
 #[derive(Debug, Error)]
 pub enum TokenClaimError {
@@ -42,6 +51,8 @@ pub enum GenericTokenBuilderError {
 /// Potential errors from attempting to parse a token string
 #[derive(Debug, Error)]
 pub enum PasetoTokenParseError {
+  #[error("The token signature could not be verified")]
+  InvalidSignature,
   #[error("The token is not available for use before {0}")]
   UseBeforeAvailable(String),
   #[error("The token has expired")]
@@ -79,4 +90,9 @@ pub enum PasetoTokenParseError {
   },
   #[error("Couldn't decrypt payload")]
   Decrypt,
+  #[error("Invalid token signature")]
+  InvalidSignatureParse {
+    #[from]
+    source: ed25519_dalek::ed25519::Error,
+  },
 }

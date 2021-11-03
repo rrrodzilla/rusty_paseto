@@ -62,7 +62,7 @@ impl Display for Local {
 }
 
 #[derive(PartialEq, Debug)]
-pub(crate) struct Header<Version, Purpose>
+pub struct Header<Version, Purpose>
 where
   Version: Default + Display,
   Purpose: Default + Display,

@@ -39,14 +39,16 @@ impl<Version, Purpose> AsRef<String> for GenericTokenDecrypted<Version, Purpose>
     &self.token
   }
 }
+
 impl<Version, Purpose> GenericTokenDecrypted<Version, Purpose>
 where
   Version: fmt::Display + Default,
   Purpose: fmt::Display + Default,
 {
-  pub fn get_raw_payload<T>(
+  pub fn get_raw_data<T>(
     potential_token: &T,
     potential_footer: Option<Footer>,
+    header: &Header<Version, Purpose>,
   ) -> Result<String, PasetoTokenParseError>
   where
     T: AsRef<str> + ?Sized,
@@ -57,7 +59,7 @@ where
     //if all went well, we can extract the values
     let (parsed_payload, potential_header, found_footer) = parsed_values.as_ref(); //  verify the header
 
-    let header = Header::<Version, Purpose>::default();
+    //    let header = Header::<Version, Purpose>::default();
     if potential_header.ne(header.as_ref()) {
       return Err(PasetoTokenParseError::WrongHeader);
     }
@@ -85,8 +87,8 @@ impl GenericTokenDecrypted<V2, Local> {
     T: AsRef<str> + ?Sized,
   {
     let header = Header::<V2, Local>::default();
-    let raw = Self::get_raw_payload(potential_token, potential_footer.clone())?;
-    let raw_payload = Payload::from(raw.as_ref());
+    let raw_data = Self::get_raw_data(potential_token, potential_footer.clone(), &header)?;
+    let raw_payload = Payload::from(raw_data.as_ref());
     //decrypt the payload
     let payload = try_decrypt_payload(
       &raw_payload,
@@ -115,8 +117,8 @@ impl GenericTokenDecrypted<V2, Public> {
     T: AsRef<str> + ?Sized,
   {
     let header = Header::<V2, Public>::default();
-    let raw = Self::get_raw_payload(potential_token, potential_footer.clone())?;
-    let raw_payload = Payload::from(raw.as_ref());
+    let raw_data = Self::get_raw_data(potential_token, potential_footer.clone(), &header)?;
+    let raw_payload = Payload::from(raw_data.as_ref());
     //decrypt the payload
     //can raise exceptions
     let payload = try_verify_signed_payload(

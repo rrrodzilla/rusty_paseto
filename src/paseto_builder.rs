@@ -52,6 +52,20 @@ impl<Version, Purpose> PasetoTokenBuilder<Version, Purpose> {
     self.builder.set_footer(footer);
     self
   }
+
+  fn verify_ready_to_build(&mut self) -> Result<(), GenericTokenBuilderError> {
+    if self.non_expiring_token {
+      self.builder.remove_claim("exp");
+    }
+    //  //raise an error if there were duplicates
+    let (dup_found, dup_key) = &self.dup_top_level_found;
+    if *dup_found {
+      return Err(GenericTokenBuilderError::DuplicateTopLevelPayloadClaim(
+        dup_key.to_string(),
+      ));
+    }
+    Ok(())
+  }
 }
 
 impl<Version, Purpose> Default for PasetoTokenBuilder<Version, Purpose> {
@@ -67,35 +81,15 @@ impl<Version, Purpose> Default for PasetoTokenBuilder<Version, Purpose> {
 
 impl PasetoTokenBuilder<V2, Public> {
   pub fn build(&mut self, key: &Key<V2, Public>) -> Result<String, GenericTokenBuilderError> {
-    if self.non_expiring_token {
-      self.builder.remove_claim("exp");
-    }
-    //  //raise an error if there were duplicates
-    let (dup_found, dup_key) = &self.dup_top_level_found;
-    if *dup_found {
-      return Err(GenericTokenBuilderError::DuplicateTopLevelPayloadClaim(
-        dup_key.to_string(),
-      ));
-    }
-    let token = self.builder.build(key)?;
-    Ok(token)
+    self.verify_ready_to_build()?;
+    self.builder.build(key)
   }
 }
 
 impl PasetoTokenBuilder<V2, Local> {
   pub fn build(&mut self, key: &Key<V2, Local>) -> Result<String, GenericTokenBuilderError> {
-    if self.non_expiring_token {
-      self.builder.remove_claim("exp");
-    }
-    //  //raise an error if there were duplicates
-    let (dup_found, dup_key) = &self.dup_top_level_found;
-    if *dup_found {
-      return Err(GenericTokenBuilderError::DuplicateTopLevelPayloadClaim(
-        dup_key.to_string(),
-      ));
-    }
-    let token = self.builder.build(key)?;
-    Ok(token)
+    self.verify_ready_to_build()?;
+    self.builder.build(key)
   }
 }
 

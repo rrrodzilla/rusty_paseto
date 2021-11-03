@@ -49,10 +49,6 @@ impl<T> TryFrom<(&str, T)> for CustomClaim<T> {
   fn try_from(val: (&str, T)) -> Result<Self, Self::Error> {
     Self::check_if_reserved_claim_key(val.0)?;
     Ok(Self((String::from(val.0), val.1)))
-    //  match key {
-    //    key if RESERVED_CLAIMS.contains(&key) => Err(TokenClaimError::ReservedClaim(key.into())),
-    //    _ => Ok(Self((String::from(val.0), val.1))),
-    //  }
   }
 }
 

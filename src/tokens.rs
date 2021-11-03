@@ -1,3 +1,4 @@
+extern crate ed25519_dalek;
 use crate::traits::Base64Encodable;
 use crate::{
   common::{Footer, Payload, PurposeLocal, PurposePublic, Version2},
@@ -18,6 +19,7 @@ pub struct GenericToken<Version, Purpose> {
   footer: Option<String>,
   payload: String,
 }
+
 impl GenericToken<Version2, PurposePublic> {
   /// Creates a new token from constituent parts
   pub fn new(

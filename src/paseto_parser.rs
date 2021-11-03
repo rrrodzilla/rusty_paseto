@@ -1,3 +1,4 @@
+use crate::decrypted_tokens::GenericTokenDecrypted;
 use crate::generic_builders::{ExpirationClaim, NotBeforeClaim};
 use crate::parsers::GenericTokenParser;
 use crate::{
@@ -96,15 +97,17 @@ impl<Version, Purpose> Default for PasetoTokenParser<Version, Purpose> {
 
 impl PasetoTokenParser<Version2, PurposeLocal> {
   pub fn parse(&mut self, token: &str, key: &Key<Version2, PurposeLocal>) -> Result<Value, PasetoTokenParseError> {
+    let decrypted = GenericTokenDecrypted::<Version2, PurposeLocal>::parse(token, self.parser.get_footer(), key)?;
     //return the full json value to the user
-    self.parser.parse(token, key)
+    self.parser.parse(&decrypted)
   }
 }
 
 impl PasetoTokenParser<Version2, PurposePublic> {
   pub fn parse(&mut self, token: &str, key: &Key<Version2, PurposePublic>) -> Result<Value, PasetoTokenParseError> {
+    let decrypted = GenericTokenDecrypted::<Version2, PurposePublic>::parse(token, self.parser.get_footer(), key)?;
     //return the full json value to the user
-    self.parser.parse(token, key)
+    self.parser.parse(&decrypted)
   }
 }
 
@@ -379,6 +382,7 @@ mod paseto_parser {
       .set_footer(footer.clone())
       .build(&key)?;
 
+    let decrypted_token = GenericTokenDecrypted::<Version2, PurposeLocal>::parse(&token, Some(footer.clone()), &key)?;
     //now let's decrypt the token and verify the values
     let json = GenericTokenParser::<Version2, PurposeLocal>::default()
       .check_claim(AudienceClaim::from("customers"))
@@ -392,7 +396,7 @@ mod paseto_parser {
       .check_claim(CustomClaim::try_from(("seats", 4))?)
       .check_claim(CustomClaim::try_from(("pi to 6 digits", 3.141526))?)
       .set_footer(footer)
-      .parse(&token, &key)?;
+      .parse(&decrypted_token)?;
 
     // we can access all the values from the serde Value object returned by the parser
     assert_eq!(json["aud"], "customers");

@@ -1,4 +1,4 @@
-use crate::common::{PurposeLocal, PurposePublic, Version2, Version4};
+use crate::common::{Local, Public, V2, V4};
 use ed25519_dalek::{Keypair, SignatureError};
 use hex::{FromHex, FromHexError};
 use ring::rand::{SecureRandom, SystemRandom};
@@ -53,7 +53,7 @@ pub struct Key<Version, Purpose> {
   key: Box<dyn Any>,
 }
 
-impl TryFrom<&Key512Bit> for Key<Version2, PurposePublic> {
+impl TryFrom<&Key512Bit> for Key<V2, Public> {
   type Error = SignatureError;
   fn try_from(k: &Key512Bit) -> Result<Self, Self::Error> {
     let key = Keypair::from_bytes(k)?;
@@ -65,7 +65,7 @@ impl TryFrom<&Key512Bit> for Key<Version2, PurposePublic> {
   }
 }
 
-impl TryFrom<&Key512Bit> for Key<Version4, PurposePublic> {
+impl TryFrom<&Key512Bit> for Key<V4, Public> {
   type Error = SignatureError;
   fn try_from(k: &Key512Bit) -> Result<Self, Self::Error> {
     let key = Keypair::from_bytes(k)?;
@@ -77,7 +77,7 @@ impl TryFrom<&Key512Bit> for Key<Version4, PurposePublic> {
   }
 }
 
-impl From<&Key256Bit> for Key<Version2, PurposeLocal> {
+impl From<&Key256Bit> for Key<V2, Local> {
   /// Creates a V2LocalSharedKey from a Key256Bit structure
   fn from(key: &Key256Bit) -> Self {
     Self {
@@ -88,7 +88,7 @@ impl From<&Key256Bit> for Key<Version2, PurposeLocal> {
   }
 }
 
-impl From<Key256Bit> for Key<Version2, PurposeLocal> {
+impl From<Key256Bit> for Key<V2, Local> {
   /// Creates a V2LocalSharedKey from a Key256Bit structure
   fn from(key: Key256Bit) -> Self {
     Self {
@@ -99,19 +99,19 @@ impl From<Key256Bit> for Key<Version2, PurposeLocal> {
   }
 }
 
-impl AsRef<Keypair> for Key<Version2, PurposePublic> {
+impl AsRef<Keypair> for Key<V2, Public> {
   fn as_ref(&self) -> &Keypair {
     self.key.as_ref().downcast_ref().unwrap()
   }
 }
 
-impl AsRef<Key256Bit> for Key<Version2, PurposeLocal> {
+impl AsRef<Key256Bit> for Key<V2, Local> {
   fn as_ref(&self) -> &Key256Bit {
     self.key.as_ref().downcast_ref().unwrap()
   }
 }
 
-impl Default for Key<Version2, PurposeLocal> {
+impl Default for Key<V2, Local> {
   fn default() -> Self {
     Self {
       version: PhantomData,
@@ -121,7 +121,7 @@ impl Default for Key<Version2, PurposeLocal> {
   }
 }
 
-impl Key<Version2, PurposeLocal> {
+impl Key<V2, Local> {
   ///Returns a new valid random V2LocalSharedKey
   pub fn new_random() -> Self {
     let rng = SystemRandom::new();
@@ -135,7 +135,7 @@ impl Key<Version2, PurposeLocal> {
   }
 }
 
-impl From<HexKey<Key256Bit>> for Key<Version2, PurposeLocal> {
+impl From<HexKey<Key256Bit>> for Key<V2, Local> {
   /// Only allows hex keys of the correct size
   fn from(key: HexKey<Key256Bit>) -> Self {
     Self {
@@ -196,7 +196,7 @@ mod unit_tests {
   fn test_key_pair() -> Result<()> {
     let pk = "b4cbfb43df4ce210727d953e4a713307fa19bb7d9f85041438d9e11b942a37741eb9dbbbbc047c03fd70604e0071f0987e16b28b757225c11f00415d0e20b1a2"
         .parse::<HexKey<Key512Bit>>()?;
-    let keypair = Key::<Version2, PurposePublic>::try_from(pk.as_ref())?;
+    let keypair = Key::<V2, Public>::try_from(pk.as_ref())?;
     let key = keypair.as_ref();
     let secret = &key.secret;
     assert_eq!(secret.as_bytes().len(), 32);
@@ -205,7 +205,7 @@ mod unit_tests {
 
   #[test]
   fn test_new_random_key() {
-    let key = Key::<Version2, PurposeLocal>::new_random();
+    let key = Key::<V2, Local>::new_random();
     assert_eq!(key.as_ref().len(), 32);
   }
 
@@ -214,7 +214,7 @@ mod unit_tests {
     let hex_val = "707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f"
       .parse::<HexKey<Key256Bit>>()
       .expect("oops!");
-    let key = Key::<Version2, PurposeLocal>::from(hex_val);
+    let key = Key::<V2, Local>::from(hex_val);
     assert_eq!(key.as_ref().len(), 32);
   }
 
@@ -245,7 +245,7 @@ mod unit_tests {
 
   #[test]
   fn test_implied_bit_key() {
-    let symmetric_key: Key<Version2, PurposeLocal> = KEY.into();
+    let symmetric_key: Key<V2, Local> = KEY.into();
     assert_eq!(symmetric_key.as_ref(), &KEY)
   }
 
@@ -256,7 +256,7 @@ mod unit_tests {
   }
   #[test]
   fn test_explicit_convert() {
-    let symmetric_key = Key::<Version2, PurposeLocal>::from(KEY);
+    let symmetric_key = Key::<V2, Local>::from(KEY);
     assert_eq!(symmetric_key.as_ref(), &KEY)
   }
 }

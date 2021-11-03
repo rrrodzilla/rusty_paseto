@@ -2,7 +2,7 @@ use crate::decrypted_tokens::GenericTokenDecrypted;
 use crate::generic_builders::{ExpirationClaim, NotBeforeClaim};
 use crate::parsers::GenericTokenParser;
 use crate::{
-  common::{Footer, PurposeLocal, PurposePublic, ValidatorFn, Version2},
+  common::{Footer, Local, Public, ValidatorFn, V2},
   errors::PasetoTokenParseError,
   keys::Key,
   traits::PasetoClaim,
@@ -95,17 +95,17 @@ impl<Version, Purpose> Default for PasetoTokenParser<Version, Purpose> {
   }
 }
 
-impl PasetoTokenParser<Version2, PurposeLocal> {
-  pub fn parse(&mut self, token: &str, key: &Key<Version2, PurposeLocal>) -> Result<Value, PasetoTokenParseError> {
-    let decrypted = GenericTokenDecrypted::<Version2, PurposeLocal>::parse(token, self.parser.get_footer(), key)?;
+impl PasetoTokenParser<V2, Local> {
+  pub fn parse(&mut self, token: &str, key: &Key<V2, Local>) -> Result<Value, PasetoTokenParseError> {
+    let decrypted = GenericTokenDecrypted::<V2, Local>::parse(token, self.parser.get_footer(), key)?;
     //return the full json value to the user
     self.parser.parse(&decrypted)
   }
 }
 
-impl PasetoTokenParser<Version2, PurposePublic> {
-  pub fn parse(&mut self, token: &str, key: &Key<Version2, PurposePublic>) -> Result<Value, PasetoTokenParseError> {
-    let decrypted = GenericTokenDecrypted::<Version2, PurposePublic>::parse(token, self.parser.get_footer(), key)?;
+impl PasetoTokenParser<V2, Public> {
+  pub fn parse(&mut self, token: &str, key: &Key<V2, Public>) -> Result<Value, PasetoTokenParseError> {
+    let decrypted = GenericTokenDecrypted::<V2, Public>::parse(token, self.parser.get_footer(), key)?;
     //return the full json value to the user
     self.parser.parse(&decrypted)
   }
@@ -126,16 +126,16 @@ mod paseto_parser {
 
   #[test]
   fn usage_before_ready_test() -> Result<()> {
-    let key = Key::<Version2, PurposeLocal>::from(*b"wubbalubbadubdubwubbalubbadubdub");
+    let key = Key::<V2, Local>::from(*b"wubbalubbadubdubwubbalubbadubdub");
 
     let not_before = Utc::now() + Duration::hours(1);
     //create a default builder
-    let token = PasetoTokenBuilder::<Version2, PurposeLocal>::default()
+    let token = PasetoTokenBuilder::<V2, Local>::default()
       .set_claim(NotBeforeClaim::try_from(not_before.to_rfc3339())?)
       .build(&key)?;
     let expected_error = format!(
       "{}",
-      PasetoTokenParser::<Version2, PurposeLocal>::default()
+      PasetoTokenParser::<V2, Local>::default()
         .parse(&token, &key)
         .unwrap_err()
     );
@@ -146,13 +146,13 @@ mod paseto_parser {
 
   #[test]
   fn non_expiring_token_claim_test() -> Result<()> {
-    let key = Key::<Version2, PurposeLocal>::from(*b"wubbalubbadubdubwubbalubbadubdub");
+    let key = Key::<V2, Local>::from(*b"wubbalubbadubdubwubbalubbadubdub");
 
     //we're going to set a token expiration date to 10 minutes ago
     let expired = Utc::now() + Duration::minutes(-10);
 
     //create a default builder
-    let token = PasetoTokenBuilder::<Version2, PurposeLocal>::default()
+    let token = PasetoTokenBuilder::<V2, Local>::default()
       //setting our claim
       .set_claim(ExpirationClaim::try_from(expired.to_rfc3339())?)
       //by setting this we ensure we won't fail
@@ -160,7 +160,7 @@ mod paseto_parser {
       //without the line above this would have errored as an expired token
       .build(&key)?;
 
-    let token = PasetoTokenParser::<Version2, PurposeLocal>::default().parse(&token, &key)?;
+    let token = PasetoTokenParser::<V2, Local>::default().parse(&token, &key)?;
 
     assert!(token["iat"].is_string());
     assert!(token["exp"].is_null());
@@ -170,16 +170,16 @@ mod paseto_parser {
 
   #[test]
   fn expired_token_claim_test() -> Result<()> {
-    let key = Key::<Version2, PurposeLocal>::from(*b"wubbalubbadubdubwubbalubbadubdub");
+    let key = Key::<V2, Local>::from(*b"wubbalubbadubdubwubbalubbadubdub");
 
     let expired = Utc::now() + Duration::minutes(-10);
     //create a default builder
-    let token = PasetoTokenBuilder::<Version2, PurposeLocal>::default()
+    let token = PasetoTokenBuilder::<V2, Local>::default()
       .set_claim(ExpirationClaim::try_from(expired.to_rfc3339())?)
       .build(&key)?;
     let expected_error = format!(
       "{}",
-      PasetoTokenParser::<Version2, PurposeLocal>::default()
+      PasetoTokenParser::<V2, Local>::default()
         .parse(&token, &key)
         .unwrap_err()
     );
@@ -191,13 +191,13 @@ mod paseto_parser {
   fn basic_paseto_parser_test_v2_public() -> Result<()> {
     let pk = "b4cbfb43df4ce210727d953e4a713307fa19bb7d9f85041438d9e11b942a37741eb9dbbbbc047c03fd70604e0071f0987e16b28b757225c11f00415d0e20b1a2"
         .parse::<HexKey<Key512Bit>>()?;
-    let key = Key::<Version2, PurposePublic>::try_from(pk.as_ref())?;
+    let key = Key::<V2, Public>::try_from(pk.as_ref())?;
 
     //create a default builder
-    let token = PasetoTokenBuilder::<Version2, PurposePublic>::default().build(&key)?;
+    let token = PasetoTokenBuilder::<V2, Public>::default().build(&key)?;
 
     //default parser
-    let json = PasetoTokenParser::<Version2, PurposePublic>::default().parse(&token, &key)?;
+    let json = PasetoTokenParser::<V2, Public>::default().parse(&token, &key)?;
 
     //verify the default claims and no others are in the token
     assert!(json["exp"].is_string());
@@ -213,13 +213,13 @@ mod paseto_parser {
 
   #[test]
   fn basic_paseto_parser_test() -> Result<()> {
-    let key = Key::<Version2, PurposeLocal>::from(*b"wubbalubbadubdubwubbalubbadubdub");
+    let key = Key::<V2, Local>::from(*b"wubbalubbadubdubwubbalubbadubdub");
 
     //create a default builder
-    let token = PasetoTokenBuilder::<Version2, PurposeLocal>::default().build(&key)?;
+    let token = PasetoTokenBuilder::<V2, Local>::default().build(&key)?;
 
     //default parser
-    let json = PasetoTokenParser::<Version2, PurposeLocal>::default().parse(&token, &key)?;
+    let json = PasetoTokenParser::<V2, Local>::default().parse(&token, &key)?;
 
     //verify the default claims and no others are in the token
     assert!(json["exp"].is_string());
@@ -235,17 +235,17 @@ mod paseto_parser {
 
   #[test]
   fn update_default_issued_at_claim_test() -> Result<()> {
-    let key = Key::<Version2, PurposeLocal>::from(*b"wubbalubbadubdubwubbalubbadubdub");
+    let key = Key::<V2, Local>::from(*b"wubbalubbadubdubwubbalubbadubdub");
     let tomorrow = (Utc::now() + Duration::days(1)).to_rfc3339();
 
     //create a builder, with default IssuedAtClaim
-    let token = PasetoTokenBuilder::<Version2, PurposeLocal>::default()
+    let token = PasetoTokenBuilder::<V2, Local>::default()
       .set_claim(IssuedAtClaim::try_from(tomorrow.as_str()).unwrap())
       .build(&key)?;
 
     //now let's decrypt the token and verify the values
     //the IssuedAtClaim should exist and the date should be set to tomorrow
-    PasetoTokenParser::<Version2, PurposeLocal>::default()
+    PasetoTokenParser::<V2, Local>::default()
       .validate_claim(IssuedAtClaim::default(), &|key, value| {
         //let's get the value
         let val = value
@@ -269,14 +269,14 @@ mod paseto_parser {
 
   #[test]
   fn check_for_default_issued_at_claim_test() -> Result<()> {
-    let key = Key::<Version2, PurposeLocal>::from(*b"wubbalubbadubdubwubbalubbadubdub");
+    let key = Key::<V2, Local>::from(*b"wubbalubbadubdubwubbalubbadubdub");
 
     //create a builder, with default IssuedAtClaim
-    let token = PasetoTokenBuilder::<Version2, PurposeLocal>::default().build(&key)?;
+    let token = PasetoTokenBuilder::<V2, Local>::default().build(&key)?;
 
     //now let's decrypt the token and verify the values
     //the IssuedAtClaim should exist
-    PasetoTokenParser::<Version2, PurposeLocal>::default()
+    PasetoTokenParser::<V2, Local>::default()
       .validate_claim(IssuedAtClaim::default(), &|key, value| {
         //let's get the value
         let val = value
@@ -299,17 +299,17 @@ mod paseto_parser {
 
   #[test]
   fn update_default_expiration_claim_test() -> Result<()> {
-    let key = Key::<Version2, PurposeLocal>::from(*b"wubbalubbadubdubwubbalubbadubdub");
+    let key = Key::<V2, Local>::from(*b"wubbalubbadubdubwubbalubbadubdub");
     let in_4_days = (Utc::now() + Duration::days(4)).to_rfc3339();
 
     //create a builder, with default IssuedAtClaim
-    let token = PasetoTokenBuilder::<Version2, PurposeLocal>::default()
+    let token = PasetoTokenBuilder::<V2, Local>::default()
       .set_claim(ExpirationClaim::try_from(in_4_days).unwrap())
       .build(&key)?;
 
     //now let's decrypt the token and verify the values
     //the IssuedAtClaim should exist and the date should be set to tomorrow
-    PasetoTokenParser::<Version2, PurposeLocal>::default()
+    PasetoTokenParser::<V2, Local>::default()
       .validate_claim(ExpirationClaim::default(), &|key, value| {
         //let's get the value
         let val = value
@@ -333,14 +333,14 @@ mod paseto_parser {
 
   #[test]
   fn check_for_default_expiration_claim_test() -> Result<()> {
-    let key = Key::<Version2, PurposeLocal>::from(*b"wubbalubbadubdubwubbalubbadubdub");
+    let key = Key::<V2, Local>::from(*b"wubbalubbadubdubwubbalubbadubdub");
 
     //create a builder, with default ExpirationClaim
-    let token = PasetoTokenBuilder::<Version2, PurposeLocal>::default().build(&key)?;
+    let token = PasetoTokenBuilder::<V2, Local>::default().build(&key)?;
 
     //now let's decrypt the token and verify the values
     //the IssuedAtClaim should exist
-    PasetoTokenParser::<Version2, PurposeLocal>::default()
+    PasetoTokenParser::<V2, Local>::default()
       .validate_claim(ExpirationClaim::default(), &|key, value| {
         //let's get the value
         let val = value
@@ -364,11 +364,11 @@ mod paseto_parser {
 
   #[test]
   fn full_paseto_parser_test() -> Result<()> {
-    let key = Key::<Version2, PurposeLocal>::from(*b"wubbalubbadubdubwubbalubbadubdub");
+    let key = Key::<V2, Local>::from(*b"wubbalubbadubdubwubbalubbadubdub");
     let footer = Footer::from("some footer");
 
     //create a builder, add some claims and then build the token with the key
-    let token = PasetoTokenBuilder::<Version2, PurposeLocal>::default()
+    let token = PasetoTokenBuilder::<V2, Local>::default()
       .set_claim(AudienceClaim::from("customers"))
       .set_claim(SubjectClaim::from("loyal subjects"))
       .set_claim(IssuerClaim::from("me"))
@@ -382,9 +382,9 @@ mod paseto_parser {
       .set_footer(footer.clone())
       .build(&key)?;
 
-    let decrypted_token = GenericTokenDecrypted::<Version2, PurposeLocal>::parse(&token, Some(footer.clone()), &key)?;
+    let decrypted_token = GenericTokenDecrypted::<V2, Local>::parse(&token, Some(footer.clone()), &key)?;
     //now let's decrypt the token and verify the values
-    let json = GenericTokenParser::<Version2, PurposeLocal>::default()
+    let json = GenericTokenParser::<V2, Local>::default()
       .check_claim(AudienceClaim::from("customers"))
       .check_claim(SubjectClaim::from("loyal subjects"))
       .check_claim(IssuerClaim::from("me"))

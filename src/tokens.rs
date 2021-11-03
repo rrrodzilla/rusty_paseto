@@ -1,7 +1,7 @@
 extern crate ed25519_dalek;
 use crate::traits::Base64Encodable;
 use crate::{
-  common::{Footer, Payload, PurposeLocal, PurposePublic, Version2},
+  common::{Footer, Local, Payload, Public, V2},
   crypto::{get_encrypted_raw_payload, get_signed_raw_payload},
   headers::Header,
   keys::{Key, Key192Bit, Key256Bit, NonceKey},
@@ -20,30 +20,25 @@ pub struct GenericToken<Version, Purpose> {
   payload: String,
 }
 
-impl GenericToken<Version2, PurposePublic> {
+impl GenericToken<V2, Public> {
   /// Creates a new token from constituent parts
-  pub fn new(
-    message: Payload,
-    key: &Key<Version2, PurposePublic>,
-    footer: Option<Footer>,
-  ) -> GenericToken<Version2, PurposePublic> {
+  pub fn new(message: Payload, key: &Key<V2, Public>, footer: Option<Footer>) -> GenericToken<V2, Public> {
     //set a default header for this token type
-    let header = Header::<Version2, PurposePublic>::default();
+    let header = Header::<V2, Public>::default();
     //build and return the token
     Self::build_token(header, message, key, footer)
   }
 
   //split for unit and test vectors
-  pub(super) fn build_token<HEADER, MESSAGE, FOOTER, PUBLICKEY>(
+  pub(super) fn build_token<HEADER, MESSAGE, PUBLICKEY>(
     header: HEADER,
     message: MESSAGE,
     key: &PUBLICKEY,
-    footer: Option<FOOTER>,
-  ) -> GenericToken<Version2, PurposePublic>
+    footer: Option<Footer>,
+  ) -> GenericToken<V2, Public>
   where
-    HEADER: AsRef<str> + std::fmt::Display,
+    HEADER: AsRef<str> + std::fmt::Display + Default,
     MESSAGE: AsRef<str>,
-    FOOTER: Base64Encodable<str> + Default + Clone,
     PUBLICKEY: AsRef<Keypair>,
   {
     //encrypt the payload
@@ -53,7 +48,7 @@ impl GenericToken<Version2, PurposePublic> {
 
     //produce the token with the values
     //the payload and footer are both base64 encoded
-    GenericToken::<Version2, PurposePublic> {
+    GenericToken::<V2, Public> {
       purpose: PhantomData,
       version: PhantomData,
       header: header.to_string(), //the header is not base64 encoded
@@ -63,33 +58,28 @@ impl GenericToken<Version2, PurposePublic> {
   }
 }
 
-impl GenericToken<Version2, PurposeLocal> {
+impl GenericToken<V2, Local> {
   /// Creates a new token from constituent parts
-  pub fn new(
-    message: Payload,
-    key: &Key<Version2, PurposeLocal>,
-    footer: Option<Footer>,
-  ) -> GenericToken<Version2, PurposeLocal> {
+  pub fn new(message: Payload, key: &Key<V2, Local>, footer: Option<Footer>) -> GenericToken<V2, Local> {
     //use a random nonce
     let nonce_key = NonceKey::new_random();
     //set a default header for this token type
-    let header = Header::<Version2, PurposeLocal>::default();
+    let header = Header::<V2, Local>::default();
     //build and return the token
     Self::build_token(header, message, key, footer, &nonce_key)
   }
 
   //split for unit and test vectors
-  pub(super) fn build_token<HEADER, MESSAGE, FOOTER, SHAREDKEY, NONCEKEY>(
+  pub(super) fn build_token<HEADER, MESSAGE, SHAREDKEY, NONCEKEY>(
     header: HEADER,
     message: MESSAGE,
     key: &SHAREDKEY,
-    footer: Option<FOOTER>,
+    footer: Option<Footer>,
     nonce_key: &NONCEKEY,
-  ) -> GenericToken<Version2, PurposeLocal>
+  ) -> GenericToken<V2, Local>
   where
-    HEADER: AsRef<str> + std::fmt::Display,
+    HEADER: AsRef<str> + std::fmt::Display + Default,
     MESSAGE: AsRef<str>,
-    FOOTER: Base64Encodable<str> + Default + Clone,
     SHAREDKEY: AsRef<Key256Bit>,
     NONCEKEY: AsRef<Key192Bit>,
   {
@@ -98,7 +88,7 @@ impl GenericToken<Version2, PurposeLocal> {
 
     //produce the token with the values
     //the payload and footer are both base64 encoded
-    GenericToken::<Version2, PurposeLocal> {
+    GenericToken::<V2, Local> {
       purpose: PhantomData,
       version: PhantomData,
       header: header.to_string(), //the header is not base64 encoded
@@ -123,7 +113,7 @@ impl<Version, Purpose> fmt::Display for GenericToken<Version, Purpose> {
 mod v2_test_vectors {
 
   use crate::common::{Footer, Payload};
-  use crate::common::{PurposeLocal, PurposePublic, Version2};
+  use crate::common::{Local, Public, V2};
   use crate::headers::Header;
   use crate::keys::{HexKey, Key, Key192Bit, Key256Bit, Key512Bit, NonceKey};
   use crate::tokens::GenericToken;
@@ -135,7 +125,7 @@ mod v2_test_vectors {
     // parse the hex string to ensure it will make a valid key
     let hex_key = key.parse::<HexKey<Key256Bit>>()?;
     //then generate the V2 local key for it
-    let key = &Key::<Version2, PurposeLocal>::from(hex_key);
+    let key = &Key::<V2, Local>::from(hex_key);
 
     let nonce_key = nonce.parse::<HexKey<Key192Bit>>()?;
     let nonce = NonceKey::from(nonce_key);
@@ -143,26 +133,17 @@ mod v2_test_vectors {
     let json = payload.to_string();
     //  eprintln!("\nJSON INFO: {}\n", json);
     let message = Payload::from(json.as_str());
-    let header = Header::<Version2, PurposeLocal>::default();
+    let header = Header::<V2, Local>::default();
 
     //  //create a local v2 token
-    let token = GenericToken::<Version2, PurposeLocal>::build_token::<
-      Header<Version2, PurposeLocal>,
-      Payload,
-      Footer,
-      Key<Version2, PurposeLocal>,
-      NonceKey,
-    >(header, message, &key, footer, &nonce);
+    let token = GenericToken::<V2, Local>::build_token(header, message, &key, footer, &nonce);
 
     //validate the test vector
     assert_eq!(token.to_string(), expected_token);
 
     //now let's try to decrypt it
-    let decrypted_payload = crate::decrypted_tokens::GenericTokenDecrypted::<Version2, PurposeLocal>::parse(
-      token.to_string().as_str(),
-      None,
-      key,
-    );
+    let decrypted_payload =
+      crate::decrypted_tokens::GenericTokenDecrypted::<V2, Local>::parse(token.to_string().as_str(), None, key);
     if let Ok(payload) = decrypted_payload {
       assert_eq!(payload.as_ref(), message.as_ref());
     }
@@ -174,31 +155,23 @@ mod v2_test_vectors {
     //then generate the V2 local key for it
     let secret_key = "b4cbfb43df4ce210727d953e4a713307fa19bb7d9f85041438d9e11b942a37741eb9dbbbbc047c03fd70604e0071f0987e16b28b757225c11f00415d0e20b1a2"
         .parse::<HexKey<Key512Bit>>()?;
-    let key = Key::<Version2, PurposePublic>::try_from(secret_key.as_ref())?;
+    let key = Key::<V2, Public>::try_from(secret_key.as_ref())?;
     let payload = json!({"data": "this is a signed message","exp": "2019-01-01T00:00:00+00:00"}).to_string();
 
     //create message for test vector
     //  eprintln!("\nJSON INFO: {}\n", json);
     let message = Payload::from(payload.as_str());
-    let header = Header::<Version2, PurposePublic>::default();
+    let header = Header::<V2, Public>::default();
 
     //  //  //create a local v2 token
-    let token = GenericToken::<Version2, PurposePublic>::build_token::<
-      Header<Version2, PurposePublic>,
-      Payload,
-      Footer,
-      Key<Version2, PurposePublic>,
-    >(header, message, &key, None);
+    let token = GenericToken::<V2, Public>::build_token(header, message, &key, None);
 
     //  //validate the test vector
     assert_eq!(token.to_string(), "v2.public.eyJkYXRhIjoidGhpcyBpcyBhIHNpZ25lZCBtZXNzYWdlIiwiZXhwIjoiMjAxOS0wMS0wMVQwMDowMDowMCswMDowMCJ9HQr8URrGntTu7Dz9J2IF23d1M7-9lH9xiqdGyJNvzp4angPW5Esc7C5huy_M8I8_DjJK2ZXC2SUYuOFM-Q_5Cw");
 
     //now let's try to decrypt it
-    let decrypted_payload = crate::decrypted_tokens::GenericTokenDecrypted::<Version2, PurposePublic>::parse(
-      token.to_string().as_str(),
-      None,
-      &key,
-    );
+    let decrypted_payload =
+      crate::decrypted_tokens::GenericTokenDecrypted::<V2, Public>::parse(token.to_string().as_str(), None, &key);
     if let Ok(payload) = decrypted_payload {
       assert_eq!(payload.as_ref(), message.as_ref());
     }

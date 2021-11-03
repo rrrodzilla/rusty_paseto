@@ -1,5 +1,5 @@
 use crate::{
-  common::{Footer, Payload, PurposeLocal, PurposePublic, Version2},
+  common::{Footer, Local, Payload, Public, V2},
   errors::GenericTokenBuilderError,
   keys::Key,
   tokens::GenericToken,
@@ -52,8 +52,8 @@ impl<Version, Purpose> Default for GenericTokenBuilder<Version, Purpose> {
   }
 }
 
-impl GenericTokenBuilder<Version2, PurposePublic> {
-  pub fn build(&mut self, key: &Key<Version2, PurposePublic>) -> Result<String, GenericTokenBuilderError> {
+impl GenericTokenBuilder<V2, Public> {
+  pub fn build(&mut self, key: &Key<V2, Public>) -> Result<String, GenericTokenBuilderError> {
     //here we need to go through all the claims and serialize them to build a payload
     let mut payload = String::from('{');
 
@@ -70,15 +70,12 @@ impl GenericTokenBuilder<Version2, PurposePublic> {
     payload = payload.trim_end_matches(',').to_string();
     payload.push('}');
 
-    Ok(
-      GenericToken::<Version2, PurposePublic>::new(Payload::from(payload.as_str()), key, self.footer.clone())
-        .to_string(),
-    )
+    Ok(GenericToken::<V2, Public>::new(Payload::from(payload.as_str()), key, self.footer.clone()).to_string())
   }
 }
 
-impl GenericTokenBuilder<Version2, PurposeLocal> {
-  pub fn build(&mut self, key: &Key<Version2, PurposeLocal>) -> Result<String, GenericTokenBuilderError> {
+impl GenericTokenBuilder<V2, Local> {
+  pub fn build(&mut self, key: &Key<V2, Local>) -> Result<String, GenericTokenBuilderError> {
     //here we need to go through all the claims and serialize them to build a payload
     let mut payload = String::from('{');
 
@@ -95,10 +92,7 @@ impl GenericTokenBuilder<Version2, PurposeLocal> {
     payload = payload.trim_end_matches(',').to_string();
     payload.push('}');
 
-    Ok(
-      GenericToken::<Version2, PurposeLocal>::new(Payload::from(payload.as_str()), key, self.footer.clone())
-        .to_string(),
-    )
+    Ok(GenericToken::<V2, Local>::new(Payload::from(payload.as_str()), key, self.footer.clone()).to_string())
   }
 }
 
@@ -120,11 +114,11 @@ mod builders {
   #[test]
   fn full_builder_test() -> Result<()> {
     //create a key
-    let key = Key::<Version2, PurposeLocal>::from(b"wubbalubbadubdubwubbalubbadubdub");
+    let key = Key::<V2, Local>::from(b"wubbalubbadubdubwubbalubbadubdub");
     let footer = Footer::from("some footer");
 
     //create a builder, add some claims and then build the token with the key
-    let token = GenericTokenBuilder::<Version2, PurposeLocal>::default()
+    let token = GenericTokenBuilder::<V2, Local>::default()
       .set_claim(AudienceClaim::from("customers"))
       .set_claim(SubjectClaim::from("loyal subjects"))
       .set_claim(IssuerClaim::from("me"))
@@ -139,7 +133,7 @@ mod builders {
       .build(&key)?;
 
     //now let's decrypt the token and verify the values
-    let decrypted = GenericTokenDecrypted::<Version2, PurposeLocal>::parse(&token, Some(footer), &key)?;
+    let decrypted = GenericTokenDecrypted::<V2, Local>::parse(&token, Some(footer), &key)?;
     let json: Value = serde_json::from_str(decrypted.as_ref())?;
 
     assert_eq!(json["aud"], "customers");
@@ -158,10 +152,10 @@ mod builders {
   #[test]
   fn dynamic_claims_test() -> Result<()> {
     //create a key
-    let key = Key::<Version2, PurposeLocal>::from(*b"wubbalubbadubdubwubbalubbadubdub");
+    let key = Key::<V2, Local>::from(*b"wubbalubbadubdubwubbalubbadubdub");
 
     //create a builder, add some claims dynamically
-    let mut builder = GenericTokenBuilder::<Version2, PurposeLocal>::default();
+    let mut builder = GenericTokenBuilder::<V2, Local>::default();
     builder.set_claim(ExpirationClaim::try_from("2019-01-01T00:00:00+00:00")?);
 
     for n in 1..10 {
@@ -172,7 +166,7 @@ mod builders {
     let token = builder.build(&key)?;
 
     //now let's decrypt the token and verify the values
-    let decrypted = GenericTokenDecrypted::<Version2, PurposeLocal>::parse(&token, None, &key)?;
+    let decrypted = GenericTokenDecrypted::<V2, Local>::parse(&token, None, &key)?;
     let json: Value = serde_json::from_str(decrypted.as_ref())?;
 
     for n in 1..10 {
@@ -187,13 +181,13 @@ mod builders {
   #[test]
   fn test_no_claims() -> Result<()> {
     //create a key
-    let key = Key::<Version2, PurposeLocal>::from(*b"wubbalubbadubdubwubbalubbadubdub");
+    let key = Key::<V2, Local>::from(*b"wubbalubbadubdubwubbalubbadubdub");
 
     //create a builder, add no claims and then build the token with the key
-    let token = GenericTokenBuilder::<Version2, PurposeLocal>::default().build(&key)?;
+    let token = GenericTokenBuilder::<V2, Local>::default().build(&key)?;
 
     //now let's decrypt the token and verify the values
-    let decrypted = GenericTokenDecrypted::<Version2, PurposeLocal>::parse(&token, None, &key)?;
+    let decrypted = GenericTokenDecrypted::<V2, Local>::parse(&token, None, &key)?;
     assert_eq!(decrypted.as_ref(), "{}");
     Ok(())
   }

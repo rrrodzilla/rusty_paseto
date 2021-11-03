@@ -2,19 +2,63 @@ use crate::errors::PasetoTokenParseError;
 use crate::traits::Base64Encodable;
 use serde_json::Value;
 use std::collections::HashMap;
-use std::fmt;
+use std::fmt::{self, Display};
 
 pub type ValidatorFn = dyn Fn(&str, &Value) -> Result<(), PasetoTokenParseError>;
 pub type ValidatorMap = HashMap<String, Box<ValidatorFn>>;
 
 #[derive(Debug)]
-pub struct Version2;
+pub struct Public(&'static str);
+impl Default for Public {
+  fn default() -> Self {
+    Self("public")
+  }
+}
+
+impl Display for Public {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{}", self.0)
+  }
+}
+
 #[derive(Debug)]
-pub struct Version4;
+pub struct V4(&'static str);
+impl Default for V4 {
+  fn default() -> Self {
+    Self("v4")
+  }
+}
+impl Display for V4 {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{}", self.0)
+  }
+}
+
 #[derive(Debug)]
-pub struct PurposeLocal;
+pub struct V2(&'static str);
+impl Default for V2 {
+  fn default() -> Self {
+    Self("v2")
+  }
+}
+impl Display for V2 {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{}", self.0)
+  }
+}
+
 #[derive(Debug)]
-pub struct PurposePublic;
+pub struct Local(&'static str);
+impl Default for Local {
+  fn default() -> Self {
+    Self("local")
+  }
+}
+impl Display for Local {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{}", self.0)
+  }
+}
 
 #[derive(Debug, Clone, Default)]
 pub struct ImplicitAssertion(String);
@@ -52,12 +96,12 @@ impl Eq for ImplicitAssertion {}
 ///
 /// ```
 /// # use rusty_paseto::core_tokens::*;
-/// # let key = &Key::<Version2, PurposeLocal>::new_random();
+/// # let key = &Key::<V2, Local>::new_random();
 /// let footer = Some(Footer::from("wubbulubbadubdub"));
 /// # let payload = Payload::from("I'm Pickle Rick!");
 ///
 /// // Use in any token that accepts an optional footer
-/// let token = GenericToken::<Version2, PurposeLocal>::new(payload, key, footer);
+/// let token = GenericToken::<V2, Local>::new(payload, key, footer);
 /// ```
 #[derive(Debug, Clone, Default)]
 pub struct Footer(String);

@@ -58,13 +58,17 @@ impl GenericToken<V2, Public> {
   }
 }
 
-impl GenericToken<V2, Local> {
+impl<Version> GenericToken<Version, Local>
+where
+  Version: fmt::Display + Default,
+  Key<Version, Local>: AsRef<[u8; 32]>,
+{
   /// Creates a new token from constituent parts
-  pub fn new(message: Payload, key: &Key<V2, Local>, footer: Option<Footer>) -> GenericToken<V2, Local> {
+  pub fn new(message: Payload, key: &Key<Version, Local>, footer: Option<Footer>) -> GenericToken<Version, Local> {
     //use a random nonce
     let nonce_key = NonceKey::new_random();
     //set a default header for this token type
-    let header = Header::<V2, Local>::default();
+    let header = Header::<Version, Local>::default();
     //build and return the token
     Self::build_token(header, message, key, footer, &nonce_key)
   }
@@ -76,7 +80,7 @@ impl GenericToken<V2, Local> {
     key: &SHAREDKEY,
     footer: Option<Footer>,
     nonce_key: &NONCEKEY,
-  ) -> GenericToken<V2, Local>
+  ) -> GenericToken<Version, Local>
   where
     HEADER: AsRef<str> + std::fmt::Display + Default,
     MESSAGE: AsRef<str>,
@@ -88,7 +92,7 @@ impl GenericToken<V2, Local> {
 
     //produce the token with the values
     //the payload and footer are both base64 encoded
-    GenericToken::<V2, Local> {
+    GenericToken::<Version, Local> {
       purpose: PhantomData,
       version: PhantomData,
       header: header.to_string(), //the header is not base64 encoded

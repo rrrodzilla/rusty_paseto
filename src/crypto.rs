@@ -26,9 +26,6 @@ where
   let payload = payload.decode()?;
   let msg = payload[..(payload.len() - ed25519_dalek::SIGNATURE_LENGTH)].as_ref();
   let sig = payload[msg.len()..msg.len() + ed25519_dalek::SIGNATURE_LENGTH].as_ref();
-  //let (msg, sig) = payload.split_at_mut(len - 64);
-
-  //let s: [u8; 64] = sig.try_into()?.into();
 
   let signature = Signature::try_from(sig)?;
   let pae = PreAuthenticationEncoding::parse(&[header.as_ref().as_bytes(), msg, footer.as_ref().as_bytes()]);

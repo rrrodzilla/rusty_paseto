@@ -72,29 +72,8 @@ where
     //decrypt the payload
     //can raise exceptions
   }
-  // Given an arbitrary string, an encryption key and an optional footer,
-  // validate and decrypt this token raising errors as needed
-  //pub fn parse<T>(
-  //  potential_token: &T,
-  //  potential_footer: Option<Footer>,
-  //  key: &Key<Version, Purpose>,
-  //) -> Result<GenericTokenDecrypted<Version, Purpose>, PasetoTokenParseError>
-  //where
-  //  T: AsRef<str> + ?Sized,
-  //{
-  //  let header = Header::<Version, Purpose>::default().as_ref();
-  //  let raw_payload = Self::get_raw_payload(potential_token, potential_footer)?;
-
-  //  //decrypt the payload
-  //  //can raise exceptions
-  //  let payload = try_decrypt_payload(&raw_payload, &header, &potential_footer.unwrap_or_default(), key)?;
-  //  Ok(Self {
-  //    version: PhantomData,
-  //    purpose: PhantomData,
-  //    token: payload,
-  //  })
-  //}
 }
+
 impl GenericTokenDecrypted<V2, Local> {
   // Given an arbitrary string, an encryption key and an optional footer,
   // validate and decrypt this token raising errors as needed
@@ -124,6 +103,7 @@ impl GenericTokenDecrypted<V2, Local> {
     })
   }
 }
+
 impl GenericTokenDecrypted<V2, Public> {
   // Given an arbitrary string, an encryption key and an optional footer,
   // validate and decrypt this token raising errors as needed

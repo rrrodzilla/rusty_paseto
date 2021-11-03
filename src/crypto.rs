@@ -289,9 +289,11 @@ mod unit_tests {
     XChaCha20Poly1305,
   };
 
-  use crate::headers::Header;
   use crate::keys::*;
-  use crate::{common::Footer, traits::Base64Encodable};
+  use crate::{
+    common::{Footer, Header},
+    traits::Base64Encodable,
+  };
   use crate::{
     common::{Local, Payload, V2},
     crypto::{PreAuthenticationEncoding, RawPayload},

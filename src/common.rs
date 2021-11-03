@@ -3,6 +3,7 @@ use crate::traits::Base64Encodable;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::fmt::{self, Display};
+use std::marker::PhantomData;
 
 pub type ValidatorFn = dyn Fn(&str, &Value) -> Result<(), PasetoTokenParseError>;
 pub type ValidatorMap = HashMap<String, Box<ValidatorFn>>;
@@ -57,6 +58,51 @@ impl Default for Local {
 impl Display for Local {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "{}", self.0)
+  }
+}
+
+#[derive(PartialEq, Debug)]
+pub(crate) struct Header<Version, Purpose>
+where
+  Version: Default + Display,
+  Purpose: Default + Display,
+{
+  version: PhantomData<Version>,
+  purpose: PhantomData<Purpose>,
+  header: String,
+}
+
+impl<Version, Purpose> AsRef<str> for Header<Version, Purpose>
+where
+  Version: Default + Display,
+  Purpose: Default + Display,
+{
+  fn as_ref(&self) -> &str {
+    self.header.as_ref()
+  }
+}
+
+impl<Version, Purpose> Default for Header<Version, Purpose>
+where
+  Version: Default + Display,
+  Purpose: Default + Display,
+{
+  fn default() -> Self {
+    Self {
+      version: PhantomData,
+      purpose: PhantomData,
+      header: format!("{}.{}.", Version::default(), Purpose::default()),
+    }
+  }
+}
+
+impl<Version, Purpose> Display for Header<Version, Purpose>
+where
+  Version: Default + Display,
+  Purpose: Default + Display,
+{
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{}", self.header)
   }
 }
 
@@ -190,6 +236,32 @@ mod unit_tests {
 
   use super::*;
 
+  fn test_header_equality<S, H>(valid_value: H, header: S)
+  where
+    S: AsRef<str>,
+    H: AsRef<str>,
+  {
+    assert_eq!(header.as_ref(), valid_value.as_ref());
+  }
+
+  #[test]
+  fn test_v4_local_header_equality() {
+    test_header_equality(Header::<V4, Local>::default(), "v4.local.");
+  }
+
+  #[test]
+  fn test_v4_public_header_equality() {
+    test_header_equality(Header::<V4, Public>::default(), "v4.public.");
+  }
+
+  #[test]
+  fn test_v2_public_header_equality() {
+    test_header_equality(Header::<V2, Public>::default(), "v2.public.");
+  }
+  #[test]
+  fn test_v2_local_header_equality() {
+    test_header_equality(Header::<V2, Local>::default(), "v2.local.");
+  }
   #[test]
   fn test_v2_footer() {
     let footer = Footer::default();

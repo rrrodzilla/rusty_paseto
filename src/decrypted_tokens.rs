@@ -1,10 +1,9 @@
 use crate::common::Payload;
-use crate::common::{Footer, Local, Public, V2};
+use crate::common::{Footer, Header, Local, Public, V2};
 use crate::crypto::{
   try_decrypt_payload, try_verify_signed_payload, validate_footer_against_hex_encoded_footer_in_constant_time,
 };
 use crate::errors::PasetoTokenParseError;
-use crate::headers::Header;
 use crate::keys::Key;
 use crate::untrusted_tokens::UntrustedEncryptedToken;
 //use ed25519_dalek::{Keypair, SignatureError};

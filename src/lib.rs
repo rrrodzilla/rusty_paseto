@@ -349,7 +349,6 @@ mod common;
 mod crypto;
 mod decrypted_tokens;
 mod errors;
-mod headers;
 mod keys;
 mod parsers;
 mod paseto_builder;

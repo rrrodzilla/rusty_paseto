@@ -1,9 +1,8 @@
 extern crate ed25519_dalek;
 use crate::traits::Base64Encodable;
 use crate::{
-  common::{Footer, Local, Payload, V2},
+  common::{Footer, Header, Local, Payload, V2},
   crypto::{get_encrypted_raw_payload, get_signed_raw_payload},
-  headers::Header,
   keys::{Key, Key192Bit, Key256Bit, NonceKey},
 };
 use ed25519_dalek::Keypair;
@@ -123,9 +122,7 @@ impl<Version, Purpose> fmt::Display for GenericToken<Version, Purpose> {
 #[cfg(test)]
 mod v2_test_vectors {
 
-  use crate::common::{Footer, Payload};
-  use crate::common::{Local, Public, V2};
-  use crate::headers::Header;
+  use crate::common::{Footer, Header, Local, Payload, Public, V2};
   use crate::keys::{HexKey, Key, Key192Bit, Key256Bit, Key512Bit, NonceKey};
   use crate::tokens::GenericToken;
   use anyhow::Result;

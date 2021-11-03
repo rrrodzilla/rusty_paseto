@@ -17,6 +17,7 @@ pub struct GenericToken<Version, Purpose> {
   version: PhantomData<Version>,
   header: String,
   footer: Option<String>,
+  implicit_assertion: Option<String>,
   payload: String,
 }
 
@@ -54,6 +55,7 @@ impl GenericToken<V2, Public> {
       header: header.to_string(), //the header is not base64 encoded
       payload: payload.encode(),
       footer: footer.as_ref().map(|f| f.encode()),
+      implicit_assertion: None,
     }
   }
 }
@@ -98,6 +100,7 @@ where
       header: header.to_string(), //the header is not base64 encoded
       payload: payload.encode(),
       footer: footer.as_ref().map(|f| f.encode()),
+      implicit_assertion: None,
     }
   }
 }

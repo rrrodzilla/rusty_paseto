@@ -36,26 +36,6 @@ where
   }
 }
 
-//  impl Default for Header<Version2, PurposePublic> {
-//    fn default() -> Self {
-//      Self {
-//        version: PhantomData,
-//        purpose: PhantomData,
-//        header: "v2.public.".to_string(),
-//      }
-//    }
-//  }
-
-//  impl Default for Header<Version2, PurposeLocal> {
-//    fn default() -> Self {
-//      Self {
-//        version: PhantomData,
-//        purpose: PhantomData,
-//        header: "v2.local.".to_string(),
-//      }
-//    }
-//  }
-
 impl<Version, Purpose> Display for Header<Version, Purpose>
 where
   Version: Default + Display,
@@ -70,7 +50,7 @@ where
 mod unit_tests {
 
   use super::*;
-  use crate::common::{Local, Public, V2};
+  use crate::common::{Local, Public, V2, V4};
 
   fn test_header_equality<S, H>(valid_value: H, header: S)
   where
@@ -78,6 +58,16 @@ mod unit_tests {
     H: AsRef<str>,
   {
     assert_eq!(header.as_ref(), valid_value.as_ref());
+  }
+
+  #[test]
+  fn test_v4_local_header_equality() {
+    test_header_equality(Header::<V4, Local>::default(), "v4.local.");
+  }
+
+  #[test]
+  fn test_v4_public_header_equality() {
+    test_header_equality(Header::<V4, Public>::default(), "v4.public.");
   }
 
   #[test]

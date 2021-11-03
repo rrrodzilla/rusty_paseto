@@ -1,7 +1,7 @@
 extern crate ed25519_dalek;
 use crate::traits::Base64Encodable;
 use crate::{
-  common::{Footer, Local, Payload, Public, V2},
+  common::{Footer, Local, Payload, V2},
   crypto::{get_encrypted_raw_payload, get_signed_raw_payload},
   headers::Header,
   keys::{Key, Key192Bit, Key256Bit, NonceKey},
@@ -21,11 +21,15 @@ pub struct GenericToken<Version, Purpose> {
   payload: String,
 }
 
-impl GenericToken<V2, Public> {
+impl<Purpose> GenericToken<V2, Purpose>
+where
+  Purpose: fmt::Display + Default,
+  Key<V2, Purpose>: AsRef<Keypair>,
+{
   /// Creates a new token from constituent parts
-  pub fn new(message: Payload, key: &Key<V2, Public>, footer: Option<Footer>) -> GenericToken<V2, Public> {
+  pub fn new(message: Payload, key: &Key<V2, Purpose>, footer: Option<Footer>) -> GenericToken<V2, Purpose> {
     //set a default header for this token type
-    let header = Header::<V2, Public>::default();
+    let header = Header::<V2, Purpose>::default();
     //build and return the token
     Self::build_token(header, message, key, footer)
   }
@@ -36,7 +40,7 @@ impl GenericToken<V2, Public> {
     message: MESSAGE,
     key: &PUBLICKEY,
     footer: Option<Footer>,
-  ) -> GenericToken<V2, Public>
+  ) -> GenericToken<V2, Purpose>
   where
     HEADER: AsRef<str> + std::fmt::Display + Default,
     MESSAGE: AsRef<str>,
@@ -49,7 +53,7 @@ impl GenericToken<V2, Public> {
 
     //produce the token with the values
     //the payload and footer are both base64 encoded
-    GenericToken::<V2, Public> {
+    GenericToken::<V2, Purpose> {
       purpose: PhantomData,
       version: PhantomData,
       header: header.to_string(), //the header is not base64 encoded

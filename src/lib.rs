@@ -359,7 +359,7 @@ mod untrusted_tokens;
 
 pub mod core_tokens {
   pub use crate::common::{Footer, Payload};
-  pub use crate::common::{Local, V2};
+  pub use crate::common::{Local, Public, V2, V4};
   pub use crate::decrypted_tokens::GenericTokenDecrypted;
   pub use crate::errors::HeaderParseError;
   pub use crate::keys::{HexKey, Key, Key256Bit};
@@ -372,7 +372,7 @@ pub mod generic_builders {
     AudienceClaim, CustomClaim, ExpirationClaim, IssuedAtClaim, IssuerClaim, NotBeforeClaim, SubjectClaim,
     TokenIdentifierClaim,
   };
-  pub use crate::common::{Local, V2};
+  pub use crate::common::{Local, Public, V2, V4};
   pub use crate::parsers::GenericTokenParser;
 
   pub use crate::errors::{GenericTokenBuilderError, PasetoTokenParseError};
@@ -383,7 +383,7 @@ pub mod prelude {
     TokenIdentifierClaim,
   };
   pub use crate::common::Footer;
-  pub use crate::common::{Local, V2};
+  pub use crate::common::{Local, Public, V2, V4};
   pub use crate::errors::{GenericTokenBuilderError, PasetoTokenParseError};
   pub use crate::keys::{HexKey, Key, Key256Bit};
   pub use crate::paseto_builder::PasetoTokenBuilder;

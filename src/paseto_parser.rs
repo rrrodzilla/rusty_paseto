@@ -1,6 +1,7 @@
-use crate::decrypted_tokens::GenericTokenDecrypted;
+use crate::decrypted_tokens::BasicTokenDecrypted;
 use crate::generic_builders::{ExpirationClaim, NotBeforeClaim};
 use crate::parsers::GenericTokenParser;
+use crate::verified_tokens::BasicTokenVerified;
 use crate::{
   common::{Footer, Local, Public, ValidatorFn, V2},
   errors::PasetoTokenParseError,
@@ -97,7 +98,7 @@ impl<Version, Purpose> Default for PasetoTokenParser<Version, Purpose> {
 
 impl PasetoTokenParser<V2, Local> {
   pub fn parse(&mut self, token: &str, key: &Key<V2, Local>) -> Result<Value, PasetoTokenParseError> {
-    let decrypted = GenericTokenDecrypted::<V2, Local>::parse(token, self.parser.get_footer(), key)?;
+    let decrypted = BasicTokenDecrypted::<V2, Local>::parse(token, self.parser.get_footer(), key)?;
     //return the full json value to the user
     self.parser.parse(&decrypted)
   }
@@ -105,7 +106,7 @@ impl PasetoTokenParser<V2, Local> {
 
 impl PasetoTokenParser<V2, Public> {
   pub fn parse(&mut self, token: &str, key: &Key<V2, Public>) -> Result<Value, PasetoTokenParseError> {
-    let decrypted = GenericTokenDecrypted::<V2, Public>::parse(token, self.parser.get_footer(), key)?;
+    let decrypted = BasicTokenVerified::<V2, Public>::parse(token, self.parser.get_footer(), key)?;
     //return the full json value to the user
     self.parser.parse(&decrypted)
   }
@@ -382,7 +383,7 @@ mod paseto_parser {
       .set_footer(footer.clone())
       .build(&key)?;
 
-    let decrypted_token = GenericTokenDecrypted::<V2, Local>::parse(&token, Some(footer.clone()), &key)?;
+    let decrypted_token = BasicTokenDecrypted::<V2, Local>::parse(&token, Some(footer.clone()), &key)?;
     //now let's decrypt the token and verify the values
     let json = GenericTokenParser::<V2, Local>::default()
       .check_claim(AudienceClaim::from("customers"))

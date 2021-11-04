@@ -356,14 +356,16 @@ mod paseto_parser;
 mod tokens;
 mod traits;
 mod untrusted_tokens;
+mod verified_tokens;
 
 pub mod core_tokens {
   pub use crate::common::{Footer, Payload};
   pub use crate::common::{Local, Public, V2, V4};
-  pub use crate::decrypted_tokens::GenericTokenDecrypted;
+  pub use crate::decrypted_tokens::BasicTokenDecrypted;
   pub use crate::errors::HeaderParseError;
   pub use crate::keys::{HexKey, Key, Key256Bit};
-  pub use crate::tokens::GenericToken;
+  pub use crate::tokens::BasicToken;
+  pub use crate::verified_tokens::BasicTokenVerified;
 }
 
 pub mod generic_builders {
@@ -377,6 +379,7 @@ pub mod generic_builders {
 
   pub use crate::errors::{GenericTokenBuilderError, PasetoTokenParseError};
 }
+
 pub mod prelude {
   pub use crate::claims::{
     AudienceClaim, CustomClaim, ExpirationClaim, IssuedAtClaim, IssuerClaim, NotBeforeClaim, SubjectClaim,

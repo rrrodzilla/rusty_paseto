@@ -1,4 +1,3 @@
-use crate::decrypted_tokens::GenericTokenDecrypted;
 use crate::errors::PasetoTokenParseError;
 use crate::{
   common::{Footer, ValidatorFn, ValidatorMap},
@@ -6,7 +5,7 @@ use crate::{
 };
 use core::marker::PhantomData;
 use serde_json::Value;
-use std::{collections::HashMap, mem::take};
+use std::{collections::HashMap, fmt, mem::take};
 
 pub struct GenericTokenParser<Version, Purpose> {
   version: PhantomData<Version>,
@@ -71,11 +70,11 @@ impl<Version, Purpose> GenericTokenParser<Version, Purpose> {
     self.footer = Some(footer);
     self
   }
-  pub fn parse(
-    &mut self,
-    decrypted_token: &GenericTokenDecrypted<Version, Purpose>,
-  ) -> Result<Value, PasetoTokenParseError> {
-    let json: Value = serde_json::from_str(decrypted_token.as_ref())?;
+  pub fn parse<TOKEN>(&mut self, verified_token: &TOKEN) -> Result<Value, PasetoTokenParseError>
+  where
+    TOKEN: fmt::Display,
+  {
+    let json: Value = serde_json::from_str(&verified_token.to_string())?;
     let claims = take(&mut self.claims);
 
     // here we want to traverse all of the claims to validate and verify their values
@@ -119,7 +118,9 @@ mod parsers {
     TokenIdentifierClaim,
   };
   use crate::common::*;
+  use crate::decrypted_tokens::BasicTokenDecrypted;
   use crate::keys::*;
+  use crate::verified_tokens::BasicTokenVerified;
   use anyhow::Result;
   #[test]
   fn full_parser_test_v2_public() -> Result<()> {
@@ -146,7 +147,7 @@ mod parsers {
       .set_footer(footer.clone())
       .build(&key)?;
 
-    let decrypted_token = GenericTokenDecrypted::<V2, Public>::parse(&token, Some(footer.clone()), &key)?;
+    let decrypted_token = BasicTokenVerified::<V2, Public>::parse(&token, Some(footer.clone()), &key)?;
     //now let's decrypt the token and verify the values
     let json = GenericTokenParser::<V2, Public>::default()
       .check_claim(AudienceClaim::from("customers"))
@@ -197,7 +198,7 @@ mod parsers {
       .set_footer(footer.clone())
       .build(&key)?;
 
-    let decrypted_token = GenericTokenDecrypted::<V2, Local>::parse(&token, Some(footer.clone()), &key)?;
+    let decrypted_token = BasicTokenDecrypted::<V2, Local>::parse(&token, Some(footer.clone()), &key)?;
     //now let's decrypt the token and verify the values
     let json = GenericTokenParser::<V2, Local>::default()
       .check_claim(AudienceClaim::from("customers"))
@@ -238,7 +239,7 @@ mod parsers {
       .build(&key)
       .unwrap();
 
-    let decrypted_token = GenericTokenDecrypted::<V2, Local>::parse(&token, None, &key)?;
+    let decrypted_token = BasicTokenDecrypted::<V2, Local>::parse(&token, None, &key)?;
 
     //now let's decrypt the token and verify the values
     let actual_error_kind = format!(
@@ -266,7 +267,7 @@ mod parsers {
       .build(&key)
       .unwrap();
 
-    let decrypted_token = GenericTokenDecrypted::<V2, Local>::parse(&token, None, &key)?;
+    let decrypted_token = BasicTokenDecrypted::<V2, Local>::parse(&token, None, &key)?;
     //now let's decrypt the token and verify the values with a custom validation closure
     let json = GenericTokenParser::<V2, Local>::default()
       .validate_claim(
@@ -307,7 +308,7 @@ mod parsers {
       .build(&key)
       .unwrap();
 
-    let decrypted_token = GenericTokenDecrypted::<V2, Local>::parse(&token, None, &key)?;
+    let decrypted_token = BasicTokenDecrypted::<V2, Local>::parse(&token, None, &key)?;
     //now let's decrypt the token and verify the values with a custom validation closure
     let actual_error_kind = format!(
       "{}",
@@ -351,7 +352,7 @@ mod parsers {
       .build(&key)
       .unwrap();
 
-    let decrypted_token = GenericTokenDecrypted::<V2, Local>::parse(&token, None, &key)?;
+    let decrypted_token = BasicTokenDecrypted::<V2, Local>::parse(&token, None, &key)?;
     //now let's decrypt the token and verify the values with a custom validation closure
     let actual_error_kind = format!(
       "{}",
@@ -393,7 +394,7 @@ mod parsers {
     //create a builder, add no claims and then build the token with the key
     let token = GenericTokenBuilder::<V2, Local>::default().build(&key).unwrap();
 
-    let decrypted_token = GenericTokenDecrypted::<V2, Local>::parse(&token, None, &key)?;
+    let decrypted_token = BasicTokenDecrypted::<V2, Local>::parse(&token, None, &key)?;
     //now let's decrypt the token and verify the values
     let actual_error_kind = format!(
       "{}",

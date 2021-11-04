@@ -2,7 +2,7 @@ use crate::{
   common::{Footer, Local, Payload, Public, V2},
   errors::GenericTokenBuilderError,
   keys::Key,
-  tokens::GenericToken,
+  tokens::BasicToken,
   traits::PasetoClaim,
 };
 use core::marker::PhantomData;
@@ -70,7 +70,19 @@ impl GenericTokenBuilder<V2, Public> {
     payload = payload.trim_end_matches(',').to_string();
     payload.push('}');
 
-    Ok(GenericToken::<V2, Public>::new(Payload::from(payload.as_str()), key, self.footer.clone()).to_string())
+    let mut token_builder = BasicToken::<V2, Public>::builder();
+    token_builder.set_payload(Payload::from(payload.as_str()));
+    if let Some(footer) = &self.footer {
+      token_builder.set_footer(footer.clone());
+    }
+    let basic_token = token_builder.build(key);
+    Ok(basic_token.token)
+
+    //  let basic_token = BasicTokenBuilder::<V2, Public>::new()
+    //    .set_payload(final_payload)
+    //    .set_footer(self.footer.as_ref().unwrap_or_default())
+    //    .build(key);
+    //  Ok(basic_token.token)
   }
 }
 
@@ -92,7 +104,15 @@ impl GenericTokenBuilder<V2, Local> {
     payload = payload.trim_end_matches(',').to_string();
     payload.push('}');
 
-    Ok(GenericToken::<V2, Local>::new(Payload::from(payload.as_str()), key, self.footer.clone()).to_string())
+    let mut token_builder = BasicToken::<V2, Local>::builder();
+    token_builder.set_payload(Payload::from(payload.as_str()));
+    if let Some(footer) = &self.footer {
+      token_builder.set_footer(footer.clone());
+    }
+    let basic_token = token_builder.build(key);
+    Ok(basic_token.token)
+
+    //Ok(BasicTokenBuilder::<V2, Local>::new(Payload::from(payload.as_str()), key, self.footer.clone()).to_string())
   }
 }
 
@@ -106,7 +126,7 @@ mod builders {
     TokenIdentifierClaim,
   };
   use crate::common::*;
-  use crate::decrypted_tokens::GenericTokenDecrypted;
+  use crate::decrypted_tokens::BasicTokenDecrypted;
   use crate::keys::Key;
   use anyhow::Result;
   use serde_json::value::Value;
@@ -133,7 +153,7 @@ mod builders {
       .build(&key)?;
 
     //now let's decrypt the token and verify the values
-    let decrypted = GenericTokenDecrypted::<V2, Local>::parse(&token, Some(footer), &key)?;
+    let decrypted = BasicTokenDecrypted::<V2, Local>::parse(&token, Some(footer), &key)?;
     let json: Value = serde_json::from_str(decrypted.as_ref())?;
 
     assert_eq!(json["aud"], "customers");
@@ -166,7 +186,7 @@ mod builders {
     let token = builder.build(&key)?;
 
     //now let's decrypt the token and verify the values
-    let decrypted = GenericTokenDecrypted::<V2, Local>::parse(&token, None, &key)?;
+    let decrypted = BasicTokenDecrypted::<V2, Local>::parse(&token, None, &key)?;
     let json: Value = serde_json::from_str(decrypted.as_ref())?;
 
     for n in 1..10 {
@@ -187,7 +207,7 @@ mod builders {
     let token = GenericTokenBuilder::<V2, Local>::default().build(&key)?;
 
     //now let's decrypt the token and verify the values
-    let decrypted = GenericTokenDecrypted::<V2, Local>::parse(&token, None, &key)?;
+    let decrypted = BasicTokenDecrypted::<V2, Local>::parse(&token, None, &key)?;
     assert_eq!(decrypted.as_ref(), "{}");
     Ok(())
   }

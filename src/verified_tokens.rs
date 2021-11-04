@@ -1,6 +1,6 @@
 use crate::{
-  common::{Footer, Header, Local, Payload, V2},
-  crypto::{try_decrypt_payload, validate_footer_against_hex_encoded_footer_in_constant_time},
+  common::{Footer, Header, Payload, Public, V2},
+  crypto::{try_verify_signed_payload, validate_footer_against_hex_encoded_footer_in_constant_time},
   errors::PasetoTokenParseError,
   keys::Key,
   untrusted_tokens::UntrustedEncryptedToken,
@@ -8,13 +8,13 @@ use crate::{
 use std::{cmp::PartialEq, convert::AsRef, default::Default, fmt, marker::PhantomData};
 
 #[derive(Debug, PartialEq)]
-pub struct BasicTokenDecrypted<Version, Purpose> {
+pub struct BasicTokenVerified<Version, Purpose> {
   version: PhantomData<Version>,
   purpose: PhantomData<Purpose>,
   token: String,
 }
 
-impl<R, Version, Purpose> PartialEq<R> for BasicTokenDecrypted<Version, Purpose>
+impl<R, Version, Purpose> PartialEq<R> for BasicTokenVerified<Version, Purpose>
 where
   R: AsRef<str>,
 {
@@ -22,19 +22,19 @@ where
     self.as_ref() == other.as_ref()
   }
 }
-impl<Version, Purpose> fmt::Display for BasicTokenDecrypted<Version, Purpose> {
+impl<Version, Purpose> fmt::Display for BasicTokenVerified<Version, Purpose> {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "{}", self.token)
   }
 }
 
-impl<Version, Purpose> AsRef<String> for BasicTokenDecrypted<Version, Purpose> {
+impl<Version, Purpose> AsRef<String> for BasicTokenVerified<Version, Purpose> {
   fn as_ref(&self) -> &String {
     &self.token
   }
 }
 
-impl<Version, Purpose> BasicTokenDecrypted<Version, Purpose>
+impl<Version, Purpose> BasicTokenVerified<Version, Purpose>
 where
   Version: fmt::Display + Default,
   Purpose: fmt::Display + Default,
@@ -69,28 +69,29 @@ where
   }
 }
 
-impl BasicTokenDecrypted<V2, Local> {
+impl BasicTokenVerified<V2, Public> {
   // Given an arbitrary string, an encryption key and an optional footer,
   // validate and decrypt this token raising errors as needed
   pub fn parse<T>(
     potential_token: &T,
     potential_footer: Option<Footer>,
-    key: &Key<V2, Local>,
-  ) -> Result<BasicTokenDecrypted<V2, Local>, PasetoTokenParseError>
+    key: &Key<V2, Public>,
+  ) -> Result<BasicTokenVerified<V2, Public>, PasetoTokenParseError>
   where
     T: AsRef<str> + ?Sized,
   {
-    let header = Header::<V2, Local>::default();
+    let header = Header::<V2, Public>::default();
     let raw_data = Self::get_raw_data(potential_token, potential_footer.clone(), &header)?;
     let raw_payload = Payload::from(raw_data.as_ref());
+
     //decrypt the payload
-    let payload = try_decrypt_payload(
+    //can raise exceptions
+    let payload = try_verify_signed_payload(
       &raw_payload,
       &header.as_ref(),
       &potential_footer.unwrap_or_default(),
       key,
     )?;
-    //can raise exceptions
 
     Ok(Self {
       version: PhantomData,

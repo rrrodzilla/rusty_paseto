@@ -1,6 +1,8 @@
 use base64::{decode_config, encode_config, DecodeError, URL_SAFE_NO_PAD};
 use ring::constant_time::verify_slices_are_equal as ConstantTimeEquals;
 //use serde::{Serialize, Serializer};
+use crate::keys::Key256Bit;
+use ed25519_dalek::*;
 use std::{convert::AsRef, fmt::Display};
 
 /// Handles encoding, decoding and comparing Base64Encoded strings
@@ -28,6 +30,7 @@ pub trait PasetoClaim: erased_serde::Serialize {
   fn get_key(&self) -> &str;
 }
 
-//impl<'a, V> AsRef<(&'a str, V)> for CustomClaimClaim<'a, V> {
-
-//pub struct CustomClaimClaim<'a, V>((&'a str, V));
+pub trait Sodium: Display + Default {}
+pub trait Nist: Display + Default {}
+pub trait SymmetricKey: AsRef<Key256Bit> {}
+pub trait AsymmetricKey: AsRef<Keypair> {}

@@ -80,6 +80,9 @@ impl BasicTokenVerified<V4, Public> {
   where
     T: AsRef<str> + ?Sized,
   {
+    let default = &ImplicitAssertion::default();
+    let assertion = potential_assertion.as_ref().unwrap_or(default);
+
     let header = Header::<V4, Public>::default();
     let raw_data = Self::get_raw_data(potential_token, potential_footer.clone(), &header)?;
     let raw_payload = Payload::from(raw_data.as_ref());
@@ -90,7 +93,7 @@ impl BasicTokenVerified<V4, Public> {
       &raw_payload,
       &header.as_ref(),
       &potential_footer.unwrap_or_default(),
-      &potential_assertion,
+      &Some(assertion),
       key,
     )?;
 
@@ -103,7 +106,7 @@ impl BasicTokenVerified<V4, Public> {
 }
 impl BasicTokenVerified<V2, Public> {
   // Given an arbitrary string, an encryption key and an optional footer,
-  // validate and decrypt this token raising errors as needed
+  // verify this token raising errors as needed
   pub fn parse<T>(
     potential_token: &T,
     potential_footer: Option<Footer>,
@@ -116,7 +119,7 @@ impl BasicTokenVerified<V2, Public> {
     let raw_data = Self::get_raw_data(potential_token, potential_footer.clone(), &header)?;
     let raw_payload = Payload::from(raw_data.as_ref());
 
-    //decrypt the payload
+    //verify the payload
     //can raise exceptions
     let payload = try_verify_signed_payload(
       &raw_payload,

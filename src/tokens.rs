@@ -63,7 +63,7 @@ where
   Key<V4, Public>: AsymmetricKey,
 {
   //split for unit and test vectors
-  pub(super) fn build(&mut self, key: &impl AsymmetricKey) -> BasicToken<V4, Public> {
+  pub fn build(&mut self, key: &impl AsymmetricKey) -> BasicToken<V4, Public> {
     let default = &ImplicitAssertion::default();
     let assertion = &self.implicit_assertion.as_ref().unwrap_or(default);
     //encrypt the payload
@@ -97,7 +97,7 @@ where
   Key<V2, Public>: AsymmetricKey,
 {
   //split for unit and test vectors
-  pub(super) fn build(&mut self, key: &impl AsymmetricKey) -> BasicToken<V2, Public> {
+  pub fn build(&mut self, key: &impl AsymmetricKey) -> BasicToken<V2, Public> {
     //encrypt the payload
     let payload = &try_sign_payload(
       &self.payload,
@@ -207,11 +207,11 @@ impl<Version: Display + Default, Purpose: Display + Default> fmt::Display for Ba
 #[cfg(test)]
 mod v4_test_vectors {
 
-  use crate::common::{Footer, ImplicitAssertion, Local, Payload, Public, V4};
-  use crate::keys::{HexKey, Key, Key192Bit, Key256Bit, Key512Bit, NonceKey};
+  use crate::common::{Footer, ImplicitAssertion, Payload, Public, V4};
+  use crate::keys::{HexKey, Key, Key512Bit};
   use crate::tokens::BasicTokenBuilder;
   use anyhow::Result;
-  use serde_json::{json, Value};
+  use serde_json::json;
   use std::convert::TryFrom;
 
   #[test]
@@ -319,6 +319,27 @@ mod v4_test_vectors {
       assert_eq!(payload.as_ref(), message.as_ref());
     }
     Ok(())
+  }
+
+  #[test]
+  #[should_panic]
+  fn test_2_f_1() {
+    //this test is prevented at compile time and passes by defacto
+    panic!("non-compileable test")
+  }
+
+  #[test]
+  #[should_panic]
+  fn test_2_f_2() {
+    //this test is prevented at compile time and passes by defacto
+    panic!("non-compileable test")
+  }
+
+  #[test]
+  #[should_panic]
+  fn test_2_f_3() {
+    //this test is prevented at compile time and passes by defacto
+    panic!("non-compileable test")
   }
 }
 

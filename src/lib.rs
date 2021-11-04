@@ -359,11 +359,11 @@ mod untrusted_tokens;
 mod verified_tokens;
 
 pub mod core_tokens {
-  pub use crate::common::{Footer, Payload};
+  pub use crate::common::{Footer, ImplicitAssertion, Payload};
   pub use crate::common::{Local, Public, V2, V4};
   pub use crate::decrypted_tokens::BasicTokenDecrypted;
   pub use crate::errors::HeaderParseError;
-  pub use crate::keys::{HexKey, Key, Key256Bit};
+  pub use crate::keys::{HexKey, Key, Key256Bit, Key512Bit};
   pub use crate::tokens::BasicToken;
   pub use crate::verified_tokens::BasicTokenVerified;
 }

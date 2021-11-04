@@ -1,6 +1,9 @@
 use crate::{
-  common::{Footer, Header, Payload, Public, V2},
-  crypto::{try_verify_signed_payload, validate_footer_against_hex_encoded_footer_in_constant_time},
+  common::{Footer, Header, ImplicitAssertion, Payload, Public, V2, V4},
+  crypto::{
+    try_verify_signed_payload, try_verify_signed_payload_with_assertion,
+    validate_footer_against_hex_encoded_footer_in_constant_time,
+  },
   errors::PasetoTokenParseError,
   keys::Key,
   untrusted_tokens::UntrustedEncryptedToken,
@@ -68,7 +71,39 @@ where
     //can raise exceptions
   }
 }
+impl BasicTokenVerified<V4, Public> {
+  // Given an arbitrary string, an encryption key and an optional footer,
+  // validate and decrypt this token raising errors as needed
+  pub fn parse<T>(
+    potential_token: &T,
+    potential_footer: Option<Footer>,
+    potential_assertion: Option<ImplicitAssertion>,
+    key: &Key<V4, Public>,
+  ) -> Result<BasicTokenVerified<V4, Public>, PasetoTokenParseError>
+  where
+    T: AsRef<str> + ?Sized,
+  {
+    let header = Header::<V4, Public>::default();
+    let raw_data = Self::get_raw_data(potential_token, potential_footer.clone(), &header)?;
+    let raw_payload = Payload::from(raw_data.as_ref());
 
+    //decrypt the payload
+    //can raise exceptions
+    let payload = try_verify_signed_payload_with_assertion(
+      &raw_payload,
+      &header.as_ref(),
+      &potential_footer.unwrap_or_default(),
+      &potential_assertion.unwrap_or_default(),
+      key,
+    )?;
+
+    Ok(Self {
+      version: PhantomData,
+      purpose: PhantomData,
+      token: payload,
+    })
+  }
+}
 impl BasicTokenVerified<V2, Public> {
   // Given an arbitrary string, an encryption key and an optional footer,
   // validate and decrypt this token raising errors as needed

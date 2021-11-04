@@ -8,8 +8,43 @@ use chacha20poly1305::{
   aead::{Aead, NewAead, Payload as AeadPayload},
   XChaCha20Poly1305, XNonce,
 };
-use ed25519_dalek::{Keypair, Signature, Signer};
+use ed25519_dalek::*;
 use std::convert::{AsMut, AsRef, From, TryFrom};
+
+pub(crate) fn try_verify_signed_payload_with_assertion<P, H, F, A, K>(
+  payload: &P,
+  header: &H,
+  footer: &F,
+  assertion: &A,
+  key: &K,
+) -> Result<String, PasetoTokenParseError>
+where
+  P: AsRef<str> + Base64Encodable<str>,
+  H: AsRef<str>,
+  F: AsRef<str>,
+  A: AsRef<str>,
+  K: AsRef<Keypair>,
+{
+  let payload = payload.decode()?;
+  let msg = payload[..(payload.len() - ed25519_dalek::SIGNATURE_LENGTH)].as_ref();
+  let sig = payload[msg.len()..msg.len() + ed25519_dalek::SIGNATURE_LENGTH].as_ref();
+
+  let signature = Signature::try_from(sig)?;
+  let pae = PreAuthenticationEncoding::parse(&[
+    header.as_ref().as_bytes(),
+    msg,
+    footer.as_ref().as_bytes(),
+    assertion.as_ref().as_bytes(),
+  ]);
+  match key
+    .as_ref()
+    .verify(pae.as_ref(), &signature)
+    .map_err(|_| PasetoTokenParseError::InvalidSignature)
+  {
+    Ok(_) => String::from_utf8(Vec::from(msg)).map_err(|_| PasetoTokenParseError::Decrypt),
+    Err(_) => Err(PasetoTokenParseError::InvalidSignature),
+  }
+}
 
 pub(crate) fn try_verify_signed_payload<P, H, F, K>(
   payload: &P,
@@ -38,56 +73,8 @@ where
     Err(_) => Err(PasetoTokenParseError::InvalidSignature),
   }
 }
-pub(crate) fn try_decrypt_payload<P, H, F, K>(
-  payload: &P,
-  header: &H,
-  footer: &F,
-  key: &K,
-) -> Result<String, PasetoTokenParseError>
-where
-  P: AsRef<str> + Base64Encodable<str>,
-  H: AsRef<str>,
-  F: AsRef<str>,
-  K: AsRef<Key256Bit>,
-{
-  let mut payload = payload.decode()?;
-  let (nonce, ciphertext) = payload.split_at_mut(24);
 
-  let pae = PreAuthenticationEncoding::parse(&[header.as_ref().as_bytes(), nonce, footer.as_ref().as_bytes()]);
-  let xnonce = Nonce::from(nonce);
-  let aead = XChaCha20Poly1305::new_from_slice(key.as_ref()).map_err(|_| PasetoTokenParseError::Decrypt)?;
-  match aead.decrypt(
-    xnonce.as_ref(),
-    AeadPayload {
-      msg: ciphertext,
-      aad: pae.as_ref(),
-    },
-  ) {
-    Ok(decrypted) => String::from_utf8(decrypted).map_err(|_| PasetoTokenParseError::Decrypt),
-    Err(_) => Err(PasetoTokenParseError::Decrypt),
-  }
-}
-
-pub(crate) fn get_signed_raw_payload<P, H, F, K>(message: &P, header: &H, footer: &F, key: &K) -> RawPayload
-where
-  P: AsRef<str>,
-  H: AsRef<str>,
-  F: AsRef<str>,
-  K: AsRef<Keypair>,
-{
-  let pae = PreAuthenticationEncoding::parse(&[
-    header.as_ref().as_bytes(),
-    message.as_ref().as_bytes(),
-    footer.as_ref().as_bytes(),
-  ]);
-  let sig = key.as_ref().sign(pae.as_ref());
-  let mut raw_payload = Vec::from(message.as_ref().as_bytes());
-  raw_payload.extend_from_slice(sig.as_ref());
-
-  RawPayload::from(raw_payload)
-}
-
-pub(crate) fn get_encrypted_raw_payload<P, H, F, K, NK>(
+pub(crate) fn try_encrypt_payload<P, H, F, K, NK>(
   message: &P,
   header: &H,
   footer: &F,
@@ -120,6 +107,82 @@ where
   let mut raw_payload = Vec::new();
   raw_payload.extend_from_slice(blake2_finalized.as_ref());
   raw_payload.extend_from_slice(crypted.as_ref());
+
+  RawPayload::from(raw_payload)
+}
+
+pub(crate) fn try_decrypt_payload<P, H, F, K>(
+  payload: &P,
+  header: &H,
+  footer: &F,
+  key: &K,
+) -> Result<String, PasetoTokenParseError>
+where
+  P: AsRef<str> + Base64Encodable<str>,
+  H: AsRef<str>,
+  F: AsRef<str>,
+  K: AsRef<Key256Bit>,
+{
+  let mut payload = payload.decode()?;
+  let (nonce, ciphertext) = payload.split_at_mut(24);
+
+  let pae = PreAuthenticationEncoding::parse(&[header.as_ref().as_bytes(), nonce, footer.as_ref().as_bytes()]);
+  let xnonce = Nonce::from(nonce);
+  let aead = XChaCha20Poly1305::new_from_slice(key.as_ref()).map_err(|_| PasetoTokenParseError::Decrypt)?;
+  match aead.decrypt(
+    xnonce.as_ref(),
+    AeadPayload {
+      msg: ciphertext,
+      aad: pae.as_ref(),
+    },
+  ) {
+    Ok(decrypted) => String::from_utf8(decrypted).map_err(|_| PasetoTokenParseError::Decrypt),
+    Err(_) => Err(PasetoTokenParseError::Decrypt),
+  }
+}
+
+pub(crate) fn try_sign_payload<P, H, F, K>(message: &P, header: &H, footer: &F, key: &K) -> RawPayload
+where
+  P: AsRef<str>,
+  H: AsRef<str>,
+  F: AsRef<str>,
+  K: AsRef<Keypair>,
+{
+  let pae = PreAuthenticationEncoding::parse(&[
+    header.as_ref().as_bytes(),
+    message.as_ref().as_bytes(),
+    footer.as_ref().as_bytes(),
+  ]);
+  let sig = key.as_ref().sign(pae.as_ref());
+  let mut raw_payload = Vec::from(message.as_ref().as_bytes());
+  raw_payload.extend_from_slice(sig.as_ref());
+
+  RawPayload::from(raw_payload)
+}
+
+pub(crate) fn try_sign_payload_with_assertion<P, H, F, A, K>(
+  message: &P,
+  header: &H,
+  footer: &F,
+  assertion: &A,
+  key: &K,
+) -> RawPayload
+where
+  P: AsRef<str>,
+  H: AsRef<str>,
+  F: AsRef<str>,
+  A: AsRef<str>,
+  K: AsRef<Keypair>,
+{
+  let pae = PreAuthenticationEncoding::parse(&[
+    header.as_ref().as_bytes(),
+    message.as_ref().as_bytes(),
+    footer.as_ref().as_bytes(),
+    assertion.as_ref().as_bytes(),
+  ]);
+  let sig = key.as_ref().sign(pae.as_ref());
+  let mut raw_payload = Vec::from(message.as_ref().as_bytes());
+  raw_payload.extend_from_slice(sig.as_ref());
 
   RawPayload::from(raw_payload)
 }

@@ -1,8 +1,9 @@
 use crate::common::ImplicitAssertion;
+use crate::crypto::try_sign_payload_with_assertion;
 use crate::traits::{AsymmetricKey, Base64Encodable, Sodium, SymmetricKey};
 use crate::{
-  common::{Footer, Header, Local, Payload, V4},
-  crypto::{get_encrypted_raw_payload, get_signed_raw_payload},
+  common::{Footer, Header, Local, Payload, V2, V4},
+  crypto::{try_encrypt_payload, try_sign_payload},
   keys::{Key, Key256Bit, NonceKey},
 };
 use std::default::Default;
@@ -58,19 +59,54 @@ where
   }
 }
 
-impl<Version, Purpose> BasicTokenBuilder<Version, Purpose>
+impl<Purpose> BasicTokenBuilder<V4, Purpose>
 where
-  Version: Sodium,
   Purpose: fmt::Display + Default,
-  Key<Version, Purpose>: AsymmetricKey,
+  Key<V4, Purpose>: AsymmetricKey,
 {
   //split for unit and test vectors
-  pub(super) fn build<PUBLICKEY>(&mut self, key: &PUBLICKEY) -> BasicToken<Version, Purpose>
+  pub(super) fn build<PUBLICKEY>(&mut self, key: &PUBLICKEY) -> BasicToken<V4, Purpose>
   where
     PUBLICKEY: AsymmetricKey,
   {
     //encrypt the payload
-    let payload = &get_signed_raw_payload(
+    let payload = &try_sign_payload_with_assertion(
+      &self.payload,
+      &self.header,
+      &self.footer.clone().unwrap_or_default(),
+      &self.implicit_assertion.clone().unwrap_or_default(),
+      &key,
+    );
+
+    let encoded_footer = self.footer.as_ref().map(|f| f.encode());
+    if let Some(footer) = encoded_footer {
+      BasicToken {
+        version: PhantomData,
+        purpose: PhantomData,
+        token: format!("{}{}.{}", self.header, payload.encode(), footer),
+      }
+    } else {
+      BasicToken {
+        version: PhantomData,
+        purpose: PhantomData,
+        token: format!("{}{}", self.header, payload.encode()),
+      }
+    }
+  }
+}
+
+impl<Purpose> BasicTokenBuilder<V2, Purpose>
+where
+  Purpose: fmt::Display + Default,
+  Key<V2, Purpose>: AsymmetricKey,
+{
+  //split for unit and test vectors
+  pub(super) fn build<PUBLICKEY>(&mut self, key: &PUBLICKEY) -> BasicToken<V2, Purpose>
+  where
+    PUBLICKEY: AsymmetricKey,
+  {
+    //encrypt the payload
+    let payload = &try_sign_payload(
       &self.payload,
       &self.header,
       &self.footer.clone().unwrap_or_default(),
@@ -91,17 +127,6 @@ where
         token: format!("{}{}", self.header, payload.encode()),
       }
     }
-
-    //produce the token with the values
-    //the payload and footer are both base64 encoded
-    //      BasicTokenBuilder::<Version, Purpose> {
-    //        purpose: PhantomData,
-    //        version: PhantomData,
-    //        header: header.to_string(), //the header is not base64 encoded
-    //        payload: payload.encode(),
-    //        footer: footer.as_ref().map(|f| f.encode()),
-    //        implicit_assertion: None,
-    //      }
   }
 }
 
@@ -131,7 +156,7 @@ where
     SHAREDKEY: AsRef<Key256Bit>,
   {
     //encrypt the payload
-    let payload = &get_encrypted_raw_payload(
+    let payload = &try_encrypt_payload(
       &self.payload,
       &self.header,
       &self.footer.clone().unwrap_or_default(),
@@ -186,6 +211,124 @@ impl<Version: Display + Default, Purpose: Display + Default> fmt::Display for Ba
 }
 
 #[cfg(test)]
+mod v4_test_vectors {
+
+  use crate::common::{Footer, ImplicitAssertion, Local, Payload, Public, V4};
+  use crate::keys::{HexKey, Key, Key192Bit, Key256Bit, Key512Bit, NonceKey};
+  use crate::tokens::BasicTokenBuilder;
+  use anyhow::Result;
+  use serde_json::{json, Value};
+  use std::convert::TryFrom;
+
+  #[test]
+  fn test_4_s_1() -> Result<()> {
+    //then generate the V2 local key for it
+    let secret_key = "b4cbfb43df4ce210727d953e4a713307fa19bb7d9f85041438d9e11b942a37741eb9dbbbbc047c03fd70604e0071f0987e16b28b757225c11f00415d0e20b1a2"
+        .parse::<HexKey<Key512Bit>>()?;
+    let key = Key::<V4, Public>::try_from(secret_key.as_ref())?;
+    let payload = json!({"data": "this is a signed message","exp": "2022-01-01T00:00:00+00:00"}).to_string();
+
+    //create message for test vector
+    //  eprintln!("\nJSON INFO: {}\n", json);
+    let message = Payload::from(payload.as_str());
+
+    //  //  //create a local v2 token
+    //let token = BasicTokenBuilder::<V2, Public>::build_token(header, message, &key, None);
+    let token = BasicTokenBuilder::<V4, Public>::default()
+      .set_payload(message.clone())
+      .build(&key);
+
+    //  //validate the test vector
+    assert_eq!(token.to_string(), "v4.public.eyJkYXRhIjoidGhpcyBpcyBhIHNpZ25lZCBtZXNzYWdlIiwiZXhwIjoiMjAyMi0wMS0wMVQwMDowMDowMCswMDowMCJ9bg_XBBzds8lTZShVlwwKSgeKpLT3yukTw6JUz3W4h_ExsQV-P0V54zemZDcAxFaSeef1QlXEFtkqxT1ciiQEDA");
+
+    //now let's try to decrypt it
+    let decrypted_payload =
+      crate::verified_tokens::BasicTokenVerified::<V4, Public>::parse(token.to_string().as_str(), None, None, &key);
+    if let Ok(payload) = decrypted_payload {
+      assert_eq!(payload.as_ref(), message.as_ref());
+    }
+    Ok(())
+  }
+
+  #[test]
+  fn test_4_s_2() -> Result<()> {
+    //then generate the V2 local key for it
+    let secret_key = "b4cbfb43df4ce210727d953e4a713307fa19bb7d9f85041438d9e11b942a37741eb9dbbbbc047c03fd70604e0071f0987e16b28b757225c11f00415d0e20b1a2"
+        .parse::<HexKey<Key512Bit>>()?;
+    let key = Key::<V4, Public>::try_from(secret_key.as_ref())?;
+    let payload = json!({"data": "this is a signed message","exp": "2022-01-01T00:00:00+00:00"}).to_string();
+    let footer = json!({"kid":"zVhMiPBP9fRf2snEcT7gFTioeA9COcNy9DfgL1W60haN"}).to_string();
+
+    //create message for test vector
+    //  eprintln!("\nJSON INFO: {}\n", json);
+    let message = Payload::from(payload.as_str());
+    let footer = Footer::from(footer.as_str());
+
+    //  //  //create a local v2 token
+    //let token = BasicTokenBuilder::<V2, Public>::build_token(header, message, &key, None);
+    let token = BasicTokenBuilder::<V4, Public>::default()
+      .set_payload(message.clone())
+      .set_footer(footer.clone())
+      .build(&key);
+
+    //  //validate the test vector
+    assert_eq!(token.to_string(), "v4.public.eyJkYXRhIjoidGhpcyBpcyBhIHNpZ25lZCBtZXNzYWdlIiwiZXhwIjoiMjAyMi0wMS0wMVQwMDowMDowMCswMDowMCJ9v3Jt8mx_TdM2ceTGoqwrh4yDFn0XsHvvV_D0DtwQxVrJEBMl0F2caAdgnpKlt4p7xBnx1HcO-SPo8FPp214HDw.eyJraWQiOiJ6VmhNaVBCUDlmUmYyc25FY1Q3Z0ZUaW9lQTlDT2NOeTlEZmdMMVc2MGhhTiJ9");
+
+    //now let's try to decrypt it
+    let decrypted_payload = crate::verified_tokens::BasicTokenVerified::<V4, Public>::parse(
+      token.to_string().as_str(),
+      Some(footer),
+      None,
+      &key,
+    );
+    if let Ok(payload) = decrypted_payload {
+      assert_eq!(payload.as_ref(), message.as_ref());
+    }
+    Ok(())
+  }
+
+  #[test]
+  fn test_4_s_3() -> Result<()> {
+    //then generate the V2 local key for it
+    let secret_key = "b4cbfb43df4ce210727d953e4a713307fa19bb7d9f85041438d9e11b942a37741eb9dbbbbc047c03fd70604e0071f0987e16b28b757225c11f00415d0e20b1a2"
+        .parse::<HexKey<Key512Bit>>()?;
+    let key = Key::<V4, Public>::try_from(secret_key.as_ref())?;
+    let payload = json!({"data": "this is a signed message","exp": "2022-01-01T00:00:00+00:00"}).to_string();
+    let footer = json!({"kid":"zVhMiPBP9fRf2snEcT7gFTioeA9COcNy9DfgL1W60haN"}).to_string();
+    let assertion = json!({"test-vector":"4-S-3"}).to_string();
+
+    //create message for test vector
+    //  eprintln!("\nJSON INFO: {}\n", json);
+    let message = Payload::from(payload.as_str());
+    let footer = Footer::from(footer.as_str());
+    let assertion = ImplicitAssertion::from(assertion.as_str());
+
+    //  //  //create a local v2 token
+    //let token = BasicTokenBuilder::<V2, Public>::build_token(header, message, &key, None);
+    let token = BasicTokenBuilder::<V4, Public>::default()
+      .set_payload(message.clone())
+      .set_footer(footer.clone())
+      .set_implicit_assertion(assertion)
+      .build(&key);
+
+    //  //validate the test vector
+    assert_eq!(token.to_string(), "v4.public.eyJkYXRhIjoidGhpcyBpcyBhIHNpZ25lZCBtZXNzYWdlIiwiZXhwIjoiMjAyMi0wMS0wMVQwMDowMDowMCswMDowMCJ9NPWciuD3d0o5eXJXG5pJy-DiVEoyPYWs1YSTwWHNJq6DZD3je5gf-0M4JR9ipdUSJbIovzmBECeaWmaqcaP0DQ.eyJraWQiOiJ6VmhNaVBCUDlmUmYyc25FY1Q3Z0ZUaW9lQTlDT2NOeTlEZmdMMVc2MGhhTiJ9");
+
+    //now let's try to decrypt it
+    let decrypted_payload = crate::verified_tokens::BasicTokenVerified::<V4, Public>::parse(
+      token.to_string().as_str(),
+      Some(footer),
+      None,
+      &key,
+    );
+    if let Ok(payload) = decrypted_payload {
+      assert_eq!(payload.as_ref(), message.as_ref());
+    }
+    Ok(())
+  }
+}
+
+#[cfg(test)]
 mod v2_test_vectors {
 
   use crate::common::{Footer, Local, Payload, Public, V2};
@@ -230,36 +373,6 @@ mod v2_test_vectors {
     //  if let Ok(payload) = decrypted_payload {
     //    assert_eq!(payload.as_ref(), message.as_ref());
     //  }
-    Ok(())
-  }
-
-  #[test]
-  fn test_2_s_1() -> Result<()> {
-    //then generate the V2 local key for it
-    let secret_key = "b4cbfb43df4ce210727d953e4a713307fa19bb7d9f85041438d9e11b942a37741eb9dbbbbc047c03fd70604e0071f0987e16b28b757225c11f00415d0e20b1a2"
-        .parse::<HexKey<Key512Bit>>()?;
-    let key = Key::<V2, Public>::try_from(secret_key.as_ref())?;
-    let payload = json!({"data": "this is a signed message","exp": "2019-01-01T00:00:00+00:00"}).to_string();
-
-    //create message for test vector
-    //  eprintln!("\nJSON INFO: {}\n", json);
-    let message = Payload::from(payload.as_str());
-
-    //  //  //create a local v2 token
-    //let token = BasicTokenBuilder::<V2, Public>::build_token(header, message, &key, None);
-    let token = BasicTokenBuilder::<V2, Public>::default()
-      .set_payload(message.clone())
-      .build(&key);
-
-    //  //validate the test vector
-    assert_eq!(token.to_string(), "v2.public.eyJkYXRhIjoidGhpcyBpcyBhIHNpZ25lZCBtZXNzYWdlIiwiZXhwIjoiMjAxOS0wMS0wMVQwMDowMDowMCswMDowMCJ9HQr8URrGntTu7Dz9J2IF23d1M7-9lH9xiqdGyJNvzp4angPW5Esc7C5huy_M8I8_DjJK2ZXC2SUYuOFM-Q_5Cw");
-
-    //now let's try to decrypt it
-    let decrypted_payload =
-      crate::verified_tokens::BasicTokenVerified::<V2, Public>::parse(token.to_string().as_str(), None, &key);
-    if let Ok(payload) = decrypted_payload {
-      assert_eq!(payload.as_ref(), message.as_ref());
-    }
     Ok(())
   }
 

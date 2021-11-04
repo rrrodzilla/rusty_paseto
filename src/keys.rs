@@ -101,6 +101,13 @@ impl From<Key256Bit> for Key<V2, Local> {
   }
 }
 
+impl AsymmetricKey for Key<V4, Public> {}
+impl AsRef<Keypair> for Key<V4, Public> {
+  fn as_ref(&self) -> &Keypair {
+    self.key.as_ref().downcast_ref().unwrap()
+  }
+}
+
 impl AsymmetricKey for Key<V2, Public> {}
 impl AsRef<Keypair> for Key<V2, Public> {
   fn as_ref(&self) -> &Keypair {

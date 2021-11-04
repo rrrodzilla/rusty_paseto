@@ -11,59 +11,28 @@ use chacha20poly1305::{
 use ed25519_dalek::*;
 use std::convert::{AsMut, AsRef, From, TryFrom};
 
-pub(crate) fn try_verify_signed_payload_with_assertion<P, H, F, A, K>(
-  payload: &P,
-  header: &H,
-  footer: &F,
-  assertion: &A,
-  key: &K,
-) -> Result<String, PasetoTokenParseError>
-where
-  P: AsRef<str> + Base64Encodable<str>,
-  H: AsRef<str>,
-  F: AsRef<str>,
-  A: AsRef<str>,
-  K: AsRef<Keypair>,
-{
+pub(crate) fn try_verify_signed_payload(
+  payload: &(impl AsRef<str> + Base64Encodable<str>),
+  header: &impl AsRef<str>,
+  footer: &impl AsRef<str>,
+  assertion: &Option<impl AsRef<str>>,
+  key: &impl AsRef<Keypair>,
+) -> Result<String, PasetoTokenParseError> {
   let payload = payload.decode()?;
   let msg = payload[..(payload.len() - ed25519_dalek::SIGNATURE_LENGTH)].as_ref();
   let sig = payload[msg.len()..msg.len() + ed25519_dalek::SIGNATURE_LENGTH].as_ref();
 
   let signature = Signature::try_from(sig)?;
-  let pae = PreAuthenticationEncoding::parse(&[
-    header.as_ref().as_bytes(),
-    msg,
-    footer.as_ref().as_bytes(),
-    assertion.as_ref().as_bytes(),
-  ]);
-  match key
-    .as_ref()
-    .verify(pae.as_ref(), &signature)
-    .map_err(|_| PasetoTokenParseError::InvalidSignature)
-  {
-    Ok(_) => String::from_utf8(Vec::from(msg)).map_err(|_| PasetoTokenParseError::Decrypt),
-    Err(_) => Err(PasetoTokenParseError::InvalidSignature),
-  }
-}
+  let pae = match assertion {
+    Some(assertion) => PreAuthenticationEncoding::parse(&[
+      header.as_ref().as_bytes(),
+      msg,
+      footer.as_ref().as_bytes(),
+      assertion.as_ref().as_bytes(),
+    ]),
+    None => PreAuthenticationEncoding::parse(&[header.as_ref().as_bytes(), msg, footer.as_ref().as_bytes()]),
+  };
 
-pub(crate) fn try_verify_signed_payload<P, H, F, K>(
-  payload: &P,
-  header: &H,
-  footer: &F,
-  key: &K,
-) -> Result<String, PasetoTokenParseError>
-where
-  P: AsRef<str> + Base64Encodable<str>,
-  H: AsRef<str>,
-  F: AsRef<str>,
-  K: AsRef<Keypair>,
-{
-  let payload = payload.decode()?;
-  let msg = payload[..(payload.len() - ed25519_dalek::SIGNATURE_LENGTH)].as_ref();
-  let sig = payload[msg.len()..msg.len() + ed25519_dalek::SIGNATURE_LENGTH].as_ref();
-
-  let signature = Signature::try_from(sig)?;
-  let pae = PreAuthenticationEncoding::parse(&[header.as_ref().as_bytes(), msg, footer.as_ref().as_bytes()]);
   match key
     .as_ref()
     .verify(pae.as_ref(), &signature)
@@ -141,45 +110,50 @@ where
   }
 }
 
-pub(crate) fn try_sign_payload<P, H, F, K>(message: &P, header: &H, footer: &F, key: &K) -> RawPayload
-where
-  P: AsRef<str>,
-  H: AsRef<str>,
-  F: AsRef<str>,
-  K: AsRef<Keypair>,
-{
-  let pae = PreAuthenticationEncoding::parse(&[
-    header.as_ref().as_bytes(),
-    message.as_ref().as_bytes(),
-    footer.as_ref().as_bytes(),
-  ]);
-  let sig = key.as_ref().sign(pae.as_ref());
-  let mut raw_payload = Vec::from(message.as_ref().as_bytes());
-  raw_payload.extend_from_slice(sig.as_ref());
+//  pub(crate) fn try_sign_payload(
+//    message: &impl AsRef<str>,
+//    header: &impl AsRef<str>,
+//    footer: &impl AsRef<str>,
+//    key: &impl AsRef<Keypair>,
+//  ) -> RawPayload {
+//    let pae = PreAuthenticationEncoding::parse(&[
+//      header.as_ref().as_bytes(),
+//      message.as_ref().as_bytes(),
+//      footer.as_ref().as_bytes(),
+//    ]);
+//    let sig = key.as_ref().sign(pae.as_ref());
+//    let mut raw_payload = Vec::from(message.as_ref().as_bytes());
+//    raw_payload.extend_from_slice(sig.as_ref());
 
-  RawPayload::from(raw_payload)
-}
+//    RawPayload::from(raw_payload)
+//  }
 
-pub(crate) fn try_sign_payload_with_assertion<P, H, F, A, K>(
-  message: &P,
-  header: &H,
-  footer: &F,
-  assertion: &A,
-  key: &K,
-) -> RawPayload
-where
-  P: AsRef<str>,
-  H: AsRef<str>,
-  F: AsRef<str>,
-  A: AsRef<str>,
-  K: AsRef<Keypair>,
-{
-  let pae = PreAuthenticationEncoding::parse(&[
-    header.as_ref().as_bytes(),
-    message.as_ref().as_bytes(),
-    footer.as_ref().as_bytes(),
-    assertion.as_ref().as_bytes(),
-  ]);
+pub(crate) fn try_sign_payload(
+  message: &impl AsRef<str>,
+  header: &impl AsRef<str>,
+  footer: &impl AsRef<str>,
+  assertion: &Option<impl AsRef<str>>,
+  key: &impl AsRef<Keypair>,
+) -> RawPayload {
+  //let pae = PreAuthenticationEncoding::parse(&[
+  //  header.as_ref().as_bytes(),
+  //  message.as_ref().as_bytes(),
+  //  footer.as_ref().as_bytes(),
+  //  assertion.as_ref().as_bytes(),
+  //]);
+  let pae = match assertion {
+    Some(assertion) => PreAuthenticationEncoding::parse(&[
+      header.as_ref().as_bytes(),
+      message.as_ref().as_bytes(),
+      footer.as_ref().as_bytes(),
+      assertion.as_ref().as_bytes(),
+    ]),
+    None => PreAuthenticationEncoding::parse(&[
+      header.as_ref().as_bytes(),
+      message.as_ref().as_bytes(),
+      footer.as_ref().as_bytes(),
+    ]),
+  };
   let sig = key.as_ref().sign(pae.as_ref());
   let mut raw_payload = Vec::from(message.as_ref().as_bytes());
   raw_payload.extend_from_slice(sig.as_ref());

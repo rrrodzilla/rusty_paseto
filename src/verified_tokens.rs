@@ -1,9 +1,6 @@
 use crate::{
   common::{Footer, Header, ImplicitAssertion, Payload, Public, V2, V4},
-  crypto::{
-    try_verify_signed_payload, try_verify_signed_payload_with_assertion,
-    validate_footer_against_hex_encoded_footer_in_constant_time,
-  },
+  crypto::{try_verify_signed_payload, validate_footer_against_hex_encoded_footer_in_constant_time},
   errors::PasetoTokenParseError,
   keys::Key,
   untrusted_tokens::UntrustedEncryptedToken,
@@ -89,11 +86,11 @@ impl BasicTokenVerified<V4, Public> {
 
     //decrypt the payload
     //can raise exceptions
-    let payload = try_verify_signed_payload_with_assertion(
+    let payload = try_verify_signed_payload(
       &raw_payload,
       &header.as_ref(),
       &potential_footer.unwrap_or_default(),
-      &potential_assertion.unwrap_or_default(),
+      &potential_assertion,
       key,
     )?;
 
@@ -125,6 +122,7 @@ impl BasicTokenVerified<V2, Public> {
       &raw_payload,
       &header.as_ref(),
       &potential_footer.unwrap_or_default(),
+      &None::<&str>,
       key,
     )?;
 

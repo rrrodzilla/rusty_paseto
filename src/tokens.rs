@@ -1,8 +1,7 @@
 use crate::common::ImplicitAssertion;
-use crate::crypto::try_sign_payload_with_assertion;
 use crate::traits::{AsymmetricKey, Base64Encodable, Sodium, SymmetricKey};
 use crate::{
-  common::{Footer, Header, Local, Payload, V2, V4},
+  common::{Footer, Header, Local, Payload, Public, V2, V4},
   crypto::{try_encrypt_payload, try_sign_payload},
   keys::{Key, Key256Bit, NonceKey},
 };
@@ -59,22 +58,20 @@ where
   }
 }
 
-impl<Purpose> BasicTokenBuilder<V4, Purpose>
+impl BasicTokenBuilder<V4, Public>
 where
-  Purpose: fmt::Display + Default,
-  Key<V4, Purpose>: AsymmetricKey,
+  Key<V4, Public>: AsymmetricKey,
 {
   //split for unit and test vectors
-  pub(super) fn build<PUBLICKEY>(&mut self, key: &PUBLICKEY) -> BasicToken<V4, Purpose>
-  where
-    PUBLICKEY: AsymmetricKey,
-  {
+  pub(super) fn build(&mut self, key: &impl AsymmetricKey) -> BasicToken<V4, Public> {
+    let default = &ImplicitAssertion::default();
+    let assertion = &self.implicit_assertion.as_ref().unwrap_or(default);
     //encrypt the payload
-    let payload = &try_sign_payload_with_assertion(
+    let payload = &try_sign_payload(
       &self.payload,
       &self.header,
       &self.footer.clone().unwrap_or_default(),
-      &self.implicit_assertion.clone().unwrap_or_default(),
+      &Some(assertion),
       &key,
     );
 
@@ -95,21 +92,18 @@ where
   }
 }
 
-impl<Purpose> BasicTokenBuilder<V2, Purpose>
+impl BasicTokenBuilder<V2, Public>
 where
-  Purpose: fmt::Display + Default,
-  Key<V2, Purpose>: AsymmetricKey,
+  Key<V2, Public>: AsymmetricKey,
 {
   //split for unit and test vectors
-  pub(super) fn build<PUBLICKEY>(&mut self, key: &PUBLICKEY) -> BasicToken<V2, Purpose>
-  where
-    PUBLICKEY: AsymmetricKey,
-  {
+  pub(super) fn build(&mut self, key: &impl AsymmetricKey) -> BasicToken<V2, Public> {
     //encrypt the payload
     let payload = &try_sign_payload(
       &self.payload,
       &self.header,
       &self.footer.clone().unwrap_or_default(),
+      &None::<&str>,
       &key,
     );
 
@@ -335,6 +329,7 @@ mod v2_test_vectors {
   use crate::keys::{HexKey, Key, Key192Bit, Key256Bit, Key512Bit, NonceKey};
   use crate::tokens::BasicTokenBuilder;
   use anyhow::Result;
+  use core::panic;
   use serde_json::{json, Value};
   use std::convert::TryFrom;
 
@@ -461,6 +456,168 @@ mod v2_test_vectors {
       }), Some(Footer::from("arbitrary-string-that-isn't-json")))?;
 
     Ok(())
+  }
+
+  #[test]
+  fn test_2_s_1() -> Result<()> {
+    //then generate the V2 local key for it
+    let secret_key = "b4cbfb43df4ce210727d953e4a713307fa19bb7d9f85041438d9e11b942a37741eb9dbbbbc047c03fd70604e0071f0987e16b28b757225c11f00415d0e20b1a2"
+        .parse::<HexKey<Key512Bit>>()?;
+    let key = Key::<V2, Public>::try_from(secret_key.as_ref())?;
+    let payload = json!({"data": "this is a signed message","exp": "2019-01-01T00:00:00+00:00"}).to_string();
+    //  let footer = json!({"kid":"zVhMiPBP9fRf2snEcT7gFTioeA9COcNy9DfgL1W60haN"}).to_string();
+    //  let assertion = json!({"test-vector":"4-S-3"}).to_string();
+
+    //create message for test vector
+    //  eprintln!("\nJSON INFO: {}\n", json);
+    let message = Payload::from(payload.as_str());
+    //  let footer = Footer::from(footer.as_str());
+    //  let assertion = ImplicitAssertion::from(assertion.as_str());
+
+    //  //  //create a local v2 token
+    //let token = BasicTokenBuilder::<V2, Public>::build_token(header, message, &key, None);
+    let token = BasicTokenBuilder::<V2, Public>::default()
+      .set_payload(message.clone())
+      //      .set_footer(footer.clone())
+      .build(&key);
+
+    //  //validate the test vector
+    assert_eq!(token.to_string(), "v2.public.eyJkYXRhIjoidGhpcyBpcyBhIHNpZ25lZCBtZXNzYWdlIiwiZXhwIjoiMjAxOS0wMS0wMVQwMDowMDowMCswMDowMCJ9HQr8URrGntTu7Dz9J2IF23d1M7-9lH9xiqdGyJNvzp4angPW5Esc7C5huy_M8I8_DjJK2ZXC2SUYuOFM-Q_5Cw");
+
+    //now let's try to decrypt it
+    let decrypted_payload =
+      crate::verified_tokens::BasicTokenVerified::<V2, Public>::parse(token.to_string().as_str(), None, &key);
+    if let Ok(payload) = decrypted_payload {
+      assert_eq!(payload.as_ref(), message.as_ref());
+    }
+    Ok(())
+  }
+
+  #[test]
+  fn test_2_s_2() -> Result<()> {
+    //then generate the V2 local key for it
+    let secret_key = "b4cbfb43df4ce210727d953e4a713307fa19bb7d9f85041438d9e11b942a37741eb9dbbbbc047c03fd70604e0071f0987e16b28b757225c11f00415d0e20b1a2"
+        .parse::<HexKey<Key512Bit>>()?;
+    let key = Key::<V2, Public>::try_from(secret_key.as_ref())?;
+    let payload = json!({"data": "this is a signed message","exp": "2019-01-01T00:00:00+00:00"}).to_string();
+    let footer = json!({"kid":"zVhMiPBP9fRf2snEcT7gFTioeA9COcNy9DfgL1W60haN"}).to_string();
+    //  let assertion = json!({"test-vector":"4-S-3"}).to_string();
+
+    //create message for test vector
+    //  eprintln!("\nJSON INFO: {}\n", json);
+    let message = Payload::from(payload.as_str());
+    let footer = Footer::from(footer.as_str());
+    //  let assertion = ImplicitAssertion::from(assertion.as_str());
+
+    //  //  //create a local v2 token
+    //let token = BasicTokenBuilder::<V2, Public>::build_token(header, message, &key, None);
+    let token = BasicTokenBuilder::<V2, Public>::default()
+      .set_payload(message.clone())
+      .set_footer(footer.clone())
+      .build(&key);
+
+    //  //validate the test vector
+    assert_eq!(token.to_string(), "v2.public.eyJkYXRhIjoidGhpcyBpcyBhIHNpZ25lZCBtZXNzYWdlIiwiZXhwIjoiMjAxOS0wMS0wMVQwMDowMDowMCswMDowMCJ9flsZsx_gYCR0N_Ec2QxJFFpvQAs7h9HtKwbVK2n1MJ3Rz-hwe8KUqjnd8FAnIJZ601tp7lGkguU63oGbomhoBw.eyJraWQiOiJ6VmhNaVBCUDlmUmYyc25FY1Q3Z0ZUaW9lQTlDT2NOeTlEZmdMMVc2MGhhTiJ9");
+
+    //now let's try to decrypt it
+    let decrypted_payload =
+      crate::verified_tokens::BasicTokenVerified::<V2, Public>::parse(token.to_string().as_str(), None, &key);
+    if let Ok(payload) = decrypted_payload {
+      assert_eq!(payload.as_ref(), message.as_ref());
+    }
+    Ok(())
+  }
+
+  #[test]
+  fn test_2_s_3() -> Result<()> {
+    //then generate the V2 local key for it
+    let secret_key = "b4cbfb43df4ce210727d953e4a713307fa19bb7d9f85041438d9e11b942a37741eb9dbbbbc047c03fd70604e0071f0987e16b28b757225c11f00415d0e20b1a2"
+        .parse::<HexKey<Key512Bit>>()?;
+    let key = Key::<V2, Public>::try_from(secret_key.as_ref())?;
+    let payload = json!({"data": "this is a signed message","exp": "2019-01-01T00:00:00+00:00"}).to_string();
+    let footer = json!({"kid":"zVhMiPBP9fRf2snEcT7gFTioeA9COcNy9DfgL1W60haN"}).to_string();
+    //  let assertion = json!({"test-vector":"4-S-3"}).to_string();
+
+    //create message for test vector
+    //  eprintln!("\nJSON INFO: {}\n", json);
+    let message = Payload::from(payload.as_str());
+    let footer = Footer::from(footer.as_str());
+    //  let assertion = ImplicitAssertion::from(assertion.as_str());
+
+    //  //  //create a local v2 token
+    //let token = BasicTokenBuilder::<V2, Public>::build_token(header, message, &key, None);
+    let token = BasicTokenBuilder::<V2, Public>::default()
+      .set_payload(message.clone())
+      .set_footer(footer.clone())
+      // the compiler prevents the user from adding an assertion on v2 tokens so this test passes
+      //.set_implicit_assertion(ImplicitAssertion::from("discarded-anyway"))
+      .build(&key);
+
+    //  //validate the test vector
+    assert_eq!(token.to_string(), "v2.public.eyJkYXRhIjoidGhpcyBpcyBhIHNpZ25lZCBtZXNzYWdlIiwiZXhwIjoiMjAxOS0wMS0wMVQwMDowMDowMCswMDowMCJ9flsZsx_gYCR0N_Ec2QxJFFpvQAs7h9HtKwbVK2n1MJ3Rz-hwe8KUqjnd8FAnIJZ601tp7lGkguU63oGbomhoBw.eyJraWQiOiJ6VmhNaVBCUDlmUmYyc25FY1Q3Z0ZUaW9lQTlDT2NOeTlEZmdMMVc2MGhhTiJ9");
+
+    //now let's try to decrypt it
+    let decrypted_payload =
+      crate::verified_tokens::BasicTokenVerified::<V2, Public>::parse(token.to_string().as_str(), None, &key);
+    if let Ok(payload) = decrypted_payload {
+      assert_eq!(payload.as_ref(), message.as_ref());
+    }
+    Ok(())
+  }
+
+  #[test]
+  #[should_panic]
+  fn test_2_f_1() {
+    //then generate the V2 local key for it
+    let secret_key = "b4cbfb43df4ce210727d953e4a713307fa19bb7d9f85041438d9e11b942a37741eb9dbbbbc047c03fd70604e0071f0987e16b28b757225c11f00415d0e20b1a2"
+        .parse::<HexKey<Key512Bit>>().unwrap();
+    let key = Key::<V2, Public>::try_from(secret_key.as_ref()).unwrap();
+    let payload = json!({"data": "this is a signed message","exp": "2019-01-01T00:00:00+00:00"}).to_string();
+    let footer = json!({"kid":"zVhMiPBP9fRf2snEcT7gFTioeA9COcNy9DfgL1W60haN"}).to_string();
+    //  let assertion = json!({"test-vector":"4-S-3"}).to_string();
+
+    //create message for test vector
+    //  eprintln!("\nJSON INFO: {}\n", json);
+    let message = Payload::from(payload.as_str());
+    let footer = Footer::from(footer.as_str());
+    //  let assertion = ImplicitAssertion::from(assertion.as_str());
+
+    //  //  //create a local v2 token
+    //let token = BasicTokenBuilder::<V2, Public>::build_token(header, message, &key, None);
+    let token = BasicTokenBuilder::<V2, Public>::default()
+      //setting no payload
+      .set_footer(footer.clone())
+      // the compiler prevents the user from adding an assertion on v2 tokens so this test passes
+      //.set_implicit_assertion(ImplicitAssertion::from("discarded-anyway"))
+      .build(&key);
+
+    //  //validate the test vector
+    assert_eq!(token.to_string(), "v2.local.pN9Y9kTFKnCskKr7B13IoceBabSTMS0LkUg3SeAqONg6EJsq9h-CLWdWaA_rMZX4MhGsOQn5I0EsIgYeOA2NPJZU0uulsahH-k871PBq.YXJiaXRyYXJ5LXN0cmluZy10aGF0LWlzbid0LWpzb24");
+
+    //now let's try to decrypt it
+    let decrypted_payload =
+      crate::verified_tokens::BasicTokenVerified::<V2, Public>::parse(token.to_string().as_str(), None, &key);
+    if let Ok(payload) = decrypted_payload {
+      assert_eq!(payload.as_ref(), message.as_ref());
+    }
+  }
+
+  #[test]
+  #[should_panic]
+  fn test_2_f_2() {
+    //this test vector attempts to use the wrong key (a local key) for the public token.
+    //in our implementation, the compiler refuses to allow that and so this test passes since
+    //there's no way to compile the incorrect code
+    panic!("non-compileable test")
+  }
+
+  #[test]
+  #[should_panic]
+  fn test_2_f_3() {
+    //this test vector attempts to use the wrong key (a local key) for the public token.
+    //in our implementation, the compiler refuses to allow that and so this test passes since
+    //there's no way to compile the incorrect code
+    panic!("non-compileable test")
   }
 }
 

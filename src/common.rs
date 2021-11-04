@@ -1,5 +1,5 @@
 use crate::errors::PasetoTokenParseError;
-use crate::traits::Base64Encodable;
+use crate::traits::{Base64Encodable, Sodium};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::fmt::{self, Display};
@@ -24,6 +24,7 @@ impl Display for Public {
 
 #[derive(Debug)]
 pub struct V4(&'static str);
+impl Sodium for V4 {}
 impl Default for V4 {
   fn default() -> Self {
     Self("v4")
@@ -37,6 +38,7 @@ impl Display for V4 {
 
 #[derive(Debug)]
 pub struct V2(&'static str);
+impl Sodium for V2 {}
 impl Default for V2 {
   fn default() -> Self {
     Self("v2")
@@ -143,14 +145,20 @@ impl Eq for ImplicitAssertion {}
 /// ```
 /// # use rusty_paseto::core_tokens::*;
 /// # let key = &Key::<V2, Local>::new_random();
-/// let footer = Some(Footer::from("wubbulubbadubdub"));
+/// let footer = Footer::from("wubbulubbadubdub");
 /// # let payload = Payload::from("I'm Pickle Rick!");
 ///
 /// // Use in any token that accepts an optional footer
-/// let token = GenericToken::<V2, Local>::new(payload, key, footer);
+/// let token = BasicToken::<V2, Local>::builder().set_payload(payload).set_footer(footer).build(key);
 /// ```
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Footer(String);
+
+impl Default for Footer {
+  fn default() -> Self {
+    Self(String::default())
+  }
+}
 
 impl Base64Encodable<str> for Footer {}
 
@@ -177,37 +185,37 @@ impl PartialEq for Footer {
 impl Eq for Footer {}
 
 /// The token payload
-#[derive(PartialEq, Debug, Clone, Copy)]
-pub struct Payload<'a>(&'a str);
-impl Base64Encodable<str> for Payload<'_> {}
-impl<'a> AsRef<str> for Payload<'a> {
+#[derive(Debug, Clone)]
+pub struct Payload(String);
+impl Base64Encodable<str> for Payload {}
+impl AsRef<str> for Payload {
   fn as_ref(&self) -> &str {
-    self.0
+    &self.0
   }
 }
 
-impl<'a> Default for Payload<'a> {
+impl Default for Payload {
   fn default() -> Self {
-    Self("")
+    Self(String::default())
   }
 }
 
-impl<'a> From<&'a str> for Payload<'a> {
-  fn from(s: &'a str) -> Self {
-    Self(s)
+impl From<&str> for Payload {
+  fn from(s: &str) -> Self {
+    Self(s.to_string())
   }
 }
 
-impl<'a, R> PartialEq<R> for Payload<'a>
+impl<R> PartialEq<R> for Payload
 where
-  R: AsRef<&'a str>,
+  R: AsRef<str>,
 {
   fn eq(&self, other: &R) -> bool {
-    self.as_ref() == *other.as_ref()
+    self.as_ref() == other.as_ref()
   }
 }
 
-impl<'a> fmt::Display for Payload<'a> {
+impl fmt::Display for Payload {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "{}", self.0)
   }

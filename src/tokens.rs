@@ -1,130 +1,196 @@
-extern crate ed25519_dalek;
-use crate::traits::Base64Encodable;
+use crate::common::ImplicitAssertion;
+use crate::traits::{AsymmetricKey, Base64Encodable, Sodium, SymmetricKey};
 use crate::{
-  common::{Footer, Header, Local, Payload, V2},
+  common::{Footer, Header, Local, Payload, V4},
   crypto::{get_encrypted_raw_payload, get_signed_raw_payload},
-  keys::{Key, Key192Bit, Key256Bit, NonceKey},
+  keys::{Key, Key256Bit, NonceKey},
 };
-use ed25519_dalek::Keypair;
+use std::default::Default;
 use std::fmt;
+use std::fmt::Display;
 use std::marker::PhantomData;
 
-/// A V2 Local paseto token that has been encrypted with a V2LocalSharedKey
 #[derive(Debug, PartialEq)]
-pub struct GenericToken<Version, Purpose> {
+pub struct BasicTokenBuilder<Version: Default + Display, Purpose: Default + Display> {
   purpose: PhantomData<Purpose>,
   version: PhantomData<Version>,
-  header: String,
-  footer: Option<String>,
-  implicit_assertion: Option<String>,
-  payload: String,
+  header: Header<Version, Purpose>,
+  footer: Option<Footer>,
+  nonce_key: NonceKey,
+  implicit_assertion: Option<ImplicitAssertion>,
+  payload: Payload,
 }
 
-impl<Purpose> GenericToken<V2, Purpose>
+impl<Version, Purpose> BasicTokenBuilder<Version, Purpose>
 where
+  Version: Display + Default,
+  Purpose: Display + Default,
+{
+  fn new() -> Self {
+    Self {
+      purpose: PhantomData,
+      version: PhantomData,
+      header: Header::<Version, Purpose>::default(),
+      footer: None,
+      nonce_key: NonceKey::new_random(),
+      implicit_assertion: None,
+      payload: Payload::from(""),
+    }
+  }
+
+  pub fn set_footer(&mut self, footer: Footer) -> &mut Self {
+    self.footer = Some(footer);
+    self
+  }
+  pub fn set_payload(&mut self, payload: Payload) -> &mut Self {
+    self.payload = payload;
+    self
+  }
+}
+
+impl<Purpose> BasicTokenBuilder<V4, Purpose>
+where
+  Purpose: Display + Default,
+{
+  pub fn set_implicit_assertion(&mut self, assertion: ImplicitAssertion) -> &mut Self {
+    self.implicit_assertion = Some(assertion);
+    self
+  }
+}
+
+impl<Version, Purpose> BasicTokenBuilder<Version, Purpose>
+where
+  Version: Sodium,
   Purpose: fmt::Display + Default,
-  Key<V2, Purpose>: AsRef<Keypair>,
+  Key<Version, Purpose>: AsymmetricKey,
 {
-  /// Creates a new token from constituent parts
-  pub fn new(message: Payload, key: &Key<V2, Purpose>, footer: Option<Footer>) -> GenericToken<V2, Purpose> {
-    //set a default header for this token type
-    let header = Header::<V2, Purpose>::default();
-    //build and return the token
-    Self::build_token(header, message, key, footer)
-  }
-
   //split for unit and test vectors
-  pub(super) fn build_token<HEADER, MESSAGE, PUBLICKEY>(
-    header: HEADER,
-    message: MESSAGE,
-    key: &PUBLICKEY,
-    footer: Option<Footer>,
-  ) -> GenericToken<V2, Purpose>
+  pub(super) fn build<PUBLICKEY>(&mut self, key: &PUBLICKEY) -> BasicToken<Version, Purpose>
   where
-    HEADER: AsRef<str> + std::fmt::Display + Default,
-    MESSAGE: AsRef<str>,
-    PUBLICKEY: AsRef<Keypair>,
+    PUBLICKEY: AsymmetricKey,
   {
     //encrypt the payload
-    //let payload = Payload::from("test");
-    //let key = Ed25519KeyPair::from_pkcs8(key.as_ref())?;
-    let payload = &get_signed_raw_payload(&message, &header, &footer.clone().unwrap_or_default(), &key);
+    let payload = &get_signed_raw_payload(
+      &self.payload,
+      &self.header,
+      &self.footer.clone().unwrap_or_default(),
+      &key,
+    );
+
+    let encoded_footer = self.footer.as_ref().map(|f| f.encode());
+    if let Some(footer) = encoded_footer {
+      BasicToken {
+        version: PhantomData,
+        purpose: PhantomData,
+        token: format!("{}{}.{}", self.header, payload.encode(), footer),
+      }
+    } else {
+      BasicToken {
+        version: PhantomData,
+        purpose: PhantomData,
+        token: format!("{}{}", self.header, payload.encode()),
+      }
+    }
 
     //produce the token with the values
     //the payload and footer are both base64 encoded
-    GenericToken::<V2, Purpose> {
-      purpose: PhantomData,
-      version: PhantomData,
-      header: header.to_string(), //the header is not base64 encoded
-      payload: payload.encode(),
-      footer: footer.as_ref().map(|f| f.encode()),
-      implicit_assertion: None,
-    }
+    //      BasicTokenBuilder::<Version, Purpose> {
+    //        purpose: PhantomData,
+    //        version: PhantomData,
+    //        header: header.to_string(), //the header is not base64 encoded
+    //        payload: payload.encode(),
+    //        footer: footer.as_ref().map(|f| f.encode()),
+    //        implicit_assertion: None,
+    //      }
   }
 }
 
-impl<Version> GenericToken<Version, Local>
+impl<Version> BasicTokenBuilder<Version, Local>
 where
-  Version: fmt::Display + Default,
-  Key<Version, Local>: AsRef<[u8; 32]>,
+  Version: Sodium,
+  Key<Version, Local>: SymmetricKey,
 {
-  /// Creates a new token from constituent parts
-  pub fn new(message: Payload, key: &Key<Version, Local>, footer: Option<Footer>) -> GenericToken<Version, Local> {
-    //use a random nonce
-    let nonce_key = NonceKey::new_random();
-    //set a default header for this token type
-    let header = Header::<Version, Local>::default();
-    //build and return the token
-    Self::build_token(header, message, key, footer, &nonce_key)
+  //    /// Creates a new token from constituent parts
+  //    pub fn new(message: Payload, key: &Key<Version, Local>, footer: Option<Footer>) -> BasicTokenBuilder<Version, Local> {
+  //      //use a random nonce
+  //      let nonce_key = NonceKey::new_random();
+  //      //set a default header for this token type
+  //      let header = Header::<Version, Local>::default();
+  //      //build and return the token
+  //      Self::build_token(header, message, key, footer, &nonce_key)
+  //    }
+  //
+  #[allow(dead_code)]
+  pub(self) fn set_nonce_key(&mut self, nonce_key: NonceKey) -> &mut Self {
+    self.nonce_key = nonce_key;
+    self
   }
 
-  //split for unit and test vectors
-  pub(super) fn build_token<HEADER, MESSAGE, SHAREDKEY, NONCEKEY>(
-    header: HEADER,
-    message: MESSAGE,
-    key: &SHAREDKEY,
-    footer: Option<Footer>,
-    nonce_key: &NONCEKEY,
-  ) -> GenericToken<Version, Local>
+  pub fn build<SHAREDKEY>(&mut self, key: &SHAREDKEY) -> BasicToken<Version, Local>
   where
-    HEADER: AsRef<str> + std::fmt::Display + Default,
-    MESSAGE: AsRef<str>,
     SHAREDKEY: AsRef<Key256Bit>,
-    NONCEKEY: AsRef<Key192Bit>,
   {
     //encrypt the payload
-    let payload = &get_encrypted_raw_payload(&message, &header, &footer.clone().unwrap_or_default(), key, nonce_key);
+    let payload = &get_encrypted_raw_payload(
+      &self.payload,
+      &self.header,
+      &self.footer.clone().unwrap_or_default(),
+      key,
+      &self.nonce_key,
+    );
+    let encoded_footer = self.footer.as_ref().map(|f| f.encode());
+    if let Some(footer) = encoded_footer {
+      BasicToken::<Version, Local> {
+        version: PhantomData,
+        purpose: PhantomData,
+        token: format!("{}{}.{}", self.header, payload.encode(), footer),
+      }
+    } else {
+      BasicToken::<Version, Local> {
+        version: PhantomData,
+        purpose: PhantomData,
+        token: format!("{}{}", self.header, payload.encode()),
+      }
+    }
 
     //produce the token with the values
     //the payload and footer are both base64 encoded
-    GenericToken::<Version, Local> {
-      purpose: PhantomData,
-      version: PhantomData,
-      header: header.to_string(), //the header is not base64 encoded
-      payload: payload.encode(),
-      footer: footer.as_ref().map(|f| f.encode()),
-      implicit_assertion: None,
-    }
+    //  BasicToken {
+    //    token: payload.encode(),
+    //  }
+  } //split for unit and test vectors
+}
+impl<Version: Display + Default, Purpose: Display + Default> Default for BasicTokenBuilder<Version, Purpose> {
+  fn default() -> Self {
+    Self::new()
   }
 }
 
-impl<Version, Purpose> fmt::Display for GenericToken<Version, Purpose> {
+pub struct BasicToken<Version, Purpose> {
+  purpose: PhantomData<Purpose>,
+  version: PhantomData<Version>,
+  pub token: String,
+}
+
+impl<Version: Display + Default, Purpose: Display + Default> BasicToken<Version, Purpose> {
+  pub fn builder() -> BasicTokenBuilder<Version, Purpose> {
+    BasicTokenBuilder::default()
+  }
+}
+
+impl<Version: Display + Default, Purpose: Display + Default> fmt::Display for BasicToken<Version, Purpose> {
   /// Formats the token for display and subsequently allows a to_string implementation
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    if let Some(footer) = &self.footer {
-      write!(f, "{}{}.{}", self.header, self.payload, footer)
-    } else {
-      write!(f, "{}{}", self.header, self.payload)
-    }
+    write!(f, "{}", self.token)
   }
 }
 
 #[cfg(test)]
 mod v2_test_vectors {
 
-  use crate::common::{Footer, Header, Local, Payload, Public, V2};
+  use crate::common::{Footer, Local, Payload, Public, V2};
   use crate::keys::{HexKey, Key, Key192Bit, Key256Bit, Key512Bit, NonceKey};
-  use crate::tokens::GenericToken;
+  use crate::tokens::BasicTokenBuilder;
   use anyhow::Result;
   use serde_json::{json, Value};
   use std::convert::TryFrom;
@@ -141,20 +207,29 @@ mod v2_test_vectors {
     let json = payload.to_string();
     //  eprintln!("\nJSON INFO: {}\n", json);
     let message = Payload::from(json.as_str());
-    let header = Header::<V2, Local>::default();
 
-    //  //create a local v2 token
-    let token = GenericToken::<V2, Local>::build_token(header, message, &key, footer, &nonce);
+    let mut token_builder = BasicTokenBuilder::<V2, Local>::default();
+    token_builder.set_payload(message.clone()).set_nonce_key(nonce);
+    if let Some(footer) = footer {
+      token_builder.set_footer(footer);
+    }
+    let token = token_builder.build(&key);
+    //  if let Some(footer) = &self.footer {
+    //    token_builder.set_footer(footer.clone());
+    //  }
+    //  let basic_token = token_builder.build(key);
+    //  //  //create a local v2 token
+    //  let token = BasicTokenBuilder::<V2, Local>::build_token(header, message, &key, footer, &nonce);
 
     //validate the test vector
     assert_eq!(token.to_string(), expected_token);
 
-    //now let's try to decrypt it
-    let decrypted_payload =
-      crate::decrypted_tokens::GenericTokenDecrypted::<V2, Local>::parse(token.to_string().as_str(), None, key);
-    if let Ok(payload) = decrypted_payload {
-      assert_eq!(payload.as_ref(), message.as_ref());
-    }
+    //  //now let's try to decrypt it
+    //  let decrypted_payload =
+    //    crate::decrypted_tokens::BasicTokenDecrypted::<V2, Local>::parse(token.to_string().as_str(), None, key);
+    //  if let Ok(payload) = decrypted_payload {
+    //    assert_eq!(payload.as_ref(), message.as_ref());
+    //  }
     Ok(())
   }
 
@@ -169,17 +244,19 @@ mod v2_test_vectors {
     //create message for test vector
     //  eprintln!("\nJSON INFO: {}\n", json);
     let message = Payload::from(payload.as_str());
-    let header = Header::<V2, Public>::default();
 
     //  //  //create a local v2 token
-    let token = GenericToken::<V2, Public>::build_token(header, message, &key, None);
+    //let token = BasicTokenBuilder::<V2, Public>::build_token(header, message, &key, None);
+    let token = BasicTokenBuilder::<V2, Public>::default()
+      .set_payload(message.clone())
+      .build(&key);
 
     //  //validate the test vector
     assert_eq!(token.to_string(), "v2.public.eyJkYXRhIjoidGhpcyBpcyBhIHNpZ25lZCBtZXNzYWdlIiwiZXhwIjoiMjAxOS0wMS0wMVQwMDowMDowMCswMDowMCJ9HQr8URrGntTu7Dz9J2IF23d1M7-9lH9xiqdGyJNvzp4angPW5Esc7C5huy_M8I8_DjJK2ZXC2SUYuOFM-Q_5Cw");
 
     //now let's try to decrypt it
     let decrypted_payload =
-      crate::decrypted_tokens::GenericTokenDecrypted::<V2, Public>::parse(token.to_string().as_str(), None, &key);
+      crate::verified_tokens::BasicTokenVerified::<V2, Public>::parse(token.to_string().as_str(), None, &key);
     if let Ok(payload) = decrypted_payload {
       assert_eq!(payload.as_ref(), message.as_ref());
     }

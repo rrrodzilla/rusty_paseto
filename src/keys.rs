@@ -1,4 +1,5 @@
 use crate::common::{Local, Public, V2, V4};
+use crate::traits::{AsymmetricKey, Sodium, SymmetricKey};
 use ed25519_dalek::{Keypair, SignatureError};
 use hex::{FromHex, FromHexError};
 use ring::rand::{SecureRandom, SystemRandom};
@@ -24,6 +25,7 @@ impl From<&Key192Bit> for HexKey<Key192Bit> {
     Self(*key)
   }
 }
+
 ///Allows any string to attempt to be parsed into a HexKey
 impl<T: FromHex> FromStr for HexKey<T>
 where
@@ -99,12 +101,14 @@ impl From<Key256Bit> for Key<V2, Local> {
   }
 }
 
+impl AsymmetricKey for Key<V2, Public> {}
 impl AsRef<Keypair> for Key<V2, Public> {
   fn as_ref(&self) -> &Keypair {
     self.key.as_ref().downcast_ref().unwrap()
   }
 }
 
+impl SymmetricKey for Key<V2, Local> {}
 impl AsRef<Key256Bit> for Key<V2, Local> {
   fn as_ref(&self) -> &Key256Bit {
     self.key.as_ref().downcast_ref().unwrap()
@@ -121,7 +125,10 @@ impl Default for Key<V2, Local> {
   }
 }
 
-impl Key<V2, Local> {
+impl<Version> Key<Version, Local>
+where
+  Version: Sodium,
+{
   ///Returns a new valid random V2LocalSharedKey
   pub fn new_random() -> Self {
     let rng = SystemRandom::new();
@@ -145,7 +152,7 @@ impl From<HexKey<Key256Bit>> for Key<V2, Local> {
     }
   }
 }
-
+#[derive(Debug, PartialEq)]
 pub(crate) struct NonceKey(Key192Bit);
 
 impl Default for NonceKey {

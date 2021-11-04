@@ -102,7 +102,7 @@ mod paseto_builder {
     TokenIdentifierClaim,
   };
   use crate::common::*;
-  use crate::decrypted_tokens::GenericTokenDecrypted;
+  use crate::decrypted_tokens::BasicTokenDecrypted;
   use crate::errors::PasetoTokenParseError;
   use crate::keys::Key;
   use crate::parsers::GenericTokenParser;
@@ -143,7 +143,7 @@ mod paseto_builder {
       .set_claim(IssuedAtClaim::try_from(tomorrow.as_str()).unwrap())
       .build(&key)?;
 
-    let decrypted_token = GenericTokenDecrypted::<V2, Local>::parse(&token, None, &key)?;
+    let decrypted_token = BasicTokenDecrypted::<V2, Local>::parse(&token, None, &key)?;
     //now let's decrypt the token and verify the values
     //the IssuedAtClaim should exist and the date should be set to tomorrow
     GenericTokenParser::<V2, Local>::default()
@@ -175,7 +175,7 @@ mod paseto_builder {
     //create a builder, with default IssuedAtClaim
     let token = PasetoTokenBuilder::<V2, Local>::default().build(&key)?;
 
-    let decrypted_token = GenericTokenDecrypted::<V2, Local>::parse(&token, None, &key)?;
+    let decrypted_token = BasicTokenDecrypted::<V2, Local>::parse(&token, None, &key)?;
     //now let's decrypt the token and verify the values
     //the IssuedAtClaim should exist
     GenericTokenParser::<V2, Local>::default()
@@ -209,7 +209,7 @@ mod paseto_builder {
       .set_claim(ExpirationClaim::try_from(in_4_days).unwrap())
       .build(&key)?;
 
-    let decrypted_token = GenericTokenDecrypted::<V2, Local>::parse(&token, None, &key)?;
+    let decrypted_token = BasicTokenDecrypted::<V2, Local>::parse(&token, None, &key)?;
     //now let's decrypt the token and verify the values
     //the IssuedAtClaim should exist and the date should be set to tomorrow
     GenericTokenParser::<V2, Local>::default()
@@ -241,7 +241,7 @@ mod paseto_builder {
     //create a builder, with default IssuedAtClaim
     let token = PasetoTokenBuilder::<V2, Local>::default().build(&key)?;
 
-    let decrypted_token = GenericTokenDecrypted::<V2, Local>::parse(&token, None, &key)?;
+    let decrypted_token = BasicTokenDecrypted::<V2, Local>::parse(&token, None, &key)?;
     //now let's decrypt the token and verify the values
     //the IssuedAtClaim should exist
     GenericTokenParser::<V2, Local>::default()
@@ -286,7 +286,7 @@ mod paseto_builder {
       .set_footer(footer.clone())
       .build(&key)?;
 
-    let decrypted_token = GenericTokenDecrypted::<V2, Local>::parse(&token, Some(footer.clone()), &key)?;
+    let decrypted_token = BasicTokenDecrypted::<V2, Local>::parse(&token, Some(footer.clone()), &key)?;
     //now let's decrypt the token and verify the values
     let json = GenericTokenParser::<V2, Local>::default()
       .check_claim(AudienceClaim::from("customers"))

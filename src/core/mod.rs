@@ -1,0 +1,22 @@
+mod error;
+mod footer;
+mod header;
+mod implicit_assertion;
+mod key;
+mod paseto;
+mod payload;
+mod purpose;
+mod traits;
+mod version;
+
+pub use error::PasetoError;
+pub use footer::Footer;
+pub use header::Header;
+pub use implicit_assertion::ImplicitAssertion;
+pub use key::{Key, PasetoKey, PasetoNonce};
+pub use paseto::Paseto;
+pub use payload::Payload;
+pub use purpose::{Local, Public};
+pub(crate) use traits::Base64Encodable;
+pub use traits::{ImplicitAssertionCapable, PurposeTrait, VersionTrait};
+pub use version::{V1, V2, V3, V4};

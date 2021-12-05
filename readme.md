@@ -14,15 +14,13 @@ Paseto is everything you love about JOSE (JWT, JWE, JWS) without any of the
 
 | APIs, Tests & Documentation | v1.<br />local| v1.<br />public | v2.<br />local | v2.<br />public |v3.<br />local | v3.<br />public | v4.<br />local | v4.<br />public |
 | ------------: | :-----------: | :----------:    |:-----------:   |:-----------:    |:-----------:  |:-----------:    |:-----------:   |:-----------:    |
-| PASETO Token Builder		| :new_moon: | :new_moon: | :full_moon: | :full_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: |
-| PASETO Token Parser		| :new_moon: | :new_moon: | :full_moon: | :full_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: |
-| Flexible Claim Validation	| :new_moon: | :new_moon: | :full_moon: | :full_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: |
-| Generic Token Builder		| :new_moon: | :new_moon: | :full_moon: | :full_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: |
-| Generic Token Parser		| :new_moon: | :new_moon: | :full_moon: | :full_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: |
-| Basic Token Encryption	| :full_moon: | :wavy_dash: | :full_moon: | :wavy_dash: | :full_moon: | :wavy_dash: | :full_moon: | :wavy_dash: |
-| Basic Token Decryption	| :full_moon: | :wavy_dash: | :full_moon: | :wavy_dash: | :full_moon: | :wavy_dash: | :full_moon: | :wavy_dash: |
-| Basic Token Signing		| :wavy_dash: | :full_moon: | :wavy_dash: | :full_moon: | :wavy_dash: | :new_moon: | :wavy_dash: | :full_moon: |
-| Basic Token Verification	| :wavy_dash: | :full_moon: | :wavy_dash: | :full_moon: | :wavy_dash: | :new_moon: | :wavy_dash: | :full_moon: |
-| [PASETO Test vectors](https://github.com/paseto-standard/test-vectors)  | :new_moon: | :new_moon: | :full_moon: | :full_moon: | :new_moon: | :new_moon: | :new_moon: | :full_moon: |
-| Documentation			| :new_moon: | :new_moon: | :last_quarter_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: | :new_moon: |
+| PASETO Token Builder		| :green_circle: | :green_circle: | :green_circle: | :green_circle: | :green_circle: | :black_circle: | :green_circle: | :green_circle: |
+| PASETO Token Parser		| :green_circle: | :green_circle: | :green_circle: | :green_circle: | :green_circle: | :black_circle: | :green_circle: | :green_circle: |
+| Flexible Claim Validation	| :green_circle: | :green_circle: | :green_circle: | :green_circle: | :green_circle: | :black_circle: | :green_circle: | :green_circle: |
+| Generic Token Builder		| :green_circle: | :green_circle: | :green_circle: | :green_circle: | :green_circle: | :black_circle: | :green_circle: | :green_circle: |
+| Generic Token Parser		| :green_circle: | :green_circle: | :green_circle: | :green_circle: | :green_circle: | :black_circle: | :green_circle: | :green_circle: |
+| Encryption/Signing		| :green_circle: |  :green_circle: | :green_circle: | :green_circle: | :green_circle: | :black_circle: | :green_circle: | :green_circle: |
+| Decryption/Verification	| :green_circle: |  :green_circle: | :green_circle: | :green_circle: | :green_circle: | :black_circle: | :green_circle: | :green_circle: |
+| [PASETO Test vectors](https://github.com/paseto-standard/test-vectors)  | :black_circle: | :black_circle: | :green_circle: | :green_circle: | :black_circle: | :black_circle: | :green_circle: | :green_circle: |
+| Documentation			| :black_circle: | :black_circle: | :orange_circle: | :black_circle: | :black_circle: | :black_circle: | :black_circle: | :black_circle: |
 

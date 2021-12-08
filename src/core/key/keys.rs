@@ -2,8 +2,11 @@ use crate::core::PasetoError;
 use ring::rand::{SecureRandom, SystemRandom};
 use std::convert::{From, TryFrom};
 use std::ops::Deref;
+use zeroize::Zeroize;
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Zeroize)]
+#[zeroize(drop)]
+#[derive(Clone, Debug)]
 pub struct Key<const KEYSIZE: usize>([u8; KEYSIZE]);
 
 impl<const KEYSIZE: usize> Default for Key<KEYSIZE> {

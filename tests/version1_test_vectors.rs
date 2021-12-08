@@ -7,8 +7,10 @@ mod v1_test_vectors {
   #[test]
   fn test_1_e_1() -> Result<()> {
     //setup
-    let key = Key::<32>::try_from("707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f")?;
-    let key = PasetoKey::<V1, Local>::from(&key);
+    //let key = Key::<32>::try_from("707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f")?;
+    let key = PasetoSymmetricKey::<V1, Local>::from(Key::<32>::try_from(
+      "707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f",
+    )?);
     let nonce = Key::<32>::try_from("0000000000000000000000000000000000000000000000000000000000000000")?;
     let nonce = PasetoNonce::<V1, Local>::from(&nonce);
 
@@ -33,8 +35,9 @@ mod v1_test_vectors {
   #[test]
   fn test_1_e_2() -> Result<()> {
     //setup
-    let key = Key::<32>::try_from("707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f")?;
-    let key = PasetoKey::<V1, Local>::from(&key);
+    let key = PasetoSymmetricKey::<V1, Local>::from(Key::<32>::try_from(
+      "707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f",
+    )?);
     let nonce = Key::<32>::try_from("0000000000000000000000000000000000000000000000000000000000000000")?;
     let nonce = PasetoNonce::<V1, Local>::from(&nonce);
 
@@ -59,8 +62,9 @@ mod v1_test_vectors {
   #[test]
   fn test_1_e_3() -> Result<()> {
     //setup
-    let key = Key::<32>::try_from("707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f")?;
-    let key = PasetoKey::<V1, Local>::from(&key);
+    let key = PasetoSymmetricKey::<V1, Local>::from(Key::<32>::try_from(
+      "707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f",
+    )?);
     let nonce = Key::<32>::try_from("26f7553354482a1d91d4784627854b8da6b8042a7966523c2b404e8dbbe7f7f2")?;
     let nonce = PasetoNonce::<V1, Local>::from(&nonce);
 
@@ -85,8 +89,9 @@ mod v1_test_vectors {
   #[test]
   fn test_1_e_4() -> Result<()> {
     //setup
-    let key = Key::<32>::try_from("707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f")?;
-    let key = PasetoKey::<V1, Local>::from(&key);
+    let key = PasetoSymmetricKey::<V1, Local>::from(Key::<32>::try_from(
+      "707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f",
+    )?);
     let nonce = Key::<32>::try_from("26f7553354482a1d91d4784627854b8da6b8042a7966523c2b404e8dbbe7f7f2")?;
     let nonce = PasetoNonce::<V1, Local>::from(&nonce);
 
@@ -113,8 +118,9 @@ mod v1_test_vectors {
   #[test]
   fn test_1_e_5() -> Result<()> {
     //setup
-    let key = Key::<32>::try_from("707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f")?;
-    let key = PasetoKey::<V1, Local>::from(&key);
+    let key = PasetoSymmetricKey::<V1, Local>::from(Key::<32>::try_from(
+      "707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f",
+    )?);
     let nonce = Key::<32>::try_from("26f7553354482a1d91d4784627854b8da6b8042a7966523c2b404e8dbbe7f7f2")?;
     let nonce = PasetoNonce::<V1, Local>::from(&nonce);
 
@@ -143,8 +149,9 @@ mod v1_test_vectors {
   #[test]
   fn test_1_e_6() -> Result<()> {
     //setup
-    let key = Key::<32>::try_from("707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f")?;
-    let key = PasetoKey::<V1, Local>::from(&key);
+    let key = PasetoSymmetricKey::<V1, Local>::from(Key::<32>::try_from(
+      "707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f",
+    )?);
     let nonce = Key::<32>::try_from("26f7553354482a1d91d4784627854b8da6b8042a7966523c2b404e8dbbe7f7f2")?;
     let nonce = PasetoNonce::<V1, Local>::from(&nonce);
 
@@ -173,8 +180,9 @@ mod v1_test_vectors {
   #[test]
   fn test_1_e_7() -> Result<()> {
     //setup
-    let key = Key::<32>::try_from("707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f")?;
-    let key = PasetoKey::<V1, Local>::from(&key);
+    let key = PasetoSymmetricKey::<V1, Local>::from(Key::<32>::try_from(
+      "707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f",
+    )?);
     let nonce = Key::<32>::try_from("26f7553354482a1d91d4784627854b8da6b8042a7966523c2b404e8dbbe7f7f2")?;
     let nonce = PasetoNonce::<V1, Local>::from(&nonce);
 
@@ -204,8 +212,9 @@ mod v1_test_vectors {
   #[test]
   fn test_1_e_8() -> Result<()> {
     //setup
-    let key = Key::<32>::try_from("707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f")?;
-    let key = PasetoKey::<V1, Local>::from(&key);
+    let key = PasetoSymmetricKey::<V1, Local>::from(Key::<32>::try_from(
+      "707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f",
+    )?);
     let nonce = Key::<32>::try_from("26f7553354482a1d91d4784627854b8da6b8042a7966523c2b404e8dbbe7f7f2")?;
     let nonce = PasetoNonce::<V1, Local>::from(&nonce);
 
@@ -235,8 +244,9 @@ mod v1_test_vectors {
   #[test]
   fn test_1_e_9() -> Result<()> {
     //setup
-    let key = Key::<32>::try_from("707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f")?;
-    let key = PasetoKey::<V1, Local>::from(&key);
+    let key = PasetoSymmetricKey::<V1, Local>::from(Key::<32>::try_from(
+      "707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f",
+    )?);
     let nonce = Key::<32>::try_from("26f7553354482a1d91d4784627854b8da6b8042a7966523c2b404e8dbbe7f7f2")?;
     let nonce = PasetoNonce::<V1, Local>::from(&nonce);
 
@@ -265,11 +275,11 @@ mod v1_test_vectors {
   fn test_1_s_1() -> Result<()> {
     let private_key = include_bytes!("v1_public_test_vectors_private_key.pk8");
     let pk: &[u8] = private_key;
-    let private_key = PasetoKey::<V1, Public>::from(pk);
+    let private_key = PasetoAsymmetricPrivateKey::<V1, Public>::from(pk);
 
     let public_key = include_bytes!("v1_public_test_vectors_public_key.der");
     let pubk: &[u8] = public_key;
-    let public_key = PasetoKey::<V1, Public>::from(pubk);
+    let public_key = PasetoAsymmetricPublicKey::<V1, Public>::from(pubk);
 
     let payload = json!({"data": "this is a signed message", "exp":"2019-01-01T00:00:00+00:00"}).to_string();
     let payload = payload.as_str();
@@ -291,11 +301,12 @@ mod v1_test_vectors {
     //setup
     let private_key = include_bytes!("v1_public_test_vectors_private_key.pk8");
     let pk: &[u8] = private_key;
-    let private_key = PasetoKey::<V1, Public>::from(pk);
+
+    let private_key = PasetoAsymmetricPrivateKey::<V1, Public>::from(pk);
 
     let public_key = include_bytes!("v1_public_test_vectors_public_key.der");
     let pubk: &[u8] = public_key;
-    let public_key = PasetoKey::<V1, Public>::from(pubk);
+    let public_key = PasetoAsymmetricPublicKey::<V1, Public>::from(pubk);
 
     let payload = json!({"data": "this is a signed message","exp": "2019-01-01T00:00:00+00:00"}).to_string();
     let footer = json!({"kid":"zVhMiPBP9fRf2snEcT7gFTioeA9COcNy9DfgL1W60haN"}).to_string();
@@ -324,11 +335,12 @@ mod v1_test_vectors {
     //setup
     let private_key = include_bytes!("v1_public_test_vectors_private_key.pk8");
     let pk: &[u8] = private_key;
-    let private_key = PasetoKey::<V1, Public>::from(pk);
+
+    let private_key = PasetoAsymmetricPrivateKey::<V1, Public>::from(pk);
 
     let public_key = include_bytes!("v1_public_test_vectors_public_key.der");
     let pubk: &[u8] = public_key;
-    let public_key = PasetoKey::<V1, Public>::from(pubk);
+    let public_key = PasetoAsymmetricPublicKey::<V1, Public>::from(pubk);
 
     let payload = json!({"data": "this is a signed message","exp": "2019-01-01T00:00:00+00:00"}).to_string();
     let footer = json!({"kid":"zVhMiPBP9fRf2snEcT7gFTioeA9COcNy9DfgL1W60haN"}).to_string();

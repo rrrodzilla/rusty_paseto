@@ -71,42 +71,42 @@ impl<'a, Version, Purpose> Default for PasetoBuilder<'a, Version, Purpose> {
 }
 
 impl PasetoBuilder<'_, V1, Local> {
-  pub fn build(&mut self, key: &PasetoKey<V1, Local>) -> Result<String, GenericBuilderError> {
+  pub fn build(&mut self, key: &PasetoSymmetricKey<V1, Local>) -> Result<String, GenericBuilderError> {
     self.verify_ready_to_build()?;
     self.builder.try_encrypt(key)
   }
 }
 
 impl PasetoBuilder<'_, V2, Local> {
-  pub fn build(&mut self, key: &PasetoKey<V2, Local>) -> Result<String, GenericBuilderError> {
+  pub fn build(&mut self, key: &PasetoSymmetricKey<V2, Local>) -> Result<String, GenericBuilderError> {
     self.verify_ready_to_build()?;
     self.builder.try_encrypt(key)
   }
 }
 
 impl PasetoBuilder<'_, V3, Local> {
-  pub fn build(&mut self, key: &PasetoKey<V3, Local>) -> Result<String, GenericBuilderError> {
+  pub fn build(&mut self, key: &PasetoSymmetricKey<V3, Local>) -> Result<String, GenericBuilderError> {
     self.verify_ready_to_build()?;
     self.builder.try_encrypt(key)
   }
 }
 
 impl PasetoBuilder<'_, V4, Local> {
-  pub fn build(&mut self, key: &PasetoKey<V4, Local>) -> Result<String, GenericBuilderError> {
+  pub fn build(&mut self, key: &PasetoSymmetricKey<V4, Local>) -> Result<String, GenericBuilderError> {
     self.verify_ready_to_build()?;
     self.builder.try_encrypt(key)
   }
 }
 
 impl PasetoBuilder<'_, V1, Public> {
-  pub fn build(&mut self, key: &PasetoKey<V1, Public>) -> Result<String, GenericBuilderError> {
+  pub fn build(&mut self, key: &PasetoAsymmetricPrivateKey<V1, Public>) -> Result<String, GenericBuilderError> {
     self.verify_ready_to_build()?;
     self.builder.try_sign(key)
   }
 }
 
 impl PasetoBuilder<'_, V2, Public> {
-  pub fn build(&mut self, key: &PasetoKey<V2, Public>) -> Result<String, GenericBuilderError> {
+  pub fn build(&mut self, key: &PasetoAsymmetricPrivateKey<V2, Public>) -> Result<String, GenericBuilderError> {
     self.verify_ready_to_build()?;
     self.builder.try_sign(key)
   }
@@ -115,7 +115,7 @@ impl PasetoBuilder<'_, V2, Public> {
 //TODO V3, Public
 
 impl PasetoBuilder<'_, V4, Public> {
-  pub fn build(&mut self, key: &PasetoKey<V4, Public>) -> Result<String, GenericBuilderError> {
+  pub fn build(&mut self, key: &PasetoAsymmetricPrivateKey<V4, Public>) -> Result<String, GenericBuilderError> {
     self.verify_ready_to_build()?;
     self.builder.try_sign(key)
   }
@@ -132,9 +132,8 @@ mod paseto_builder {
   #[test]
   fn duplicate_top_level_claim_test() -> Result<()> {
     //create a key
-    let key = Key::<32>::from(*b"wubbalubbadubdubwubbalubbadubdub");
-    let key = PasetoKey::<V2, Local>::from(&key);
 
+    let key = PasetoSymmetricKey::<V2, Local>::from(Key::from(*b"wubbalubbadubdubwubbalubbadubdub"));
     let tomorrow = (Utc::now() + Duration::days(1)).to_rfc3339();
 
     //create a builder, with default IssuedAtClaim
@@ -158,9 +157,8 @@ mod paseto_builder {
   #[test]
   fn update_default_issued_at_claim_test() -> Result<()> {
     //create a key
-    let key = Key::<32>::from(*b"wubbalubbadubdubwubbalubbadubdub");
-    let key = PasetoKey::<V2, Local>::from(&key);
 
+    let key = PasetoSymmetricKey::<V2, Local>::from(Key::from(*b"wubbalubbadubdubwubbalubbadubdub"));
     let tomorrow = (Utc::now() + Duration::days(1)).to_rfc3339();
 
     //create a builder, with default IssuedAtClaim
@@ -195,9 +193,8 @@ mod paseto_builder {
   #[test]
   fn check_for_default_issued_at_claim_test() -> Result<()> {
     //create a key
-    let key = Key::<32>::from(*b"wubbalubbadubdubwubbalubbadubdub");
-    let key = PasetoKey::<V2, Local>::from(&key);
 
+    let key = PasetoSymmetricKey::<V2, Local>::from(Key::from(*b"wubbalubbadubdubwubbalubbadubdub"));
     //create a builder, with default IssuedAtClaim
     let token = PasetoBuilder::<V2, Local>::default().build(&key)?;
 
@@ -227,9 +224,8 @@ mod paseto_builder {
   #[test]
   fn update_default_expiration_claim_test() -> Result<()> {
     //create a key
-    let key = Key::<32>::from(*b"wubbalubbadubdubwubbalubbadubdub");
-    let key = PasetoKey::<V2, Local>::from(&key);
 
+    let key = PasetoSymmetricKey::<V2, Local>::from(Key::from(*b"wubbalubbadubdubwubbalubbadubdub"));
     let in_4_days = (Utc::now() + Duration::days(4)).to_rfc3339();
 
     //create a builder, with default IssuedAtClaim
@@ -264,9 +260,8 @@ mod paseto_builder {
   #[test]
   fn check_for_default_expiration_claim_test() -> Result<()> {
     //create a key
-    let key = Key::<32>::from(*b"wubbalubbadubdubwubbalubbadubdub");
-    let key = PasetoKey::<V2, Local>::from(&key);
 
+    let key = PasetoSymmetricKey::<V2, Local>::from(Key::from(*b"wubbalubbadubdubwubbalubbadubdub"));
     //create a builder, with default IssuedAtClaim
     let token = PasetoBuilder::<V2, Local>::default().build(&key)?;
 
@@ -297,9 +292,8 @@ mod paseto_builder {
   #[test]
   fn full_paseto_builder_test() -> Result<()> {
     //create a key
-    let key = Key::<32>::from(*b"wubbalubbadubdubwubbalubbadubdub");
-    let key = PasetoKey::<V2, Local>::from(&key);
 
+    let key = PasetoSymmetricKey::<V2, Local>::from(Key::from(*b"wubbalubbadubdubwubbalubbadubdub"));
     let footer = Footer::from("some footer");
 
     //create a builder, add some claims and then build the token with the key

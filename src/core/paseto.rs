@@ -1,4 +1,4 @@
-use super::key::{Key, PasetoKey, PasetoNonce};
+use super::key::{Key, PasetoAsymmetricPrivateKey, PasetoAsymmetricPublicKey, PasetoNonce, PasetoSymmetricKey};
 use super::traits::{Base64Encodable, ImplicitAssertionCapable, PurposeTrait, V1orV3, VersionTrait};
 use super::{Footer, Header, ImplicitAssertion, Local, PasetoError, Payload, Public, V1, V2, V3, V4};
 use aes::{cipher::generic_array::GenericArray, Aes256Ctr};
@@ -123,7 +123,7 @@ where
 impl<'a> Paseto<'a, V1, Public> {
   pub fn try_verify(
     signature: &'a str,
-    public_key: &PasetoKey<V1, Public>,
+    public_key: &PasetoAsymmetricPublicKey<V1, Public>,
     footer: (impl Into<Option<Footer<'a>>> + Copy),
   ) -> Result<String, PasetoError> {
     let decoded_payload = Self::parse_raw_token(signature, footer, &V1::default(), &Public::default())?;
@@ -135,7 +135,7 @@ impl<'a> Paseto<'a, V1, Public> {
     Ok(String::from_utf8(ciphertext)?)
   }
 
-  pub fn try_sign(&mut self, key: &PasetoKey<V1, Public>) -> Result<String, PasetoError> {
+  pub fn try_sign(&mut self, key: &PasetoAsymmetricPrivateKey<V1, Public>) -> Result<String, PasetoError> {
     let footer = self.footer.unwrap_or_default();
 
     let key_pair = RsaKeyPair::from_pkcs8(key.as_ref()).expect("Bad Private Key pkcs!");
@@ -158,7 +158,7 @@ impl<'a> Paseto<'a, V1, Public> {
 impl<'a> Paseto<'a, V2, Public> {
   pub fn try_verify(
     signature: &'a str,
-    public_key: &PasetoKey<V2, Public>,
+    public_key: &PasetoAsymmetricPublicKey<V2, Public>,
     footer: (impl Into<Option<Footer<'a>>> + Copy),
   ) -> Result<String, PasetoError> {
     let decoded_payload = Self::parse_raw_token(signature, footer, &V2::default(), &Public::default())?;
@@ -181,7 +181,7 @@ impl<'a> Paseto<'a, V2, Public> {
     Ok(String::from_utf8(Vec::from(msg))?)
   }
 
-  pub fn try_sign(&mut self, key: &PasetoKey<V2, Public>) -> Result<String, PasetoError> {
+  pub fn try_sign(&mut self, key: &PasetoAsymmetricPrivateKey<V2, Public>) -> Result<String, PasetoError> {
     let footer = self.footer.unwrap_or_default();
 
     let keypair = Keypair::from_bytes(key.as_ref())?;
@@ -200,7 +200,7 @@ impl<'a> Paseto<'a, V1, Local> {
   /// Parse an untrusted token string to validate and decrypt into a plaintext payload
   pub fn try_decrypt(
     token: &'a str,
-    key: &PasetoKey<V1, Local>,
+    key: &PasetoSymmetricKey<V1, Local>,
     footer: (impl Into<Option<Footer<'a>>> + Copy),
   ) -> Result<String, PasetoError> {
     let decoded_payload = Self::parse_raw_token(token, footer, &V1::default(), &Local::default())?;
@@ -239,7 +239,7 @@ impl<'a> Paseto<'a, V1, Local> {
 
   pub fn try_encrypt(
     &mut self,
-    key: &PasetoKey<V1, Local>,
+    key: &PasetoSymmetricKey<V1, Local>,
     nonce: &PasetoNonce<V1, Local>,
   ) -> Result<String, PasetoError> {
     //setup
@@ -276,11 +276,72 @@ impl<'a> Paseto<'a, V1, Local> {
   }
 }
 
+impl<'a> Paseto<'a, V2, Local> {
+  pub fn try_decrypt(
+    token: &'a str,
+    key: &PasetoSymmetricKey<V2, Local>,
+    footer: (impl Into<Option<Footer<'a>>> + Copy),
+  ) -> Result<String, PasetoError> {
+    //get footer
+
+    let decoded_payload = Self::parse_raw_token(token, footer, &V2::default(), &Local::default())?;
+    let (nonce, ciphertext) = decoded_payload.split_at(24);
+
+    //pack preauth
+    let pae = &PreAuthenticationEncoding::parse(&[
+      &Header::<V2, Local>::default(),
+      nonce,
+      &footer.into().unwrap_or_default(),
+    ]);
+
+    //create the nonce
+    let nonce = XNonce::from_slice(nonce);
+
+    //encrypt payload
+    let ciphertext = CipherText::<V2, Local>::try_decrypt_from(key, nonce, ciphertext, pae)?;
+
+    //generate appended and base64 encoded payload
+    let decoded_str = str::from_utf8(&ciphertext)?;
+
+    //return decrypted payload
+    Ok(decoded_str.to_owned())
+  }
+
+  pub fn try_encrypt(
+    &self,
+    key: &PasetoSymmetricKey<V2, Local>,
+    nonce: &PasetoNonce<V2, Local>,
+  ) -> Result<String, PasetoError> {
+    //setup
+    let footer = self.footer.unwrap_or_default();
+
+    //create the blake2 context to generate the nonce
+    let mut blake2 = VarBlake2b::new_keyed(nonce.as_ref(), 24);
+    blake2.update(&*self.payload);
+    let context = blake2.finalize_boxed();
+
+    //create the nonce
+    let nonce = XNonce::from_slice(&context);
+
+    //pack preauth
+    let pae = PreAuthenticationEncoding::parse(&[&self.header, nonce, &footer]);
+
+    //encrypt payload
+    let ciphertext = CipherText::<V2, Local>::try_from(key, nonce, &self.payload, &pae)?;
+
+    //generate appended and base64 encoded payload
+    let raw_payload = RawPayload::<V2, Local>::from(&context, &ciphertext);
+
+    //format as paseto with header and optional footer
+    Ok(self.format_token(&raw_payload))
+  }
+}
+
 impl<'a> Paseto<'a, V3, Local> {
   /// Parse an untrusted token string to validate and decrypt into a plaintext payload
   pub fn try_decrypt(
     token: &'a str,
-    key: &PasetoKey<V3, Local>,
+    key: &PasetoSymmetricKey<V3, Local>,
     footer: (impl Into<Option<Footer<'a>>> + Copy),
     implicit_assertion: (impl Into<Option<ImplicitAssertion<'a>>> + Copy),
   ) -> Result<String, PasetoError> {
@@ -322,7 +383,7 @@ impl<'a> Paseto<'a, V3, Local> {
 
   pub fn try_encrypt(
     &mut self,
-    key: &PasetoKey<V3, Local>,
+    key: &PasetoSymmetricKey<V3, Local>,
     nonce: &PasetoNonce<V3, Local>,
   ) -> Result<String, PasetoError> {
     //setup
@@ -355,7 +416,7 @@ impl<'a> Paseto<'a, V3, Local> {
 impl<'a> Paseto<'a, V4, Local> {
   pub fn try_decrypt(
     token: &'a str,
-    key: &PasetoKey<V4, Local>,
+    key: &PasetoSymmetricKey<V4, Local>,
     footer: (impl Into<Option<Footer<'a>>> + Copy),
     implicit_assertion: (impl Into<Option<ImplicitAssertion<'a>>> + Copy),
   ) -> Result<String, PasetoError> {
@@ -397,7 +458,7 @@ impl<'a> Paseto<'a, V4, Local> {
 
   pub fn try_encrypt(
     &mut self,
-    key: &PasetoKey<V4, Local>,
+    key: &PasetoSymmetricKey<V4, Local>,
     nonce: &PasetoNonce<V4, Local>,
   ) -> Result<String, PasetoError> {
     //setup
@@ -430,7 +491,7 @@ impl<'a> Paseto<'a, V4, Local> {
 impl<'a> Paseto<'a, V4, Public> {
   pub fn try_verify(
     signature: &'a str,
-    public_key: &PasetoKey<V4, Public>,
+    public_key: &PasetoAsymmetricPublicKey<V4, Public>,
     footer: (impl Into<Option<Footer<'a>>> + Copy),
     implicit_assertion: (impl Into<Option<ImplicitAssertion<'a>>> + Copy),
   ) -> Result<String, PasetoError> {
@@ -453,7 +514,7 @@ impl<'a> Paseto<'a, V4, Public> {
     Ok(String::from_utf8(Vec::from(msg))?)
   }
 
-  pub fn try_sign(&mut self, key: &PasetoKey<V4, Public>) -> Result<String, PasetoError> {
+  pub fn try_sign(&mut self, key: &PasetoAsymmetricPrivateKey<V4, Public>) -> Result<String, PasetoError> {
     let footer = self.footer.unwrap_or_default();
     let assertion = self.implicit_assertion.unwrap_or_default();
     let keypair = Keypair::from_bytes(key.as_ref())?;
@@ -464,63 +525,6 @@ impl<'a> Paseto<'a, V4, Public> {
 
     let raw_payload = RawPayload::<V4, Public>::from(&self.payload, &signature);
 
-    Ok(self.format_token(&raw_payload))
-  }
-}
-
-impl<'a> Paseto<'a, V2, Local> {
-  pub fn try_decrypt(
-    token: &'a str,
-    key: &PasetoKey<V2, Local>,
-    footer: (impl Into<Option<Footer<'a>>> + Copy),
-  ) -> Result<String, PasetoError> {
-    //get footer
-
-    let decoded_payload = Self::parse_raw_token(token, footer, &V2::default(), &Local::default())?;
-    let (nonce, ciphertext) = decoded_payload.split_at(24);
-
-    //pack preauth
-    let pae = &PreAuthenticationEncoding::parse(&[
-      &Header::<V2, Local>::default(),
-      nonce,
-      &footer.into().unwrap_or_default(),
-    ]);
-
-    //create the nonce
-    let nonce = XNonce::from_slice(nonce);
-
-    //encrypt payload
-    let ciphertext = CipherText::<V2, Local>::try_decrypt_from(key, nonce, ciphertext, pae)?;
-
-    //generate appended and base64 encoded payload
-    let decoded_str = str::from_utf8(&ciphertext)?;
-
-    //return decrypted payload
-    Ok(decoded_str.to_owned())
-  }
-
-  pub fn try_encrypt(&self, key: &PasetoKey<V2, Local>, nonce: &PasetoNonce<V2, Local>) -> Result<String, PasetoError> {
-    //setup
-    let footer = self.footer.unwrap_or_default();
-
-    //create the blake2 context to generate the nonce
-    let mut blake2 = VarBlake2b::new_keyed(nonce.as_ref(), 24);
-    blake2.update(&*self.payload);
-    let context = blake2.finalize_boxed();
-
-    //create the nonce
-    let nonce = XNonce::from_slice(&context);
-
-    //pack preauth
-    let pae = PreAuthenticationEncoding::parse(&[&self.header, nonce, &footer]);
-
-    //encrypt payload
-    let ciphertext = CipherText::<V2, Local>::try_from(key, nonce, &self.payload, &pae)?;
-
-    //generate appended and base64 encoded payload
-    let raw_payload = RawPayload::<V2, Local>::from(&context, &ciphertext);
-
-    //format as paseto with header and optional footer
     Ok(self.format_token(&raw_payload))
   }
 }
@@ -572,7 +576,7 @@ impl CipherText<V1, Local> {
 
 impl CipherText<V2, Local> {
   fn try_decrypt_from(
-    key: &PasetoKey<V2, Local>,
+    key: &PasetoSymmetricKey<V2, Local>,
     nonce: &XNonce,
     payload: &[u8],
     pre_auth: &PreAuthenticationEncoding,
@@ -599,7 +603,7 @@ impl CipherText<V2, Local> {
   }
 
   fn try_from(
-    key: &PasetoKey<V2, Local>,
+    key: &PasetoSymmetricKey<V2, Local>,
     nonce: &XNonce,
     payload: &[u8],
     pre_auth: &PreAuthenticationEncoding,
@@ -811,7 +815,7 @@ struct EncryptionKey<Version, Purpose> {
 impl EncryptionKey<V1, Local> {
   fn try_from(
     message: &Key<21>,
-    key: &PasetoKey<V1, Local>,
+    key: &PasetoSymmetricKey<V1, Local>,
     nonce: &PasetoNonce<V1, Local>,
   ) -> Result<Self, PasetoError> {
     let info = message.as_ref();
@@ -832,7 +836,7 @@ impl EncryptionKey<V1, Local> {
 }
 
 impl EncryptionKey<V3, Local> {
-  fn try_from(message: &Key<53>, key: &PasetoKey<V3, Local>) -> Result<Self, PasetoError> {
+  fn try_from(message: &Key<53>, key: &PasetoSymmetricKey<V3, Local>) -> Result<Self, PasetoError> {
     let info = message.as_ref();
     let salt = hkdf::Salt::new(hkdf::HKDF_SHA384, &[]);
 
@@ -852,7 +856,7 @@ impl EncryptionKey<V3, Local> {
 }
 
 impl EncryptionKey<V4, Local> {
-  fn from(message: &Key<53>, key: &PasetoKey<V4, Local>) -> Self {
+  fn from(message: &Key<53>, key: &PasetoSymmetricKey<V4, Local>) -> Self {
     //let mut context = Blake2b::new_keyed(key.as_ref(), 56);
     let mut context = VarBlake2b::new_keyed(key.as_ref(), 56);
     context.update(message.as_ref());
@@ -933,7 +937,7 @@ struct AuthenticationKey<Version, Purpose> {
 impl AuthenticationKey<V1, Local> {
   fn try_from(
     message: &[u8; 24],
-    key: &PasetoKey<V1, Local>,
+    key: &PasetoSymmetricKey<V1, Local>,
     nonce: &PasetoNonce<V1, Local>,
   ) -> Result<Self, PasetoError> {
     let info = message.as_ref();
@@ -949,7 +953,7 @@ impl AuthenticationKey<V1, Local> {
 }
 
 impl AuthenticationKey<V3, Local> {
-  fn try_from(message: &Key<56>, key: &PasetoKey<V3, Local>) -> Result<Self, PasetoError> {
+  fn try_from(message: &Key<56>, key: &PasetoSymmetricKey<V3, Local>) -> Result<Self, PasetoError> {
     let info = message.as_ref();
     let salt = hkdf::Salt::new(hkdf::HKDF_SHA384, &[]);
     let HkdfKey(out) = salt.extract(key.as_ref()).expand(&[info], HkdfKey(48))?.try_into()?;
@@ -963,7 +967,7 @@ impl AuthenticationKey<V3, Local> {
 }
 
 impl AuthenticationKey<V4, Local> {
-  fn from(message: &Key<56>, key: &PasetoKey<V4, Local>) -> Self {
+  fn from(message: &Key<56>, key: &PasetoSymmetricKey<V4, Local>) -> Self {
     let mut context = VarBlake2b::new_keyed(key.as_ref(), 32);
     context.update(message.as_ref());
     Self {

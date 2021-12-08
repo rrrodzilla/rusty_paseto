@@ -1,7 +1,8 @@
 use super::GenericParserError;
 use crate::generic::{
   claims::{PasetoClaim, PasetoClaimError, ValidatorFn, ValidatorMap},
-  Footer, ImplicitAssertion, ImplicitAssertionCapable, Local, Paseto, PasetoKey, Public, V1, V2, V3, V4,
+  Footer, ImplicitAssertion, ImplicitAssertionCapable, Local, Paseto, PasetoAsymmetricPublicKey, PasetoSymmetricKey,
+  Public, V1, V2, V3, V4,
 };
 
 use core::marker::PhantomData;
@@ -131,7 +132,11 @@ impl<'a, Version, Purpose> GenericParser<'a, Version, Purpose> {
 }
 
 impl<'a> GenericParser<'a, V1, Local> {
-  pub fn parse(&self, potential_token: &'a str, key: &'a PasetoKey<V1, Local>) -> Result<Value, GenericParserError> {
+  pub fn parse(
+    &self,
+    potential_token: &'a str,
+    key: &'a PasetoSymmetricKey<V1, Local>,
+  ) -> Result<Value, GenericParserError> {
     //decrypt, then validate
     let token = Paseto::<V1, Local>::try_decrypt(potential_token, key, self.get_footer())?;
 
@@ -143,7 +148,7 @@ impl<'a> GenericParser<'a, V2, Local> {
   pub fn parse(
     &mut self,
     potential_token: &'a str,
-    key: &'a PasetoKey<V2, Local>,
+    key: &'a PasetoSymmetricKey<V2, Local>,
   ) -> Result<Value, GenericParserError> {
     //first we need to verify the token
     let token = Paseto::<V2, Local>::try_decrypt(potential_token, key, self.get_footer())?;
@@ -156,7 +161,7 @@ impl<'a> GenericParser<'a, V3, Local> {
   pub fn parse(
     &mut self,
     potential_token: &'a str,
-    key: &'a PasetoKey<V3, Local>,
+    key: &'a PasetoSymmetricKey<V3, Local>,
   ) -> Result<Value, GenericParserError> {
     //first we need to verify the token
     let token =
@@ -170,7 +175,7 @@ impl<'a> GenericParser<'a, V4, Local> {
   pub fn parse(
     &mut self,
     potential_token: &'a str,
-    key: &'a PasetoKey<V4, Local>,
+    key: &'a PasetoSymmetricKey<V4, Local>,
   ) -> Result<Value, GenericParserError> {
     //first we need to verify the token
     let token =
@@ -184,7 +189,7 @@ impl<'a> GenericParser<'a, V1, Public> {
   pub fn parse(
     &mut self,
     potential_token: &'a str,
-    key: &'a PasetoKey<V1, Public>,
+    key: &'a PasetoAsymmetricPublicKey<V1, Public>,
   ) -> Result<Value, GenericParserError> {
     //first we need to verify the token
     let token = Paseto::<V1, Public>::try_verify(potential_token, key, self.get_footer())?;
@@ -197,7 +202,7 @@ impl<'a> GenericParser<'a, V2, Public> {
   pub fn parse(
     &mut self,
     potential_token: &'a str,
-    key: &'a PasetoKey<V2, Public>,
+    key: &'a PasetoAsymmetricPublicKey<V2, Public>,
   ) -> Result<Value, GenericParserError> {
     //first we need to verify the token
     let token = Paseto::<V2, Public>::try_verify(potential_token, key, self.get_footer())?;
@@ -212,7 +217,7 @@ impl<'a> GenericParser<'a, V4, Public> {
   pub fn parse(
     &mut self,
     potential_token: &'a str,
-    key: &'a PasetoKey<V4, Public>,
+    key: &'a PasetoAsymmetricPublicKey<V4, Public>,
   ) -> Result<Value, GenericParserError> {
     //first we need to verify the token
     let token =
@@ -240,10 +245,10 @@ mod parsers {
   fn full_parser_test_v2_public() -> Result<()> {
     //create a key
     let private_key = Key::<64>::try_from("b4cbfb43df4ce210727d953e4a713307fa19bb7d9f85041438d9e11b942a37741eb9dbbbbc047c03fd70604e0071f0987e16b28b757225c11f00415d0e20b1a2")?;
-    let private_key = PasetoKey::<V2, Public>::from(&private_key);
+    let private_key = PasetoAsymmetricPrivateKey::<V2, Public>::from(&private_key);
 
     let public_key = Key::<32>::try_from("1eb9dbbbbc047c03fd70604e0071f0987e16b28b757225c11f00415d0e20b1a2")?;
-    let public_key = PasetoKey::<V2, Public>::from(&public_key);
+    let public_key = PasetoAsymmetricPublicKey::<V2, Public>::from(&public_key);
 
     //    let key = Key::<V2, Public>::from(*b"wubbalubbadubdubwubbalubbadubdub");
     let footer = Footer::from("some footer");
@@ -295,8 +300,7 @@ mod parsers {
   #[test]
   fn full_parser_test() -> Result<()> {
     //create a key
-    let k = Key::from(*b"wubbalubbadubdubwubbalubbadubdub");
-    let key = PasetoKey::<V2, Local>::from(&k);
+    let key = PasetoSymmetricKey::<V2, Local>::from(Key::from(*b"wubbalubbadubdubwubbalubbadubdub"));
     let footer = Footer::from("some footer");
 
     //create a builder, add some claims and then build the token with the key
@@ -346,9 +350,8 @@ mod parsers {
   #[test]
   fn basic_claim_validation_test() -> Result<()> {
     //create a key
-    let key = Key::<32>::from(*b"wubbalubbadubdubwubbalubbadubdub");
-    let key = PasetoKey::<V2, Local>::from(&key);
 
+    let key = PasetoSymmetricKey::<V2, Local>::from(Key::from(*b"wubbalubbadubdubwubbalubbadubdub"));
     //create a builder, add some claims and then build the token with the key
     let token = GenericBuilder::<V2, Local>::default()
       .set_claim(AudienceClaim::from("customers"))
@@ -373,9 +376,8 @@ mod parsers {
   #[test]
   fn claim_custom_validator_test() -> Result<()> {
     //create a key
-    let key = Key::<32>::from(*b"wubbalubbadubdubwubbalubbadubdub");
-    let key = PasetoKey::<V2, Local>::from(&key);
 
+    let key = PasetoSymmetricKey::<V2, Local>::from(Key::from(*b"wubbalubbadubdubwubbalubbadubdub"));
     //create a builder, add some claims and then build the token with the key
     let token = GenericBuilder::<V2, Local>::default()
       .set_claim(AudienceClaim::from("customers"))
@@ -408,9 +410,8 @@ mod parsers {
   #[test]
   fn claim_custom_validator_failure_test() -> Result<()> {
     //create a key
-    let key = Key::<32>::from(*b"wubbalubbadubdubwubbalubbadubdub");
-    let key = PasetoKey::<V2, Local>::from(&key);
 
+    let key = PasetoSymmetricKey::<V2, Local>::from(Key::from(*b"wubbalubbadubdubwubbalubbadubdub"));
     //create a builder, add some claims and then build the token with the key
     let token = GenericBuilder::<V2, Local>::default()
       .set_claim(AudienceClaim::from("customers"))
@@ -446,9 +447,8 @@ mod parsers {
   #[test]
   fn custom_claim_custom_validator_test() -> Result<()> {
     //create a key
-    let key = Key::<32>::from(*b"wubbalubbadubdubwubbalubbadubdub");
-    let key = PasetoKey::<V2, Local>::from(&key);
 
+    let key = PasetoSymmetricKey::<V2, Local>::from(Key::from(*b"wubbalubbadubdubwubbalubbadubdub"));
     //create a builder, add some claims and then build the token with the key
     let token = GenericBuilder::<V2, Local>::default()
       .set_claim(CustomClaim::try_from(("seats", 4))?)
@@ -485,9 +485,8 @@ mod parsers {
   #[test]
   fn missing_claim_validation_test() -> Result<()> {
     //create a key
-    let key = Key::<32>::from(*b"wubbalubbadubdubwubbalubbadubdub");
-    let key = PasetoKey::<V2, Local>::from(&key);
 
+    let key = PasetoSymmetricKey::<V2, Local>::from(Key::from(*b"wubbalubbadubdubwubbalubbadubdub"));
     //create a builder, add no claims and then build the token with the key
     let token = GenericBuilder::<V2, Local>::default().try_encrypt(&key)?;
 

@@ -7,8 +7,9 @@ mod v3_test_vectors {
   #[test]
   fn test_3_e_1() -> Result<()> {
     //setup
-    let key = Key::<32>::try_from("707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f")?;
-    let key = PasetoKey::<V3, Local>::from(&key);
+    let key = PasetoSymmetricKey::<V3, Local>::from(Key::<32>::try_from(
+      "707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f",
+    )?);
     let nonce = Key::<32>::try_from("0000000000000000000000000000000000000000000000000000000000000000")?;
     let nonce = PasetoNonce::<V3, Local>::from(&nonce);
 
@@ -32,9 +33,9 @@ mod v3_test_vectors {
 
   #[test]
   fn test_3_e_2() -> Result<()> {
-    //setup
-    let key = Key::<32>::try_from("707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f")?;
-    let key = PasetoKey::<V3, Local>::from(&key);
+    let key = PasetoSymmetricKey::<V3, Local>::from(Key::<32>::try_from(
+      "707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f",
+    )?);
     let nonce = Key::<32>::try_from("0000000000000000000000000000000000000000000000000000000000000000")?;
     let nonce = PasetoNonce::<V3, Local>::from(&nonce);
 
@@ -59,8 +60,10 @@ mod v3_test_vectors {
   #[test]
   fn test_3_e_3() -> Result<()> {
     //setup
-    let key = Key::<32>::try_from("707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f")?;
-    let key = PasetoKey::<V3, Local>::from(&key);
+
+    let key = PasetoSymmetricKey::<V3, Local>::from(Key::<32>::try_from(
+      "707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f",
+    )?);
     let nonce = Key::<32>::try_from("26f7553354482a1d91d4784627854b8da6b8042a7966523c2b404e8dbbe7f7f2")?;
     let nonce = PasetoNonce::<V3, Local>::from(&nonce);
 
@@ -85,8 +88,10 @@ mod v3_test_vectors {
   #[test]
   fn test_3_e_4() -> Result<()> {
     //setup
-    let key = Key::<32>::try_from("707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f")?;
-    let key = PasetoKey::<V3, Local>::from(&key);
+
+    let key = PasetoSymmetricKey::<V3, Local>::from(Key::<32>::try_from(
+      "707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f",
+    )?);
     let nonce = Key::<32>::try_from("26f7553354482a1d91d4784627854b8da6b8042a7966523c2b404e8dbbe7f7f2")?;
     let nonce = PasetoNonce::<V3, Local>::from(&nonce);
 
@@ -111,8 +116,10 @@ mod v3_test_vectors {
   #[test]
   fn test_3_e_5() -> Result<()> {
     //setup
-    let key = Key::<32>::try_from("707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f")?;
-    let key = PasetoKey::<V3, Local>::from(&key);
+
+    let key = PasetoSymmetricKey::<V3, Local>::from(Key::<32>::try_from(
+      "707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f",
+    )?);
     let nonce = Key::<32>::try_from("26f7553354482a1d91d4784627854b8da6b8042a7966523c2b404e8dbbe7f7f2")?;
     let nonce = PasetoNonce::<V3, Local>::from(&nonce);
 
@@ -141,8 +148,10 @@ mod v3_test_vectors {
   #[test]
   fn test_3_e_6() -> Result<()> {
     //setup
-    let key = Key::<32>::try_from("707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f")?;
-    let key = PasetoKey::<V3, Local>::from(&key);
+
+    let key = PasetoSymmetricKey::<V3, Local>::from(Key::<32>::try_from(
+      "707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f",
+    )?);
     let nonce = Key::<32>::try_from("26f7553354482a1d91d4784627854b8da6b8042a7966523c2b404e8dbbe7f7f2")?;
     let nonce = PasetoNonce::<V3, Local>::from(&nonce);
 
@@ -171,8 +180,10 @@ mod v3_test_vectors {
   #[test]
   fn test_3_e_7() -> Result<()> {
     //setup
-    let key = Key::<32>::try_from("707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f")?;
-    let key = PasetoKey::<V3, Local>::from(&key);
+
+    let key = PasetoSymmetricKey::<V3, Local>::from(Key::<32>::try_from(
+      "707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f",
+    )?);
     let nonce = Key::<32>::try_from("26f7553354482a1d91d4784627854b8da6b8042a7966523c2b404e8dbbe7f7f2")?;
     let nonce = PasetoNonce::<V3, Local>::from(&nonce);
 
@@ -206,8 +217,10 @@ mod v3_test_vectors {
   #[test]
   fn test_3_e_8() -> Result<()> {
     //setup
-    let key = Key::<32>::try_from("707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f")?;
-    let key = PasetoKey::<V3, Local>::from(&key);
+
+    let key = PasetoSymmetricKey::<V3, Local>::from(Key::<32>::try_from(
+      "707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f",
+    )?);
     let nonce = Key::<32>::try_from("26f7553354482a1d91d4784627854b8da6b8042a7966523c2b404e8dbbe7f7f2")?;
     let nonce = PasetoNonce::<V3, Local>::from(&nonce);
 
@@ -241,8 +254,10 @@ mod v3_test_vectors {
   #[test]
   fn test_3_e_9() -> Result<()> {
     //setup
-    let key = Key::<32>::try_from("707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f")?;
-    let key = PasetoKey::<V3, Local>::from(&key);
+
+    let key = PasetoSymmetricKey::<V3, Local>::from(Key::<32>::try_from(
+      "707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f",
+    )?);
     let nonce = Key::<32>::try_from("26f7553354482a1d91d4784627854b8da6b8042a7966523c2b404e8dbbe7f7f2")?;
     let nonce = PasetoNonce::<V3, Local>::from(&nonce);
 

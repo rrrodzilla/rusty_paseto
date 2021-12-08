@@ -1,6 +1,6 @@
 use crate::generic::{
   claims::PasetoClaim, Footer, GenericBuilderError, ImplicitAssertion, ImplicitAssertionCapable, Key, Local, Paseto,
-  PasetoKey, PasetoNonce, Payload, Public, V1, V2, V3, V4,
+  PasetoAsymmetricPrivateKey, PasetoNonce, PasetoSymmetricKey, Payload, Public, V1, V2, V3, V4,
 };
 use core::marker::PhantomData;
 use std::{collections::HashMap, mem::take};
@@ -81,7 +81,7 @@ impl<Version, Purpose> Default for GenericBuilder<'_, Version, Purpose> {
 }
 
 impl GenericBuilder<'_, V1, Local> {
-  pub fn try_encrypt(&mut self, key: &PasetoKey<V1, Local>) -> Result<String, GenericBuilderError> {
+  pub fn try_encrypt(&mut self, key: &PasetoSymmetricKey<V1, Local>) -> Result<String, GenericBuilderError> {
     let mut token_builder = Paseto::<V1, Local>::builder();
 
     let payload = self.build_payload_from_claims()?;
@@ -95,7 +95,7 @@ impl GenericBuilder<'_, V1, Local> {
 }
 
 impl GenericBuilder<'_, V2, Local> {
-  pub fn try_encrypt(&mut self, key: &PasetoKey<V2, Local>) -> Result<String, GenericBuilderError> {
+  pub fn try_encrypt(&mut self, key: &PasetoSymmetricKey<V2, Local>) -> Result<String, GenericBuilderError> {
     let mut token_builder = Paseto::<V2, Local>::builder();
 
     let payload = self.build_payload_from_claims()?;
@@ -109,7 +109,7 @@ impl GenericBuilder<'_, V2, Local> {
 }
 
 impl GenericBuilder<'_, V3, Local> {
-  pub fn try_encrypt(&mut self, key: &PasetoKey<V3, Local>) -> Result<String, GenericBuilderError> {
+  pub fn try_encrypt(&mut self, key: &PasetoSymmetricKey<V3, Local>) -> Result<String, GenericBuilderError> {
     let mut token_builder = Paseto::<V3, Local>::builder();
 
     let payload = self.build_payload_from_claims()?;
@@ -124,7 +124,7 @@ impl GenericBuilder<'_, V3, Local> {
 }
 
 impl GenericBuilder<'_, V4, Local> {
-  pub fn try_encrypt(&mut self, key: &PasetoKey<V4, Local>) -> Result<String, GenericBuilderError> {
+  pub fn try_encrypt(&mut self, key: &PasetoSymmetricKey<V4, Local>) -> Result<String, GenericBuilderError> {
     let mut token_builder = Paseto::<V4, Local>::builder();
 
     let payload = self.build_payload_from_claims()?;
@@ -143,7 +143,7 @@ impl GenericBuilder<'_, V4, Local> {
 }
 
 impl GenericBuilder<'_, V1, Public> {
-  pub fn try_sign(&mut self, key: &PasetoKey<V1, Public>) -> Result<String, GenericBuilderError> {
+  pub fn try_sign(&mut self, key: &PasetoAsymmetricPrivateKey<V1, Public>) -> Result<String, GenericBuilderError> {
     let mut token_builder = Paseto::<V1, Public>::builder();
 
     let payload = self.build_payload_from_claims()?;
@@ -156,7 +156,7 @@ impl GenericBuilder<'_, V1, Public> {
 }
 
 impl GenericBuilder<'_, V2, Public> {
-  pub fn try_sign(&mut self, key: &PasetoKey<V2, Public>) -> Result<String, GenericBuilderError> {
+  pub fn try_sign(&mut self, key: &PasetoAsymmetricPrivateKey<V2, Public>) -> Result<String, GenericBuilderError> {
     let mut token_builder = Paseto::<V2, Public>::builder();
 
     let payload = self.build_payload_from_claims()?;
@@ -171,7 +171,7 @@ impl GenericBuilder<'_, V2, Public> {
 //TODO: V3, Public
 
 impl GenericBuilder<'_, V4, Public> {
-  pub fn try_sign(&mut self, key: &PasetoKey<V4, Public>) -> Result<String, GenericBuilderError> {
+  pub fn try_sign(&mut self, key: &PasetoAsymmetricPrivateKey<V4, Public>) -> Result<String, GenericBuilderError> {
     let mut token_builder = Paseto::<V4, Public>::builder();
 
     let payload = self.build_payload_from_claims()?;
@@ -198,9 +198,7 @@ mod builders {
   #[test]
   fn full_builder_test() -> Result<()> {
     //create a key
-    let k = Key::<32>::from(*b"wubbalubbadubdubwubbalubbadubdub");
-    //create a key
-    let key = PasetoKey::<V2, Local>::from(&k);
+    let key = PasetoSymmetricKey::<V2, Local>::from(Key::<32>::from(*b"wubbalubbadubdubwubbalubbadubdub"));
 
     let footer = Footer::from("some footer");
 
@@ -240,10 +238,8 @@ mod builders {
   #[test]
   fn dynamic_claims_test() -> Result<()> {
     //create a key
-    let k = Key::<32>::from(*b"wubbalubbadubdubwubbalubbadubdub");
-    //create a key
-    let key = PasetoKey::<V2, Local>::from(&k);
 
+    let key = PasetoSymmetricKey::<V2, Local>::from(Key::<32>::from(*b"wubbalubbadubdubwubbalubbadubdub"));
     //create a builder, add some claims dynamically
     let mut builder = GenericBuilder::<V2, Local>::default();
     builder.set_claim(ExpirationClaim::try_from("2019-01-01T00:00:00+00:00")?);
@@ -269,10 +265,7 @@ mod builders {
 
   #[test]
   fn test_no_claims() -> Result<()> {
-    let k = Key::<32>::from(*b"wubbalubbadubdubwubbalubbadubdub");
-    //create a key
-    let key = PasetoKey::<V2, Local>::from(&k);
-
+    let key = PasetoSymmetricKey::<V2, Local>::from(Key::<32>::from(*b"wubbalubbadubdubwubbalubbadubdub"));
     //create a builder, add no claims and then build the token with the key
     let token = GenericBuilder::<V2, Local>::default().try_encrypt(&key)?;
 

@@ -31,8 +31,7 @@
 //! use rusty_paseto::prelude::*;
 //!
 //! // create a key specifying the PASETO version and purpose
-//! let key = Key::<32>::from(b"wubbalubbadubdubwubbalubbadubdub");
-//! let key = PasetoKey::<V2, Local>::from(&key);
+//! let key = PasetoSymmetricKey::<V2, Local>::from(Key::<32>::from(b"wubbalubbadubdubwubbalubbadubdub"));
 //! // use a default token builder with the same PASETO version and purpose
 //! let token = PasetoBuilder::<V2, Local>::default().build(&key)?;
 //! // token is a String in the form: "v2.local.encoded-payload"
@@ -54,8 +53,7 @@
 //! You can parse and validate an existing token with the following:
 //! ```
 //! # use rusty_paseto::prelude::*;
-//! let key = Key::<32>::from(b"wubbalubbadubdubwubbalubbadubdub");
-//! let key = PasetoKey::<V2, Local>::from(&key);
+//! let key = PasetoSymmetricKey::<V2, Local>::from(Key::<32>::from(b"wubbalubbadubdubwubbalubbadubdub"));
 //! # // use a default token builder with the same PASETO version and purpose
 //! # let token = PasetoBuilder::<V2, Local>::default().build(&key)?;
 //! // now we can parse and validate the token with a parser that returns a serde_json::Value
@@ -83,8 +81,7 @@
 //! following:
 //! ```rust
 //! use rusty_paseto::prelude::*;
-//! let key = Key::<32>::from(b"wubbalubbadubdubwubbalubbadubdub");
-//! let key = PasetoKey::<V2, Local>::from(&key);
+//! let key = PasetoSymmetricKey::<V2, Local>::from(Key::<32>::from(b"wubbalubbadubdubwubbalubbadubdub"));
 //! let token = PasetoBuilder::<V2, Local>::default()
 //!   // note how we set the footer here
 //!   .set_footer(&Footer::from("Sometimes science is more art than science"))
@@ -97,8 +94,7 @@
 //! And parse it by passing in the same expected footer
 //! ```
 //! # use rusty_paseto::prelude::*;
-//! # let key = Key::<32>::from(b"wubbalubbadubdubwubbalubbadubdub");
-//! # let key = PasetoKey::<V2, Local>::from(&key);
+//! # let key = PasetoSymmetricKey::<V2, Local>::from(Key::<32>::from(b"wubbalubbadubdubwubbalubbadubdub"));
 //! # // use a default token builder with the same PASETO version and purpose
 //! # let token = PasetoBuilder::<V2, Local>::default()
 //! #   .set_footer(&Footer::from("Sometimes science is more art than science"))
@@ -126,8 +122,7 @@
 //! # use chrono::{Utc, Duration};
 //! // must include
 //! use std::convert::TryFrom;
-//! let key = Key::<32>::from(b"wubbalubbadubdubwubbalubbadubdub");
-//! let key = PasetoKey::<V2, Local>::from(&key);
+//! let key = PasetoSymmetricKey::<V2, Local>::from(Key::<32>::from(b"wubbalubbadubdubwubbalubbadubdub"));
 //! // real-world example using the chrono crate to expire 5 minutes from now
 //! let in_5_minutes = (Utc::now() + Duration::minutes(5)).to_rfc3339();
 //!
@@ -157,8 +152,7 @@
 //! # use chrono::{Utc, Duration};
 //! # use std::convert::TryFrom;
 //! # let in_5_minutes = (Utc::now() + Duration::minutes(5)).to_rfc3339();
-//! # let key = Key::<32>::from(b"wubbalubbadubdubwubbalubbadubdub");
-//! # let key = PasetoKey::<V2, Local>::from(&key);
+//! # let key = PasetoSymmetricKey::<V2, Local>::from(Key::<32>::from(b"wubbalubbadubdubwubbalubbadubdub"));
 //! let token = PasetoBuilder::<V2, Local>::default()
 //!   .set_claim(ExpirationClaim::try_from(in_5_minutes)?)
 //!   // even if you set an expiration claim (as above) it will be ignored
@@ -177,8 +171,7 @@
 //! # use chrono::{Utc, Duration};
 //! # // must include
 //! # use std::convert::TryFrom;
-//! # let key = Key::<32>::from(b"wubbalubbadubdubwubbalubbadubdub");
-//! # let key = PasetoKey::<V2, Local>::from(&key);
+//! # let key = PasetoSymmetricKey::<V2, Local>::from(Key::<32>::from(b"wubbalubbadubdubwubbalubbadubdub"));
 //! # // real-world example using the chrono crate to expire 5 minutes from now
 //! # let in_5_minutes = (Utc::now() + Duration::minutes(5)).to_rfc3339();
 //! // real-world example using the chrono crate to prevent the token from being used before 2
@@ -218,8 +211,7 @@
 //! # use chrono::{Utc, Duration};
 //! # // must include
 //! # use std::convert::TryFrom;
-//! # let key = Key::<32>::from(b"wubbalubbadubdubwubbalubbadubdub");
-//! # let key = PasetoKey::<V2, Local>::from(&key);
+//! # let key = PasetoSymmetricKey::<V2, Local>::from(Key::<32>::from(b"wubbalubbadubdubwubbalubbadubdub"));
 //! let token = PasetoBuilder::<V2, Local>::default()
 //!   .set_claim(CustomClaim::try_from(("Co-star", "Morty Smith"))?)
 //!   .set_claim(CustomClaim::try_from(("Universe", 137))?)
@@ -233,8 +225,7 @@
 //! # use chrono::{Utc, Duration};
 //! # // must include
 //! # use std::convert::TryFrom;
-//! # let key = Key::<32>::from(b"wubbalubbadubdubwubbalubbadubdub");
-//! # let key = PasetoKey::<V2, Local>::from(&key);
+//! # let key = PasetoSymmetricKey::<V2, Local>::from(Key::<32>::from(b"wubbalubbadubdubwubbalubbadubdub"));
 //! // "exp" is a reserved PASETO claim key, you should use the ExpirationClaim type
 //! let token = PasetoBuilder::<V2, Local>::default()
 //!   .set_claim(CustomClaim::try_from(("exp", "Some expiration value"))?)
@@ -253,8 +244,7 @@
 //! # use std::convert::TryFrom;
 //!
 //! # // create a key specifying the PASETO version and purpose
-//! # let key = Key::<32>::from(b"wubbalubbadubdubwubbalubbadubdub");
-//! # let key = PasetoKey::<V2, Local>::from(&key);
+//! # let key = PasetoSymmetricKey::<V2, Local>::from(Key::<32>::from(b"wubbalubbadubdubwubbalubbadubdub"));
 //! // use a default token builder with the same PASETO version and purpose
 //! let token = PasetoBuilder::<V2, Local>::default()
 //!   .set_claim(SubjectClaim::from("Get schwifty"))
@@ -290,8 +280,7 @@
 //! # use std::convert::TryFrom;
 //!
 //! # // create a key specifying the PASETO version and purpose
-//! # let key = Key::<32>::from(b"wubbalubbadubdubwubbalubbadubdub");
-//! # let key = PasetoKey::<V2, Local>::from(&key);
+//! # let key = PasetoSymmetricKey::<V2, Local>::from(Key::<32>::from(b"wubbalubbadubdubwubbalubbadubdub"));
 //! // use a default token builder with the same PASETO version and purpose
 //! let token = PasetoBuilder::<V2, Local>::default()
 //!   .set_claim(SubjectClaim::from("Get schwifty"))
@@ -325,8 +314,7 @@
 //! # use std::convert::TryFrom;
 //!
 //! # // create a key specifying the PASETO version and purpose
-//! # let key = Key::<32>::from(b"wubbalubbadubdubwubbalubbadubdub");
-//! # let key = PasetoKey::<V2, Local>::from(&key);
+//! # let key = PasetoSymmetricKey::<V2, Local>::from(Key::<32>::from(b"wubbalubbadubdubwubbalubbadubdub"));
 //! // 136 is not a prime number
 //! let token = PasetoBuilder::<V2, Local>::default()
 //!   .set_claim(CustomClaim::try_from(("Universe", 136))?)

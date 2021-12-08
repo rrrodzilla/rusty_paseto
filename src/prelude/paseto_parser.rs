@@ -99,42 +99,50 @@ impl<'a, Version, Purpose> Default for PasetoParser<'a, Version, Purpose> {
 }
 
 impl<'a> PasetoParser<'a, V1, Local> {
-  pub fn parse(&mut self, token: &'a str, key: &'a PasetoKey<V1, Local>) -> Result<Value, GenericParserError> {
+  pub fn parse(&mut self, token: &'a str, key: &'a PasetoSymmetricKey<V1, Local>) -> Result<Value, GenericParserError> {
     //return the full json value to the user
     self.parser.parse(token, key)
   }
 }
 
 impl<'a> PasetoParser<'a, V2, Local> {
-  pub fn parse(&mut self, token: &'a str, key: &'a PasetoKey<V2, Local>) -> Result<Value, GenericParserError> {
+  pub fn parse(&mut self, token: &'a str, key: &'a PasetoSymmetricKey<V2, Local>) -> Result<Value, GenericParserError> {
     //return the full json value to the user
     self.parser.parse(token, key)
   }
 }
 
 impl<'a> PasetoParser<'a, V3, Local> {
-  pub fn parse(&mut self, token: &'a str, key: &'a PasetoKey<V3, Local>) -> Result<Value, GenericParserError> {
+  pub fn parse(&mut self, token: &'a str, key: &'a PasetoSymmetricKey<V3, Local>) -> Result<Value, GenericParserError> {
     //return the full json value to the user
     self.parser.parse(token, key)
   }
 }
 
 impl<'a> PasetoParser<'a, V4, Local> {
-  pub fn parse(&mut self, token: &'a str, key: &'a PasetoKey<V4, Local>) -> Result<Value, GenericParserError> {
+  pub fn parse(&mut self, token: &'a str, key: &'a PasetoSymmetricKey<V4, Local>) -> Result<Value, GenericParserError> {
     //return the full json value to the user
     self.parser.parse(token, key)
   }
 }
 
 impl<'a> PasetoParser<'a, V1, Public> {
-  pub fn parse(&mut self, token: &'a str, key: &'a PasetoKey<V1, Public>) -> Result<Value, GenericParserError> {
+  pub fn parse(
+    &mut self,
+    token: &'a str,
+    key: &'a PasetoAsymmetricPublicKey<V1, Public>,
+  ) -> Result<Value, GenericParserError> {
     //return the full json value to the user
     self.parser.parse(token, key)
   }
 }
 
 impl<'a> PasetoParser<'a, V2, Public> {
-  pub fn parse(&mut self, token: &'a str, key: &'a PasetoKey<V2, Public>) -> Result<Value, GenericParserError> {
+  pub fn parse(
+    &mut self,
+    token: &'a str,
+    key: &'a PasetoAsymmetricPublicKey<V2, Public>,
+  ) -> Result<Value, GenericParserError> {
     //return the full json value to the user
     self.parser.parse(token, key)
   }
@@ -143,7 +151,11 @@ impl<'a> PasetoParser<'a, V2, Public> {
 //TODO: V3, Public
 
 impl<'a> PasetoParser<'a, V4, Public> {
-  pub fn parse(&mut self, token: &'a str, key: &'a PasetoKey<V4, Public>) -> Result<Value, GenericParserError> {
+  pub fn parse(
+    &mut self,
+    token: &'a str,
+    key: &'a PasetoAsymmetricPublicKey<V4, Public>,
+  ) -> Result<Value, GenericParserError> {
     //return the full json value to the user
     self.parser.parse(token, key)
   }
@@ -161,9 +173,8 @@ mod paseto_parser {
   #[test]
   fn usage_before_ready_test() -> Result<()> {
     //create a key
-    let k = Key::from(*b"wubbalubbadubdubwubbalubbadubdub");
-    let key = PasetoKey::<V2, Local>::from(&k);
 
+    let key = PasetoSymmetricKey::<V2, Local>::from(Key::from(*b"wubbalubbadubdubwubbalubbadubdub"));
     let not_before = Utc::now() + Duration::hours(1);
     //create a default builder
     let token = PasetoBuilder::<V2, Local>::default()
@@ -181,9 +192,8 @@ mod paseto_parser {
   #[test]
   fn non_expiring_token_claim_test() -> Result<()> {
     //create a key
-    let k = Key::from(*b"wubbalubbadubdubwubbalubbadubdub");
-    let key = PasetoKey::<V2, Local>::from(&k);
 
+    let key = PasetoSymmetricKey::<V2, Local>::from(Key::from(*b"wubbalubbadubdubwubbalubbadubdub"));
     //we're going to set a token expiration date to 10 minutes ago
     let expired = Utc::now() + Duration::minutes(-10);
 
@@ -207,9 +217,8 @@ mod paseto_parser {
   #[test]
   fn expired_token_claim_test() -> Result<()> {
     //create a key
-    let k = Key::from(*b"wubbalubbadubdubwubbalubbadubdub");
-    let key = PasetoKey::<V2, Local>::from(&k);
 
+    let key = PasetoSymmetricKey::<V2, Local>::from(Key::from(*b"wubbalubbadubdubwubbalubbadubdub"));
     let expired = Utc::now() + Duration::minutes(-10);
     //create a default builder
     let token = PasetoBuilder::<V2, Local>::default()
@@ -228,12 +237,12 @@ mod paseto_parser {
   fn basic_paseto_parser_test_v2_public() -> Result<()> {
     //setup
     let public_key = Key::<32>::try_from("1eb9dbbbbc047c03fd70604e0071f0987e16b28b757225c11f00415d0e20b1a2")?;
-    let public_key = PasetoKey::<V2, Public>::from(&public_key);
+    let public_key = PasetoAsymmetricPublicKey::<V2, Public>::from(&public_key);
 
     let private_key = Key::<64>::try_from(
               "b4cbfb43df4ce210727d953e4a713307fa19bb7d9f85041438d9e11b942a37741eb9dbbbbc047c03fd70604e0071f0987e16b28b757225c11f00415d0e20b1a2"
           )?;
-    let private_key = PasetoKey::<V2, Public>::from(&private_key);
+    let private_key = PasetoAsymmetricPrivateKey::<V2, Public>::from(&private_key);
 
     //create a default builder
     let token = PasetoBuilder::<V2, Public>::default().build(&private_key)?;
@@ -256,9 +265,8 @@ mod paseto_parser {
   #[test]
   fn basic_paseto_parser_test() -> Result<()> {
     //create a key
-    let k = Key::from(*b"wubbalubbadubdubwubbalubbadubdub");
-    let key = PasetoKey::<V2, Local>::from(&k);
 
+    let key = PasetoSymmetricKey::<V2, Local>::from(Key::from(*b"wubbalubbadubdubwubbalubbadubdub"));
     //create a default builder
     let token = PasetoBuilder::<V2, Local>::default().build(&key)?;
 
@@ -280,9 +288,8 @@ mod paseto_parser {
   #[test]
   fn update_default_issued_at_claim_test() -> Result<()> {
     //create a key
-    let k = Key::from(*b"wubbalubbadubdubwubbalubbadubdub");
-    let key = PasetoKey::<V2, Local>::from(&k);
 
+    let key = PasetoSymmetricKey::<V2, Local>::from(Key::from(*b"wubbalubbadubdubwubbalubbadubdub"));
     let tomorrow = (Utc::now() + Duration::days(1)).to_rfc3339();
 
     //create a builder, with default IssuedAtClaim
@@ -315,9 +322,8 @@ mod paseto_parser {
   #[test]
   fn check_for_default_issued_at_claim_test() -> Result<()> {
     //create a key
-    let k = Key::from(*b"wubbalubbadubdubwubbalubbadubdub");
-    let key = PasetoKey::<V2, Local>::from(&k);
 
+    let key = PasetoSymmetricKey::<V2, Local>::from(Key::from(*b"wubbalubbadubdubwubbalubbadubdub"));
     //create a builder, with default IssuedAtClaim
     let token = PasetoBuilder::<V2, Local>::default().build(&key)?;
 
@@ -345,9 +351,8 @@ mod paseto_parser {
   #[test]
   fn update_default_expiration_claim_test() -> Result<()> {
     //create a key
-    let k = Key::from(*b"wubbalubbadubdubwubbalubbadubdub");
-    let key = PasetoKey::<V2, Local>::from(&k);
 
+    let key = PasetoSymmetricKey::<V2, Local>::from(Key::from(*b"wubbalubbadubdubwubbalubbadubdub"));
     let in_4_days = (Utc::now() + Duration::days(4)).to_rfc3339();
 
     //create a builder, with default IssuedAtClaim
@@ -380,9 +385,8 @@ mod paseto_parser {
   #[test]
   fn check_for_default_expiration_claim_test() -> Result<()> {
     //create a key
-    let k = Key::from(*b"wubbalubbadubdubwubbalubbadubdub");
-    let key = PasetoKey::<V2, Local>::from(&k);
 
+    let key = PasetoSymmetricKey::<V2, Local>::from(Key::from(*b"wubbalubbadubdubwubbalubbadubdub"));
     //create a builder, with default ExpirationClaim
     let token = PasetoBuilder::<V2, Local>::default().build(&key)?;
 
@@ -411,9 +415,8 @@ mod paseto_parser {
   #[test]
   fn full_paseto_parser_test() -> Result<()> {
     //create a key
-    let k = Key::from(*b"wubbalubbadubdubwubbalubbadubdub");
-    let key = PasetoKey::<V2, Local>::from(&k);
 
+    let key = PasetoSymmetricKey::<V2, Local>::from(Key::from(*b"wubbalubbadubdubwubbalubbadubdub"));
     let footer = Footer::from("some footer");
 
     //create a builder, add some claims and then build the token with the key

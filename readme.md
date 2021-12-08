@@ -21,6 +21,6 @@ Paseto is everything you love about JOSE (JWT, JWE, JWS) without any of the
 | Generic Token Parser		| :green_circle: | :green_circle: | :green_circle: | :green_circle: | :green_circle: | :black_circle: | :green_circle: | :green_circle: |
 | Encryption/Signing		| :green_circle: |  :green_circle: | :green_circle: | :green_circle: | :green_circle: | :black_circle: | :green_circle: | :green_circle: |
 | Decryption/Verification	| :green_circle: |  :green_circle: | :green_circle: | :green_circle: | :green_circle: | :black_circle: | :green_circle: | :green_circle: |
-| [PASETO Test vectors](https://github.com/paseto-standard/test-vectors)  | :black_circle: | :black_circle: | :green_circle: | :green_circle: | :green_circle: | :black_circle: | :green_circle: | :green_circle: |
+| [PASETO Test vectors](https://github.com/paseto-standard/test-vectors)  | :green_circle: | :green_circle: | :green_circle: | :green_circle: | :green_circle: | :black_circle: | :green_circle: | :green_circle: |
 | Documentation			| :black_circle: | :black_circle: | :orange_circle: | :black_circle: | :black_circle: | :black_circle: | :black_circle: | :black_circle: |
 

@@ -1,6 +1,6 @@
 [package]
 name = "rusty_paseto"
-version = "0.2.0"
+version = "0.2.01"
 edition = "2021"
 rust-version = "1.57.0"
 

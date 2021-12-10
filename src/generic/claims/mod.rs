@@ -30,18 +30,18 @@ mod unit_tests {
   //TODO: need more comprehensive tests than these to flesh out the additionl error types
   use super::*;
   use anyhow::Result;
-  use chrono::prelude::*;
+  //use chrono::prelude::*;
   use std::convert::TryFrom;
+  use time::format_description::well_known::Rfc3339;
 
   #[test]
   fn test_expiration_claim() -> Result<()> {
     // setup
     // a good time format
-    let now = Local::now();
-    let s = now.to_rfc3339();
+    let now = time::OffsetDateTime::now_utc().format(&Rfc3339)?;
 
     assert!(ExpirationClaim::try_from("hello").is_err());
-    let claim = ExpirationClaim::try_from(s.as_str());
+    let claim = ExpirationClaim::try_from(now);
     assert!(claim.is_ok());
     let claim = claim.unwrap();
 
@@ -54,11 +54,10 @@ mod unit_tests {
   fn test_not_before_claim() -> Result<()> {
     // setup
     // a good time format
-    let now = Local::now();
-    let s = now.to_rfc3339();
+    let now = time::OffsetDateTime::now_utc().format(&Rfc3339)?;
 
     assert!(NotBeforeClaim::try_from("hello").is_err());
-    let claim = NotBeforeClaim::try_from(s.as_str());
+    let claim = NotBeforeClaim::try_from(now);
     assert!(claim.is_ok());
     let claim = claim.unwrap();
 
@@ -71,11 +70,10 @@ mod unit_tests {
   fn test_issued_at_claim() -> Result<()> {
     // setup
     // a good time format
-    let now = Local::now();
-    let s = now.to_rfc3339();
+    let now = time::OffsetDateTime::now_utc().format(&Rfc3339)?;
 
     assert!(IssuedAtClaim::try_from("hello").is_err());
-    let claim = IssuedAtClaim::try_from(s.as_str());
+    let claim = IssuedAtClaim::try_from(now);
     assert!(claim.is_ok());
     let claim = claim.unwrap();
 

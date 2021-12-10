@@ -41,7 +41,7 @@ impl<'a, Version, Purpose> PasetoBuilder<'a, Version, Purpose> {
     self
   }
 
-  pub fn set_footer(&mut self, footer: &'a Footer) -> &mut Self {
+  pub fn set_footer(&mut self, footer: Footer<'a>) -> &mut Self {
     self.builder.set_footer(footer);
     self
   }
@@ -56,6 +56,15 @@ impl<'a, Version, Purpose> PasetoBuilder<'a, Version, Purpose> {
       return Err(GenericBuilderError::DuplicateTopLevelPayloadClaim(dup_key.to_string()));
     }
     Ok(())
+  }
+}
+impl<'a, Version, Purpose> PasetoBuilder<'a, Version, Purpose>
+where
+  Version: ImplicitAssertionCapable,
+{
+  pub fn set_implicit_assertion(&mut self, implicit_assertion: ImplicitAssertion<'a>) -> &mut Self {
+    self.builder.set_implicit_assertion(implicit_assertion);
+    self
   }
 }
 
@@ -308,7 +317,7 @@ mod paseto_builder {
       .set_claim(CustomClaim::try_from(("data", "this is a secret message"))?)
       .set_claim(CustomClaim::try_from(("seats", 4))?)
       .set_claim(CustomClaim::try_from(("pi to 6 digits", 3.141526))?)
-      .set_footer(&footer)
+      .set_footer(footer)
       .build(&key)?;
 
     //now let's decrypt the token and verify the values

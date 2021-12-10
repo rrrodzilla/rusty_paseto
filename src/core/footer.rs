@@ -2,6 +2,24 @@ use super::*;
 use std::fmt;
 use std::ops::Deref;
 
+/// Unencrypted text, potentially JSON or some other structured format, typically used for key rotation schemes, packed into the
+/// payload as part of the cipher scheme.  
+///
+/// # Usage
+/// ```
+/// # use rusty_paseto::prelude::*;
+/// # let key = PasetoSymmetricKey::<V2, Local>::from(Key::<32>::from(b"wubbalubbadubdubwubbalubbadubdub"));
+/// let token = PasetoBuilder::<V2, Local>::default()
+///   // note how we set the footer here
+///   .set_footer(Footer::from("Sometimes science is more art than science"))
+///   .build(&key)?;
+///
+///    // the footer same footer should be used to parse the token
+/// let json_value = PasetoParser::<V2, Local>::default()
+///   .set_footer(Footer::from("Sometimes science is more art than science"))
+///   .parse(&token, &key)?;
+/// # Ok::<(),anyhow::Error>(())
+/// ```
 #[derive(Default, Debug, Clone, Copy)]
 pub struct Footer<'a>(&'a str);
 

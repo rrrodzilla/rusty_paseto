@@ -2,6 +2,12 @@
 name = "rusty_paseto"
 version = "0.2.3"
 edition = "2021"
+readme = "readme.md"
+authors = ["Roland Rodriguez <rolandrodriguez@gmail.com"]
+description = "A type-driven, ergonomic implementation of the PASETO protocol for secure stateless tokens."
+license = "MIT OR Apache-2.0"
+keywords = ["crypto", "cryptography", "authentication", "paseto", "token", "security", "api", "web"]
+categories = ["cryptography", "authentication", "encoding", "network-programming", "web-programming"]
 
 [lib]
 #doctest = false

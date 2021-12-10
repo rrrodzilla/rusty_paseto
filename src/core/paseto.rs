@@ -114,6 +114,7 @@ where
   Purpose: PurposeTrait,
   Version: ImplicitAssertionCapable,
 {
+  /// Note: Only for V3, V4 tokens
   pub fn set_implicit_assertion(&mut self, implicit_assertion: ImplicitAssertion<'a>) -> &mut Self {
     self.implicit_assertion = Some(implicit_assertion);
     self
@@ -121,6 +122,7 @@ where
 }
 
 impl<'a> Paseto<'a, V1, Public> {
+  /// Verifies a signed V1 Public Paseto
   pub fn try_verify(
     signature: &'a str,
     public_key: &PasetoAsymmetricPublicKey<V1, Public>,
@@ -135,10 +137,13 @@ impl<'a> Paseto<'a, V1, Public> {
     Ok(String::from_utf8(ciphertext)?)
   }
 
+  /// Attempts to sign a V1 Public Paseto
+  /// Fails with a PasetoError if the token is malformed or the private key isn't in a valid pkcs#8
+  /// format
   pub fn try_sign(&mut self, key: &PasetoAsymmetricPrivateKey<V1, Public>) -> Result<String, PasetoError> {
     let footer = self.footer.unwrap_or_default();
 
-    let key_pair = RsaKeyPair::from_pkcs8(key.as_ref()).expect("Bad Private Key pkcs!");
+    let key_pair = RsaKeyPair::from_pkcs8(key.as_ref())?;
 
     let pae = PreAuthenticationEncoding::parse(&[&self.header, &self.payload, &footer]);
     let random = SystemRandom::new();
@@ -156,6 +161,9 @@ impl<'a> Paseto<'a, V1, Public> {
 }
 
 impl<'a> Paseto<'a, V2, Public> {
+  /// Attempts to verify a signed V2 Public Paseto
+  /// Fails with a PasetoError if the token is malformed or the token cannot be verified with the
+  /// passed public key
   pub fn try_verify(
     signature: &'a str,
     public_key: &PasetoAsymmetricPublicKey<V2, Public>,
@@ -181,6 +189,8 @@ impl<'a> Paseto<'a, V2, Public> {
     Ok(String::from_utf8(Vec::from(msg))?)
   }
 
+  /// Attempts to sign a V2 Public Paseto
+  /// Fails with a PasetoError if the token is malformed or the private key can't be parsed
   pub fn try_sign(&mut self, key: &PasetoAsymmetricPrivateKey<V2, Public>) -> Result<String, PasetoError> {
     let footer = self.footer.unwrap_or_default();
 
@@ -197,7 +207,8 @@ impl<'a> Paseto<'a, V2, Public> {
 }
 
 impl<'a> Paseto<'a, V1, Local> {
-  /// Parse an untrusted token string to validate and decrypt into a plaintext payload
+  /// Attempt to parse an untrusted token string to validate and decrypt into a plaintext payload
+  /// Fails with a PasetoError if the token is malformed or can't be decrypted
   pub fn try_decrypt(
     token: &'a str,
     key: &PasetoSymmetricKey<V1, Local>,
@@ -237,6 +248,8 @@ impl<'a> Paseto<'a, V1, Local> {
     Ok(decoded_str.to_owned())
   }
 
+  /// Attempt to encrypt a V1, Local Paseto token
+  /// Fails with a PasetoError if the token is malformed or can't be encrypted
   pub fn try_encrypt(
     &mut self,
     key: &PasetoSymmetricKey<V1, Local>,

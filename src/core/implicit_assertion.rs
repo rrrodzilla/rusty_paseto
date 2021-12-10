@@ -1,6 +1,25 @@
 use std::fmt;
 use std::ops::Deref;
 
+/// Unencrypted but authenticated data (like the optional footer), but is NOT stored in the PASETO token (thus, implicit) and MUST be asserted when verifying a token.
+/// The main purpose for Implicit Assertions is to bind the token to some value that, due to business reasons, shouldn't ever be revealed publicly (i.e., a primary key or foreign key from a relational database table).
+/// Implicit Assertions allow you to build systems that are impervious to Confused Deputy attacks without ever having to disclose these internal values.
+///
+/// # Usage
+/// ```
+/// # use rusty_paseto::prelude::*;
+/// # let key = PasetoSymmetricKey::<V4, Local>::from(Key::<32>::from(b"wubbalubbadubdubwubbalubbadubdub"));
+/// let token = PasetoBuilder::<V4, Local>::default()
+///   // note how we set the footer here
+///   .set_implicit_assertion(ImplicitAssertion::from("Sometimes science is more art than science"))
+///   .build(&key)?;
+///
+///    // the footer same footer should be used to parse the token
+/// let json_value = PasetoParser::<V4, Local>::default()
+///   .set_implicit_assertion(ImplicitAssertion::from("Sometimes science is more art than science"))
+///   .parse(&token, &key)?;
+/// # Ok::<(),anyhow::Error>(())
+/// ```
 #[derive(Default, Debug, Copy, Clone)]
 pub struct ImplicitAssertion<'a>(&'a str);
 

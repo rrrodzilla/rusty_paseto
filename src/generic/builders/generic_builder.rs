@@ -39,8 +39,8 @@ impl<'a, Version, Purpose> GenericBuilder<'a, Version, Purpose> {
     self
   }
 
-  pub fn set_footer(&mut self, footer: &'a Footer) -> &mut Self {
-    self.footer = Some(*footer);
+  pub fn set_footer(&mut self, footer: Footer<'a>) -> &mut Self {
+    self.footer = Some(footer);
     self
   }
 
@@ -68,8 +68,8 @@ impl<'a, Version, Purpose> GenericBuilder<'a, Version, Purpose>
 where
   Version: ImplicitAssertionCapable,
 {
-  pub fn set_implicit_assertion(&mut self, implicit_assertion: &'a ImplicitAssertion) -> &mut Self {
-    self.implicit_assertion = Some(*implicit_assertion);
+  pub fn set_implicit_assertion(&mut self, implicit_assertion: ImplicitAssertion<'a>) -> &mut Self {
+    self.implicit_assertion = Some(implicit_assertion);
     self
   }
 }
@@ -214,7 +214,7 @@ mod builders {
       .set_claim(CustomClaim::try_from(("data", "this is a secret message"))?)
       .set_claim(CustomClaim::try_from(("seats", 4))?)
       .set_claim(CustomClaim::try_from(("pi to 6 digits", 3.141526))?)
-      .set_footer(&footer)
+      .set_footer(footer)
       .try_encrypt(&key)?;
 
     //now let's decrypt the token and verify the values

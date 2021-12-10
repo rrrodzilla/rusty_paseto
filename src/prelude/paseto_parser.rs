@@ -431,7 +431,7 @@ mod paseto_parser {
       .set_claim(CustomClaim::try_from(("data", "this is a secret message"))?)
       .set_claim(CustomClaim::try_from(("seats", 4))?)
       .set_claim(CustomClaim::try_from(("pi to 6 digits", 3.141526))?)
-      .set_footer(&footer)
+      .set_footer(footer)
       .build(&key)?;
 
     //now let's decrypt the token and verify the values

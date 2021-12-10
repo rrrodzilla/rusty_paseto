@@ -21,7 +21,7 @@ impl TryFrom<&str> for IssuedAtClaim {
   fn try_from(value: &str) -> Result<Self, Self::Error> {
     match iso8601::datetime(value) {
       Ok(_) => Ok(Self(("iat".to_string(), value.to_string()))),
-      Err(_) => Err(PasetoClaimError::BadEmailAddress(value.to_string())),
+      Err(_) => Err(PasetoClaimError::RFC3339Date(value.to_string())),
     }
   }
 }
@@ -39,7 +39,7 @@ impl TryFrom<String> for IssuedAtClaim {
   fn try_from(value: String) -> Result<Self, Self::Error> {
     match iso8601::datetime(&value) {
       Ok(_) => Ok(Self(("iat".to_string(), value))),
-      Err(_) => Err(PasetoClaimError::BadEmailAddress(value.to_string())),
+      Err(_) => Err(PasetoClaimError::RFC3339Date(value.to_string())),
     }
   }
 }

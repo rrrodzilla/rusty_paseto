@@ -155,12 +155,12 @@
 //! PasetoClaimError>*
 //! ```rust
 //! # use rusty_paseto::prelude::*;
-//! # use chrono::{Utc, Duration};
 //! // must include
 //! use std::convert::TryFrom;
 //! let key = PasetoSymmetricKey::<V4, Local>::from(Key::from(b"wubbalubbadubdubwubbalubbadubdub"));
-//! // real-world example using the chrono crate to expire 5 minutes from now
-//! let in_5_minutes = (Utc::now() + Duration::minutes(5)).to_rfc3339();
+//! // real-world example using the time crate to expire 5 minutes from now
+//! # use time::format_description::well_known::Rfc3339;
+//! # let in_5_minutes = (time::OffsetDateTime::now_utc() + time::Duration::minutes(5)).format(&Rfc3339)?;
 //!
 //! let token = PasetoBuilder::<V4, Local>::default()
 //!   // note the TryFrom implmentation for ExpirationClaim
@@ -171,7 +171,7 @@
 //!
 //! // token is a String in the form: "v4.local.encoded-payload.footer"
 //!
-//! # Ok::<(),GenericBuilderError>(())
+//! # Ok::<(),anyhow::Error>(())
 //! ```
 
 //!
@@ -185,9 +185,9 @@
 //! The method call required to do so ensures readers of the code understand the implicit risk.
 //! ```rust
 //! # use rusty_paseto::prelude::*;
-//! # use chrono::{Utc, Duration};
+//! # use time::format_description::well_known::Rfc3339;
 //! # use std::convert::TryFrom;
-//! # let in_5_minutes = (Utc::now() + Duration::minutes(5)).to_rfc3339();
+//! # let in_5_minutes = (time::OffsetDateTime::now_utc() + time::Duration::minutes(5)).format(&Rfc3339)?;
 //! # let key = PasetoSymmetricKey::<V4, Local>::from(Key::from(b"wubbalubbadubdubwubbalubbadubdub"));
 //! let token = PasetoBuilder::<V4, Local>::default()
 //!   .set_claim(ExpirationClaim::try_from(in_5_minutes)?)
@@ -196,7 +196,7 @@
 //!   .set_no_expiration_danger_acknowledged()
 //!   .build(&key)?;
 //!
-//! # Ok::<(),GenericBuilderError>(())
+//! # Ok::<(),anyhow::Error>(())
 //! ```
 //!
 //! ## Setting PASETO Claims
@@ -204,15 +204,15 @@
 //! The PASETO specification includes [seven reserved claims](https://github.com/paseto-standard/paseto-spec/blob/master/docs/02-Implementation-Guide/04-Claims.md) which you can set with their explicit types:
 //! ```rust
 //! # use rusty_paseto::prelude::*;
-//! # use chrono::{Utc, Duration};
+//! # use time::format_description::well_known::Rfc3339;
 //! # // must include
 //! # use std::convert::TryFrom;
 //! # let key = PasetoSymmetricKey::<V4, Local>::from(Key::from(b"wubbalubbadubdubwubbalubbadubdub"));
-//! # // real-world example using the chrono crate to expire 5 minutes from now
-//! # let in_5_minutes = (Utc::now() + Duration::minutes(5)).to_rfc3339();
-//! // real-world example using the chrono crate to prevent the token from being used before 2
+//! # // real-world example using the time crate to expire 5 minutes from now
+//! # let in_5_minutes = (time::OffsetDateTime::now_utc() + time::Duration::minutes(5)).format(&Rfc3339)?;
+//! // real-world example using the time crate to prevent the token from being used before 2
 //! // minutes from now
-//! let in_2_minutes = (Utc::now() + Duration::minutes(2)).to_rfc3339();
+//! let in_2_minutes = (time::OffsetDateTime::now_utc() + time::Duration::minutes(2)).format(&Rfc3339)?;
 //!
 //! let token = PasetoBuilder::<V4, Local>::default()
 //!   //json payload key: "exp"
@@ -234,7 +234,7 @@
 //!   .set_claim(TokenIdentifierClaim::from("Planet Music - Season 988"))
 //!   .build(&key)?;
 //!
-//! # Ok::<(),GenericBuilderError>(())
+//! # Ok::<(),anyhow::Error>(())
 //! ```
 //!
 //! ## Setting your own Custom Claims
@@ -244,7 +244,6 @@
 //! #### Note: *CustomClaims use the TryFrom trait and return a Result<(), PasetoClaimError> if you attempt to use one of the [reserved PASETO keys](https://github.com/paseto-standard/paseto-spec/blob/master/docs/02-Implementation-Guide/04-Claims.md) in your CustomClaim*
 //! ```rust
 //! # use rusty_paseto::prelude::*;
-//! # use chrono::{Utc, Duration};
 //! # // must include
 //! # use std::convert::TryFrom;
 //! # let key = PasetoSymmetricKey::<V4, Local>::from(Key::from(b"wubbalubbadubdubwubbalubbadubdub"));
@@ -258,7 +257,6 @@
 //! This throws an error:
 //! ```should_panic
 //! # use rusty_paseto::prelude::*;
-//! # use chrono::{Utc, Duration};
 //! # // must include
 //! # use std::convert::TryFrom;
 //! # let key = PasetoSymmetricKey::<V4, Local>::from(Key::from(b"wubbalubbadubdubwubbalubbadubdub"));

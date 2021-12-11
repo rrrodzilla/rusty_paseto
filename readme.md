@@ -310,3 +310,6 @@ Paseto is everything you love about JOSE (JWT, JWE, JWS) without any of the
  - [paseto](https://crates.io/crates/paseto) - by [Cynthia Coan](https://crates.io/users/Mythra)
  - [pasetors](https://crates.io/crates/pasetors) - by [Johannes](https://crates.io/users/brycx)
 
+# Questions?
+
+File an issue or hit me up on [Twitter](https://twitter.com/rrrodzilla)!

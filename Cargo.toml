@@ -1,6 +1,6 @@
 [package]
 name = "rusty_paseto"
-version = "0.2.4"
+version = "0.2.5"
 edition = "2021"
 readme = "readme.md"
 authors = ["Roland Rodriguez <rolandrodriguez@gmail.com"]

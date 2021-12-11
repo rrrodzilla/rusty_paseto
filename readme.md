@@ -32,14 +32,14 @@ Paseto is everything you love about JOSE (JWT, JWE, JWS) without any of the
 
  # Usage
 
- ```Rust
+ ```rust
  // at the top of your source file
  use rusty_paseto::prelude::*;
  ```
  # Examples: Building and parsing tokens
 
  Here's a basic, default token:
- ```Rust
+ ```rust
  use rusty_paseto::prelude::*;
 
  // create a key specifying the PASETO version and purpose
@@ -61,7 +61,7 @@ Paseto is everything you love about JOSE (JWT, JWE, JWS) without any of the
 
 
  You can parse and validate an existing token with the following:
- ```Rust
+ ```rust
  let key = PasetoSymmetricKey::<V4, Local>::from(Key::from(b"wubbalubbadubdubwubbalubbadubdub"));
  // now we can parse and validate the token with a parser that returns a serde_json::Value
  let json_value = PasetoParser::<V4, Local>::default().parse(&token, &key)?;

@@ -27,7 +27,7 @@ Paseto is everything you love about JOSE (JWT, JWE, JWS) without any of the
 | Feature 			| Status | 
 | ------------: 		| :-----------:  |   
 | Feature gates			| :black_circle: |
-| PASERK suppor			| :black_circle: |
+| PASERK support			| :black_circle: |
 
 
  # Usage

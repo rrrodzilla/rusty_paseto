@@ -128,7 +128,7 @@ Paseto is everything you love about JOSE (JWT, JWE, JWS) without any of the
  // token is now a String in the form: "v4.local.encoded-payload.footer"
 
  ```
- And parse it by passing in the same expected implicit assertion
+ And parse it by passing in the same expected implicit assertion at parse time
  ```rust
  // now we can parse and validate the token with a parser that returns a serde_json::Value
  let json_value = PasetoParser::<V4, Local>::default()
@@ -144,7 +144,7 @@ Paseto is everything you love about JOSE (JWT, JWE, JWS) without any of the
  expiration time by adding an ExpirationClaim which takes an ISO 8601 (Rfc3339) compliant datetime string.
  #### Note: *claims taking an ISO 8601 (Rfc3339) string use the TryFrom trait and return a Result<(),PasetoClaimError>*
  ```rust
- # use rusty_paseto::prelude::*;
+use rusty_paseto::prelude::*;
  // must include
  use std::convert::TryFrom;
  let key = PasetoSymmetricKey::<V4, Local>::from(Key::from(b"wubbalubbadubdubwubbalubbadubdub"));
@@ -265,7 +265,7 @@ Paseto is everything you love about JOSE (JWT, JWE, JWS) without any of the
  the key and value of the claim you want to validate so you can implement any validation logic
  you choose.  
 
- Let's see how we can validate our tokens only contain universes with prime numbers:
+ Let's see how we can validate our tokens only contain universe values with prime numbers:
  ```rust
  // use a default token builder with the same PASETO version and purpose
  let token = PasetoBuilder::<V4, Local>::default()

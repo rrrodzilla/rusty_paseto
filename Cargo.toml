@@ -1,14 +1,15 @@
 [package]
 name = "rusty_paseto"
-version = "0.2.7"
+version = "0.2.8"
 edition = "2021"
 readme = "readme.md"
 authors = ["Roland Rodriguez <rolandrodriguez@gmail.com"]
-description = "A type-driven, ergonomic implementation of the PASETO protocol for secure stateless tokens."
+description = "A type-driven, ergonomic alternative to JWT for secure stateless PASETO protocol tokens."
 repository = "https://github.com/rrrodzilla/rusty_paseto"
 license = "MIT OR Apache-2.0"
 keywords = ["paseto", "token", "security", "api", "web"]
 categories = ["cryptography", "authentication", "encoding", "network-programming", "web-programming"]
+documentation = "https://docs.rs/rusty_paseto/latest/rusty_paseto/"
 
 [lib]
 #doctest = false

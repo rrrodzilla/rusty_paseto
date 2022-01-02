@@ -1,8 +1,8 @@
 [package]
 name = "rusty_paseto"
-version = "0.2.8"
+version = "0.3.0"
 edition = "2021"
-readme = "readme.md"
+readme = "readme_crates_io.md"
 authors = ["Roland Rodriguez <rolandrodriguez@gmail.com"]
 description = "A type-driven, ergonomic alternative to JWT for secure stateless PASETO tokens."
 repository = "https://github.com/rrrodzilla/rusty_paseto"

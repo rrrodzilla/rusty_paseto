@@ -14,20 +14,20 @@ Paseto is everything you love about JOSE (JWT, JWE, JWS) without any of the
 
 | APIs, Tests & Documentation | v1.<br />local| v1.<br />public | v2.<br />local | v2.<br />public |v3.<br />local | v3.<br />public | v4.<br />local | v4.<br />public |
 | ------------: | :-----------: | :----------:    |:-----------:   |:-----------:    |:-----------:  |:-----------:    |:-----------:   |:-----------:    |
-| PASETO Token Builder		| [x] | [x] | [x] | [x] | [x] | [ ] | [x] | [x] |
-| PASETO Token Parser		| [x] | [x] | [x] | [x] | [x] | [ ] | [x] | [x] |
-| Flexible Claim Validation	| [x] | [x] | [x] | [x] | [x] | [ ] | [x] | [x] |
-| Generic Token Builder		| [x] | [x] | [x] | [x] | [x] | [ ] | [x] | [x] |
-| Generic Token Parser		| [x] | [x] | [x] | [x] | [x] | [ ] | [x] | [x] |
-| Encryption/Signing		| [x] |  [x] | [x] | [x] | [x] | [ ] | [x] | [x] |
-| Decryption/Verification	| [x] |  [x] | [x] | [x] | [x] | [ ] | [x] | [x] |
-| [PASETO Test vectors](https://github.com/paseto-standard/test-vectors)  | [x] | [x] | [x] | [x] | [x] | [ ] | [x] | [x] |
-| Documentation			| [ ] | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
+| PASETO Token Builder		| - [x] | - [x] | - [x] | - [x] | - [x] | - [ ] | - [x] | - [x] |
+| PASETO Token Parser		| - [x] | - [x] | - [x] | - [x] | - [x] | - [ ] | - [x] | - [x] |
+| Flexible Claim Validation	| - [x] | - [x] | - [x] | - [x] | - [x] | - [ ] | - [x] | - [x] |
+| Generic Token Builder		| - [x] | - [x] | - [x] | - [x] | - [x] | - [ ] | - [x] | - [x] |
+| Generic Token Parser		| - [x] | - [x] | - [x] | - [x] | - [x] | - [ ] | - [x] | - [x] |
+| Encryption/Signing		| - [x] | - [x] | - [x] | - [x] | - [x] | - [ ] | - [x] | - [x] |
+| Decryption/Verification	| - [x] | - [x] | - [x] | - [x] | - [x] | - [ ] | - [x] | - [x] |
+| [PASETO Test vectors](https://github.com/paseto-standard/test-vectors)  | - [x] | - [x] | - [x] | - [x] | - [x] | - [ ] | - [x] | - [x] |
+| Documentation			| - [ ] | - [ ] | - [ ] | - [ ] | - [ ] | - [ ] | - [ ] | - [ ] |
 
 | Feature 			| Status | 
-| ------------: 		| :-----------:  |   
-| Feature gates			| [x] |
-| PASERK support			| [ ] |
+| ------------: 		| :-----------: |   
+| Feature gates			| - [x] |
+| PASERK support		| - [ ] |
 
 
  # Usage

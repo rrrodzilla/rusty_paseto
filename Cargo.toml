@@ -33,7 +33,7 @@ batteries_included = ["generic"]
 default = ["batteries_included","v3_local", "v4_local", "v4_public"]
 
 [lib]
-doctest = false
+doctest = true
 
 
 [dependencies]

@@ -1,12 +1,13 @@
 use crate::core::PasetoError;
 use ring::rand::{SecureRandom, SystemRandom};
 use std::convert::{From, TryFrom};
+use std::fmt::Debug;
 use std::ops::Deref;
 use zeroize::Zeroize;
 
 #[derive(Zeroize)]
 #[zeroize(drop)]
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Key<const KEYSIZE: usize>([u8; KEYSIZE]);
 
 impl<const KEYSIZE: usize> Default for Key<KEYSIZE> {
@@ -58,27 +59,17 @@ impl<const KEYSIZE: usize> TryFrom<&str> for Key<KEYSIZE> {
   }
 }
 
-//  impl<T: FromHex, const KEYSIZE: usize> FromStr for Key<KEYSIZE>
-//  where
-//    FromHexError: std::convert::From<<T as FromHex>::Error>,
-//    T: impl Into<str>,
-//  {
-//    type Err = FromHexError;
-
-//    /// allows any arbitrary string that may or may not
-//    /// be a hex value to be parsed into a hex value of a
-//    /// given typed KeyBit size (Key256Bit or Key192Bit)
-//    fn from_str(s: &str) -> Result<Self, Self::Err> {
-//      let key = <T>::from_hex(s)?;
-//      Ok(Self(key))
-//    }
-//  }
-
 impl<const KEYSIZE: usize> Key<KEYSIZE> {
   pub fn try_new_random() -> Result<Self, PasetoError> {
     let rng = SystemRandom::new();
     let mut buf = [0u8; KEYSIZE];
     rng.fill(&mut buf)?;
     Ok(Self(buf))
+  }
+}
+
+impl<const KEYSIZE: usize> Debug for Key<KEYSIZE> {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    write!(f, "!!! KEY IS PRIVATE !!!")
   }
 }

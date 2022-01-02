@@ -1,4 +1,5 @@
 use super::{PasetoClaim, PasetoClaimError};
+#[cfg(feature = "serde")]
 use serde::ser::SerializeMap;
 
 #[derive(Clone, Debug)]
@@ -17,6 +18,7 @@ impl<T> CustomClaim<T> {
   }
 }
 
+#[cfg(feature = "serde")]
 impl<T: serde::Serialize> PasetoClaim for CustomClaim<T> {
   fn get_key(&self) -> &str {
     &self.0 .0
@@ -57,6 +59,7 @@ impl<T> AsRef<(String, T)> for CustomClaim<T> {
   }
 }
 
+#[cfg(feature = "serde")]
 impl<T: serde::Serialize> serde::Serialize for CustomClaim<T> {
   fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
   where

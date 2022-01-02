@@ -28,7 +28,7 @@ v2_public = ["v2", "public", "core", "ed25519-dalek"]
 # v3_public = ["v3", "public"]
 v4_public = ["v4", "public", "core", "ed25519-dalek"]
 core = []
-generic = ["core"]
+generic = ["core", "serde", "erased-serde", "serde_json"]
 batteries_included = ["generic"]
 default = ["batteries_included","v3_local", "v4_local", "v4_public"]
 
@@ -43,12 +43,12 @@ chacha20poly1305 = { version = "^0.9.0", optional = true }
 ring = { version = "^0.16", features = ["std"], optional = false }
 base64 = { version = "^0.13.0", optional = false } 
 hex = { version = "^0.4.3", optional = false }
-serde= { version = "1.0.117", features = ["derive"] }
+serde= { version = "1.0.117", features = ["derive"], optional = true }
 ed25519-dalek = { version = "1.0.1", optional = true }
-serde_json = { version = "^1.0.68"}
+serde_json = { version = "^1.0.68", optional = true }
 thiserror = "1.0.29"
 iso8601 = "0.4.0"
-erased-serde = "0.3.16"
+erased-serde = { version = "0.3.16", optional = true }
 aes = { version = "0.7.5", features = ["ctr"], optional = true }
 hmac = { version = "0.11.0", optional = true }
 sha2 = { version = "0.9.8", optional = true }
@@ -57,4 +57,5 @@ time = { version =  "0.3.5", features = ["parsing", "formatting"]}
 
 [dev-dependencies]
 anyhow = "1.0.45"
+serde_json = { version = "^1.0.68" }
 primes = "0.3.0"

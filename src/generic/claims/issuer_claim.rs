@@ -1,4 +1,5 @@
 use super::PasetoClaim;
+#[cfg(feature = "serde")]
 use serde::ser::SerializeMap;
 
 #[derive(Clone)]
@@ -30,6 +31,7 @@ impl<'a> AsRef<(&'a str, &'a str)> for IssuerClaim<'a> {
   }
 }
 
+#[cfg(feature = "serde")]
 impl<'a> serde::Serialize for IssuerClaim<'a> {
   fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
   where

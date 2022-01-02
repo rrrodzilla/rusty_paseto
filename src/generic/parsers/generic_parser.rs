@@ -35,6 +35,7 @@ impl<'a, Version, Purpose> GenericParser<'a, Version, Purpose> {
     self
   }
 
+  #[cfg(feature = "serde")]
   fn set_validation_claim<T: PasetoClaim + 'static + serde::Serialize>(
     &mut self,
     value: T,
@@ -51,6 +52,7 @@ impl<'a, Version, Purpose> GenericParser<'a, Version, Purpose> {
     self
   }
 
+  #[cfg(feature = "serde")]
   pub fn validate_claim<T: PasetoClaim + 'static + serde::Serialize>(
     &mut self,
     value: T,
@@ -59,6 +61,7 @@ impl<'a, Version, Purpose> GenericParser<'a, Version, Purpose> {
     self.set_validation_claim(value, Some(validation_closure))
   }
 
+  #[cfg(feature = "serde")]
   pub fn check_claim<T: PasetoClaim + 'static + serde::Serialize>(&mut self, value: T) -> &mut Self {
     self.set_validation_claim(value, None)
   }

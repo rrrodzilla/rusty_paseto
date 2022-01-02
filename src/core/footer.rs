@@ -8,14 +8,14 @@ use std::ops::Deref;
 /// # Usage
 /// ```
 /// # use rusty_paseto::prelude::*;
-/// # let key = PasetoSymmetricKey::<V2, Local>::from(Key::<32>::from(b"wubbalubbadubdubwubbalubbadubdub"));
-/// let token = PasetoBuilder::<V2, Local>::default()
+/// # let key = PasetoSymmetricKey::<V4, Local>::from(Key::<32>::from(b"wubbalubbadubdubwubbalubbadubdub"));
+/// let token = PasetoBuilder::<V4, Local>::default()
 ///   // note how we set the footer here
 ///   .set_footer(Footer::from("Sometimes science is more art than science"))
 ///   .build(&key)?;
 ///
 ///    // the footer same footer should be used to parse the token
-/// let json_value = PasetoParser::<V2, Local>::default()
+/// let json_value = PasetoParser::<V4, Local>::default()
 ///   .set_footer(Footer::from("Sometimes science is more art than science"))
 ///   .parse(&token, &key)?;
 /// # Ok::<(),anyhow::Error>(())

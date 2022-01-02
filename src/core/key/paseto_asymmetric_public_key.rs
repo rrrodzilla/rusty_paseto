@@ -1,6 +1,5 @@
 use super::Key;
-use crate::core::Public;
-use crate::core::{V2orV4, V1};
+use crate::core::*;
 use std::convert::{AsRef, From};
 use std::marker::PhantomData;
 
@@ -16,6 +15,7 @@ impl<'a, Version, Purpose> AsRef<[u8]> for PasetoAsymmetricPublicKey<'a, Version
   }
 }
 
+#[cfg(feature = "v1_public")]
 impl<'a> From<&'a [u8]> for PasetoAsymmetricPublicKey<'a, V1, Public> {
   fn from(key: &'a [u8]) -> Self {
     Self {
@@ -25,6 +25,7 @@ impl<'a> From<&'a [u8]> for PasetoAsymmetricPublicKey<'a, V1, Public> {
     }
   }
 }
+
 impl<'a, Version> From<&'a Key<32>> for PasetoAsymmetricPublicKey<'a, Version, Public>
 where
   Version: V2orV4,

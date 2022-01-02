@@ -26,6 +26,7 @@ pub enum PasetoError {
     #[from]
     source: ring::error::Unspecified,
   },
+  #[cfg(feature = "ed25519-dalek")]
   ///An RSA cipher error
   #[error("An unspecified cipher error occurred")]
   RsaCipher {

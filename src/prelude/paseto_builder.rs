@@ -93,6 +93,7 @@ impl<'a, Version, Purpose> Default for PasetoBuilder<'a, Version, Purpose> {
   }
 }
 
+#[cfg(feature = "v1_local")]
 impl PasetoBuilder<'_, V1, Local> {
   pub fn build(&mut self, key: &PasetoSymmetricKey<V1, Local>) -> Result<String, GenericBuilderError> {
     self.verify_ready_to_build()?;
@@ -100,6 +101,7 @@ impl PasetoBuilder<'_, V1, Local> {
   }
 }
 
+#[cfg(feature = "v2_local")]
 impl PasetoBuilder<'_, V2, Local> {
   pub fn build(&mut self, key: &PasetoSymmetricKey<V2, Local>) -> Result<String, GenericBuilderError> {
     self.verify_ready_to_build()?;
@@ -107,6 +109,7 @@ impl PasetoBuilder<'_, V2, Local> {
   }
 }
 
+#[cfg(feature = "v3_local")]
 impl PasetoBuilder<'_, V3, Local> {
   pub fn build(&mut self, key: &PasetoSymmetricKey<V3, Local>) -> Result<String, GenericBuilderError> {
     self.verify_ready_to_build()?;
@@ -114,6 +117,7 @@ impl PasetoBuilder<'_, V3, Local> {
   }
 }
 
+#[cfg(feature = "v4_local")]
 impl PasetoBuilder<'_, V4, Local> {
   pub fn build(&mut self, key: &PasetoSymmetricKey<V4, Local>) -> Result<String, GenericBuilderError> {
     self.verify_ready_to_build()?;
@@ -121,6 +125,7 @@ impl PasetoBuilder<'_, V4, Local> {
   }
 }
 
+#[cfg(feature = "v1_public")]
 impl PasetoBuilder<'_, V1, Public> {
   pub fn build(&mut self, key: &PasetoAsymmetricPrivateKey<V1, Public>) -> Result<String, GenericBuilderError> {
     self.verify_ready_to_build()?;
@@ -128,6 +133,7 @@ impl PasetoBuilder<'_, V1, Public> {
   }
 }
 
+#[cfg(feature = "v2_public")]
 impl PasetoBuilder<'_, V2, Public> {
   pub fn build(&mut self, key: &PasetoAsymmetricPrivateKey<V2, Public>) -> Result<String, GenericBuilderError> {
     self.verify_ready_to_build()?;
@@ -137,6 +143,7 @@ impl PasetoBuilder<'_, V2, Public> {
 
 //TODO V3, Public
 
+#[cfg(feature = "v4_public")]
 impl PasetoBuilder<'_, V4, Public> {
   pub fn build(&mut self, key: &PasetoAsymmetricPrivateKey<V4, Public>) -> Result<String, GenericBuilderError> {
     self.verify_ready_to_build()?;
@@ -144,7 +151,7 @@ impl PasetoBuilder<'_, V4, Public> {
   }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "v2_local"))]
 mod paseto_builder {
 
   use crate::prelude::*;

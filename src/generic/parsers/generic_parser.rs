@@ -1,9 +1,5 @@
 use super::GenericParserError;
-use crate::generic::{
-  claims::{PasetoClaim, PasetoClaimError, ValidatorFn, ValidatorMap},
-  Footer, ImplicitAssertion, ImplicitAssertionCapable, Local, Paseto, PasetoAsymmetricPublicKey, PasetoSymmetricKey,
-  Public, V1, V2, V3, V4,
-};
+use crate::generic::*;
 
 use core::marker::PhantomData;
 use serde_json::Value;
@@ -131,6 +127,7 @@ impl<'a, Version, Purpose> GenericParser<'a, Version, Purpose> {
   }
 }
 
+#[cfg(feature = "v1_local")]
 impl<'a> GenericParser<'a, V1, Local> {
   pub fn parse(
     &self,
@@ -144,6 +141,7 @@ impl<'a> GenericParser<'a, V1, Local> {
   }
 }
 
+#[cfg(feature = "v2_local")]
 impl<'a> GenericParser<'a, V2, Local> {
   pub fn parse(
     &mut self,
@@ -157,6 +155,7 @@ impl<'a> GenericParser<'a, V2, Local> {
   }
 }
 
+#[cfg(feature = "v3_local")]
 impl<'a> GenericParser<'a, V3, Local> {
   pub fn parse(
     &mut self,
@@ -171,6 +170,7 @@ impl<'a> GenericParser<'a, V3, Local> {
   }
 }
 
+#[cfg(feature = "v4_local")]
 impl<'a> GenericParser<'a, V4, Local> {
   pub fn parse(
     &mut self,
@@ -185,6 +185,7 @@ impl<'a> GenericParser<'a, V4, Local> {
   }
 }
 
+#[cfg(feature = "v1_public")]
 impl<'a> GenericParser<'a, V1, Public> {
   pub fn parse(
     &mut self,
@@ -198,6 +199,7 @@ impl<'a> GenericParser<'a, V1, Public> {
   }
 }
 
+#[cfg(feature = "v2_public")]
 impl<'a> GenericParser<'a, V2, Public> {
   pub fn parse(
     &mut self,
@@ -213,6 +215,7 @@ impl<'a> GenericParser<'a, V2, Public> {
 
 //TODO: V3, Public
 
+#[cfg(feature = "v4_public")]
 impl<'a> GenericParser<'a, V4, Public> {
   pub fn parse(
     &mut self,
@@ -233,7 +236,7 @@ impl<'a, Version, Purpose> Default for GenericParser<'a, Version, Purpose> {
   }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "v2"))]
 mod parsers {
 
   use std::convert::TryFrom;
@@ -241,6 +244,8 @@ mod parsers {
   use crate::generic::claims::*;
   use crate::generic::*;
   use anyhow::Result;
+
+  #[cfg(feature = "public")]
   #[test]
   fn full_parser_test_v2_public() -> Result<()> {
     //create a key
@@ -297,6 +302,7 @@ mod parsers {
     Ok(())
   }
 
+  #[cfg(feature = "local")]
   #[test]
   fn full_parser_test() -> Result<()> {
     //create a key
@@ -347,6 +353,7 @@ mod parsers {
     Ok(())
   }
 
+  #[cfg(feature = "local")]
   #[test]
   fn basic_claim_validation_test() -> Result<()> {
     //create a key
@@ -373,6 +380,7 @@ mod parsers {
     Ok(())
   }
 
+  #[cfg(feature = "local")]
   #[test]
   fn claim_custom_validator_test() -> Result<()> {
     //create a key
@@ -407,6 +415,7 @@ mod parsers {
     Ok(())
   }
 
+  #[cfg(feature = "local")]
   #[test]
   fn claim_custom_validator_failure_test() -> Result<()> {
     //create a key
@@ -444,6 +453,7 @@ mod parsers {
     Ok(())
   }
 
+  #[cfg(feature = "local")]
   #[test]
   fn custom_claim_custom_validator_test() -> Result<()> {
     //create a key
@@ -482,6 +492,7 @@ mod parsers {
     Ok(())
   }
 
+  #[cfg(feature = "local")]
   #[test]
   fn missing_claim_validation_test() -> Result<()> {
     //create a key

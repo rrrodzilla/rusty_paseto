@@ -1,9 +1,10 @@
-#[cfg(test)]
+#[cfg(all(test, feature = "v4"))]
 mod v4_test_vectors {
   use anyhow::Result;
   use rusty_paseto::core::*;
   use serde_json::json;
 
+  #[cfg(feature = "local")]
   #[test]
   fn test_4_e_1() -> Result<()> {
     //setup
@@ -31,6 +32,7 @@ mod v4_test_vectors {
     Ok(())
   }
 
+  #[cfg(feature = "local")]
   #[test]
   fn test_4_e_2() -> Result<()> {
     //setup
@@ -58,6 +60,7 @@ mod v4_test_vectors {
     Ok(())
   }
 
+  #[cfg(feature = "local")]
   #[test]
   fn test_4_e_3() -> Result<()> {
     //setup
@@ -85,6 +88,7 @@ mod v4_test_vectors {
     Ok(())
   }
 
+  #[cfg(feature = "local")]
   #[test]
   fn test_4_e_4() -> Result<()> {
     //setup
@@ -112,6 +116,7 @@ mod v4_test_vectors {
     Ok(())
   }
 
+  #[cfg(feature = "local")]
   #[test]
   fn test_4_e_5() -> Result<()> {
     //setup
@@ -143,6 +148,7 @@ mod v4_test_vectors {
     Ok(())
   }
 
+  #[cfg(feature = "local")]
   #[test]
   fn test_4_e_6() -> Result<()> {
     //setup
@@ -174,6 +180,7 @@ mod v4_test_vectors {
     Ok(())
   }
 
+  #[cfg(feature = "local")]
   #[test]
   fn test_4_e_7() -> Result<()> {
     //setup
@@ -210,6 +217,7 @@ mod v4_test_vectors {
     Ok(())
   }
 
+  #[cfg(feature = "local")]
   #[test]
   fn test_4_e_8() -> Result<()> {
     //setup
@@ -246,6 +254,7 @@ mod v4_test_vectors {
     Ok(())
   }
 
+  #[cfg(feature = "local")]
   #[test]
   fn test_4_e_9() -> Result<()> {
     //setup
@@ -280,6 +289,7 @@ mod v4_test_vectors {
     Ok(())
   }
 
+  #[cfg(feature = "public")]
   #[test]
   fn test_4_s_1() -> Result<()> {
     //then generate the V2 local key for it
@@ -313,6 +323,7 @@ mod v4_test_vectors {
     Ok(())
   }
 
+  #[cfg(feature = "public")]
   #[test]
   fn test_4_s_2() -> Result<()> {
     //setup
@@ -347,6 +358,7 @@ mod v4_test_vectors {
     Ok(())
   }
 
+  #[cfg(feature = "public")]
   #[test]
   fn test_4_s_3() -> Result<()> {
     //setup
@@ -384,6 +396,7 @@ mod v4_test_vectors {
     Ok(())
   }
 
+  #[cfg(feature = "public")]
   #[test]
   #[should_panic]
   fn test_4_f_1() {
@@ -391,6 +404,7 @@ mod v4_test_vectors {
     panic!("non-compileable test")
   }
 
+  #[cfg(feature = "public")]
   #[test]
   #[should_panic]
   fn test_4_f_2() {
@@ -398,6 +412,7 @@ mod v4_test_vectors {
     panic!("non-compileable test")
   }
 
+  #[cfg(feature = "public")]
   #[test]
   #[should_panic]
   fn test_4_f_3() {

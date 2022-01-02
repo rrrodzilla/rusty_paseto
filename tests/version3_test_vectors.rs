@@ -1,4 +1,4 @@
-#[cfg(test)]
+#[cfg(all(test, feature = "v3_local"))]
 mod v3_test_vectors {
   use anyhow::Result;
   use rusty_paseto::core::*;

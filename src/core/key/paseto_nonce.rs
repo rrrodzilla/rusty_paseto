@@ -1,7 +1,13 @@
+#[cfg(feature = "local")]
 use super::Key;
-use crate::core::{Local, Public};
-use crate::core::{V1, V2, V3, V4};
-use std::convert::{AsRef, From};
+#[cfg(all(
+  feature = "core",
+  any(feature = "v2_public", feature = "v3_public", feature = "local")
+))]
+use crate::core::*;
+use std::convert::AsRef;
+#[cfg(all(feature = "core", any(feature = "v2_public", feature = "v3_public")))]
+use std::convert::From;
 use std::marker::PhantomData;
 use std::ops::Deref;
 
@@ -24,6 +30,7 @@ impl<'a, Version, Purpose> AsRef<[u8]> for PasetoNonce<'a, Version, Purpose> {
   }
 }
 
+#[cfg(feature = "v1_local")]
 impl<'a> From<&'a Key<32>> for PasetoNonce<'a, V1, Local> {
   fn from(key: &'a Key<32>) -> Self {
     Self {
@@ -34,6 +41,7 @@ impl<'a> From<&'a Key<32>> for PasetoNonce<'a, V1, Local> {
   }
 }
 
+#[cfg(feature = "v2_local")]
 impl<'a> From<&'a Key<24>> for PasetoNonce<'a, V2, Local> {
   fn from(key: &'a Key<24>) -> Self {
     Self {
@@ -44,6 +52,7 @@ impl<'a> From<&'a Key<24>> for PasetoNonce<'a, V2, Local> {
   }
 }
 
+#[cfg(feature = "v2_local")]
 impl<'a> From<&'a Key<32>> for PasetoNonce<'a, V2, Local> {
   fn from(key: &'a Key<32>) -> Self {
     Self {
@@ -54,6 +63,7 @@ impl<'a> From<&'a Key<32>> for PasetoNonce<'a, V2, Local> {
   }
 }
 
+#[cfg(feature = "v3_local")]
 impl<'a> From<&'a Key<32>> for PasetoNonce<'a, V3, Local> {
   fn from(key: &'a Key<32>) -> Self {
     Self {
@@ -64,6 +74,7 @@ impl<'a> From<&'a Key<32>> for PasetoNonce<'a, V3, Local> {
   }
 }
 
+#[cfg(feature = "v4_local")]
 impl<'a> From<&'a Key<32>> for PasetoNonce<'a, V4, Local> {
   fn from(key: &'a Key<32>) -> Self {
     Self {
@@ -74,6 +85,7 @@ impl<'a> From<&'a Key<32>> for PasetoNonce<'a, V4, Local> {
   }
 }
 
+#[cfg(feature = "v2_public")]
 impl<'a, T> From<&'a T> for PasetoNonce<'a, V2, Public>
 where
   T: Into<&'a [u8]>,
@@ -88,7 +100,7 @@ where
   }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "v2_local"))]
 mod builders {
   use std::convert::From;
 

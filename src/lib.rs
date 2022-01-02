@@ -387,6 +387,9 @@
 //!
 
 //public interface
+#[cfg(feature = "core")]
 pub mod core;
+#[cfg(feature = "generic")]
 pub mod generic;
+#[cfg(feature = "batteries_included")]
 pub mod prelude;

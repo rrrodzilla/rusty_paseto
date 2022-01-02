@@ -17,7 +17,6 @@ pub use key::{Key, PasetoAsymmetricPrivateKey, PasetoAsymmetricPublicKey, Paseto
 pub use paseto::Paseto;
 pub use payload::Payload;
 pub use purpose::{Local, Public};
-pub(crate) use traits::Base64Encodable;
-pub(crate) use traits::V2orV4;
+pub(crate) use traits::{Base64Encodable, V1orV3, V2orV4};
 pub use traits::{ImplicitAssertionCapable, PurposeTrait, VersionTrait};
-pub use version::{V1, V2, V3, V4};
+pub use version::*;

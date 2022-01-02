@@ -1,28 +1,36 @@
-use super::key::{Key, PasetoAsymmetricPrivateKey, PasetoAsymmetricPublicKey, PasetoNonce, PasetoSymmetricKey};
-use super::traits::{Base64Encodable, ImplicitAssertionCapable, PurposeTrait, V1orV3, VersionTrait};
-use super::{Footer, Header, ImplicitAssertion, Local, PasetoError, Payload, Public, V1, V2, V3, V4};
+use super::*;
+#[cfg(feature = "aes")]
 use aes::{cipher::generic_array::GenericArray, Aes256Ctr};
 use base64::{encode_config, URL_SAFE_NO_PAD};
+#[cfg(feature = "blake2")]
 use blake2::{
   digest::{Update, VariableOutput},
   VarBlake2b,
 };
-use chacha20::{
-  cipher::{NewCipher, StreamCipher},
-  Key as ChaChaKey, XNonce as ChaChaNonce,
-};
+#[cfg(feature = "chacha20")]
+use chacha20::cipher::{NewCipher, StreamCipher};
+#[cfg(all(feature = "chacha20", any(feature = "v2_local", feature = "v4_local")))]
+use chacha20::{Key as ChaChaKey, XNonce as ChaChaNonce};
+#[cfg(feature = "chacha20poly1305")]
 use chacha20poly1305::{
   aead::{Aead, NewAead, Payload as AeadPayload},
   XChaCha20Poly1305, XNonce,
 };
+
+#[cfg(feature = "ed25519-dalek")]
 use ed25519_dalek::*;
+#[cfg(feature = "hmac")]
 use hmac::{Hmac, Mac, NewMac};
+
+#[cfg(any(feature = "v1_local", feature = "v3_local", feature = "v4_local"))]
+use ring::constant_time::verify_slices_are_equal as ConstantTimeEquals;
+use ring::hkdf;
+#[cfg(feature = "v1_public")]
 use ring::{
-  constant_time::verify_slices_are_equal as ConstantTimeEquals,
-  hkdf,
   rand::SystemRandom,
   signature::{RsaKeyPair, UnparsedPublicKey, RSA_PSS_2048_8192_SHA384, RSA_PSS_SHA384},
 };
+#[cfg(feature = "sha2")]
 use sha2::Sha384;
 use std::{
   convert::{AsRef, TryFrom},
@@ -121,6 +129,7 @@ where
   }
 }
 
+#[cfg(feature = "v1_public")]
 impl<'a> Paseto<'a, V1, Public> {
   /// Verifies a signed V1 Public Paseto
   pub fn try_verify(
@@ -160,6 +169,7 @@ impl<'a> Paseto<'a, V1, Public> {
   }
 }
 
+#[cfg(feature = "v2_public")]
 impl<'a> Paseto<'a, V2, Public> {
   /// Attempts to verify a signed V2 Public Paseto
   /// Fails with a PasetoError if the token is malformed or the token cannot be verified with the
@@ -206,6 +216,7 @@ impl<'a> Paseto<'a, V2, Public> {
   }
 }
 
+#[cfg(feature = "v1_local")]
 impl<'a> Paseto<'a, V1, Local> {
   /// Attempt to parse an untrusted token string to validate and decrypt into a plaintext payload
   /// Fails with a PasetoError if the token is malformed or can't be decrypted
@@ -289,6 +300,7 @@ impl<'a> Paseto<'a, V1, Local> {
   }
 }
 
+#[cfg(feature = "v2_local")]
 impl<'a> Paseto<'a, V2, Local> {
   pub fn try_decrypt(
     token: &'a str,
@@ -350,6 +362,7 @@ impl<'a> Paseto<'a, V2, Local> {
   }
 }
 
+#[cfg(feature = "v3_local")]
 impl<'a> Paseto<'a, V3, Local> {
   /// Parse an untrusted token string to validate and decrypt into a plaintext payload
   pub fn try_decrypt(
@@ -426,6 +439,7 @@ impl<'a> Paseto<'a, V3, Local> {
   }
 }
 
+#[cfg(feature = "v4_local")]
 impl<'a> Paseto<'a, V4, Local> {
   pub fn try_decrypt(
     token: &'a str,
@@ -501,6 +515,7 @@ impl<'a> Paseto<'a, V4, Local> {
   }
 }
 
+#[cfg(feature = "v4_public")]
 impl<'a> Paseto<'a, V4, Public> {
   pub fn try_verify(
     signature: &'a str,
@@ -548,6 +563,7 @@ struct CipherText<Version, Purpose> {
   purpose: PhantomData<Purpose>,
 }
 
+#[cfg(feature = "v1_public")]
 impl CipherText<V1, Public> {
   fn try_verify(decoded_payload: &[u8], public_key: &impl AsRef<[u8]>, footer: &Footer) -> Result<Self, PasetoError> {
     let signature = decoded_payload[(decoded_payload.len() - 256)..].as_ref();
@@ -568,6 +584,7 @@ impl CipherText<V1, Public> {
   }
 }
 
+#[cfg(feature = "v1_local")]
 impl CipherText<V1, Local> {
   fn from(payload: &[u8], encryption_key: &EncryptionKey<V1, Local>) -> Self {
     let key = GenericArray::from_slice(encryption_key.as_ref());
@@ -587,6 +604,7 @@ impl CipherText<V1, Local> {
   }
 }
 
+#[cfg(feature = "v2_local")]
 impl CipherText<V2, Local> {
   fn try_decrypt_from(
     key: &PasetoSymmetricKey<V2, Local>,
@@ -641,6 +659,7 @@ impl CipherText<V2, Local> {
   }
 }
 
+#[cfg(feature = "v3_local")]
 impl CipherText<V3, Local> {
   fn from(payload: &[u8], encryption_key: &EncryptionKey<V3, Local>) -> Self {
     let key = GenericArray::from_slice(encryption_key.as_ref());
@@ -660,6 +679,7 @@ impl CipherText<V3, Local> {
   }
 }
 
+#[cfg(feature = "v4_local")]
 impl CipherText<V4, Local> {
   fn from(payload: &[u8], encryption_key: &EncryptionKey<V4, Local>) -> Self {
     let mut ciphertext = vec![0u8; payload.len()];
@@ -690,8 +710,10 @@ impl<Version, Purpose> std::ops::Deref for CipherText<Version, Purpose> {
   }
 }
 
+#[cfg(feature = "chacha20poly1305")]
 struct EncryptionNonce(XNonce);
 
+#[cfg(feature = "chacha20poly1305")]
 impl AsRef<XNonce> for EncryptionNonce {
   fn as_ref(&self) -> &XNonce {
     &self.0
@@ -703,6 +725,8 @@ struct Tag<Version, Purpose> {
   purpose: PhantomData<Purpose>,
   tag: Vec<u8>,
 }
+
+#[cfg(feature = "v4_local")]
 impl Tag<V4, Local> {
   fn from(authentication_key: impl AsRef<[u8]>, pae: &PreAuthenticationEncoding) -> Self {
     let mut tag_context = VarBlake2b::new_keyed(authentication_key.as_ref(), 32);
@@ -715,6 +739,7 @@ impl Tag<V4, Local> {
   }
 }
 
+#[cfg(any(feature = "v1_local", feature = "v3_local"))]
 impl<Version> Tag<Version, Local>
 where
   Version: V1orV3,
@@ -752,6 +777,7 @@ pub struct RawPayload<Version, Purpose> {
   purpose: PhantomData<Purpose>,
 }
 
+#[cfg(feature = "public")]
 impl<Version> RawPayload<Version, Public> {
   fn from(payload: &[u8], signature: &impl AsRef<[u8]>) -> String {
     let mut raw_token = Vec::from(payload);
@@ -761,6 +787,7 @@ impl<Version> RawPayload<Version, Public> {
   }
 }
 
+#[cfg(feature = "v2_local")]
 impl RawPayload<V2, Local> {
   fn from(blake2_hash: &[u8], ciphertext: &[u8]) -> String {
     let mut raw_token = Vec::new();
@@ -771,6 +798,7 @@ impl RawPayload<V2, Local> {
   }
 }
 
+#[cfg(any(feature = "v1_local", feature = "v3_local"))]
 impl<Version> RawPayload<Version, Local>
 where
   Version: V1orV3,
@@ -796,6 +824,7 @@ where
   }
 }
 
+#[cfg(feature = "v4_local")]
 impl RawPayload<V4, Local> {
   fn try_from(
     nonce: &PasetoNonce<V4, Local>,
@@ -817,14 +846,17 @@ impl RawPayload<V4, Local> {
     Ok(encode_config(&raw_token, URL_SAFE_NO_PAD))
   }
 }
+
 #[derive(Default)]
 struct EncryptionKey<Version, Purpose> {
   version: PhantomData<Version>,
   purpose: PhantomData<Purpose>,
   key: Vec<u8>,
+  #[cfg(any(feature = "v1_local", feature = "v3_local", feature = "v4_local"))]
   nonce: Vec<u8>,
 }
 
+#[cfg(feature = "v1_local")]
 impl EncryptionKey<V1, Local> {
   fn try_from(
     message: &Key<21>,
@@ -848,6 +880,7 @@ impl EncryptionKey<V1, Local> {
   }
 }
 
+#[cfg(feature = "v3_local")]
 impl EncryptionKey<V3, Local> {
   fn try_from(message: &Key<53>, key: &PasetoSymmetricKey<V3, Local>) -> Result<Self, PasetoError> {
     let info = message.as_ref();
@@ -868,6 +901,7 @@ impl EncryptionKey<V3, Local> {
   }
 }
 
+#[cfg(feature = "v4_local")]
 impl EncryptionKey<V4, Local> {
   fn from(message: &Key<53>, key: &PasetoSymmetricKey<V4, Local>) -> Self {
     //let mut context = Blake2b::new_keyed(key.as_ref(), 56);
@@ -910,11 +944,14 @@ where
   }
 }
 
+#[cfg(feature = "v4_local")]
 impl AsRef<ChaChaKey> for EncryptionKey<V4, Local> {
   fn as_ref(&self) -> &ChaChaKey {
     ChaChaKey::from_slice(&self.key)
   }
 }
+
+#[cfg(feature = "v4_local")]
 impl Deref for EncryptionKey<V4, Local> {
   type Target = [u8];
 
@@ -947,6 +984,7 @@ struct AuthenticationKey<Version, Purpose> {
   key: Vec<u8>,
 }
 
+#[cfg(feature = "v1_local")]
 impl AuthenticationKey<V1, Local> {
   fn try_from(
     message: &[u8; 24],
@@ -965,6 +1003,7 @@ impl AuthenticationKey<V1, Local> {
   }
 }
 
+#[cfg(feature = "v3_local")]
 impl AuthenticationKey<V3, Local> {
   fn try_from(message: &Key<56>, key: &PasetoSymmetricKey<V3, Local>) -> Result<Self, PasetoError> {
     let info = message.as_ref();
@@ -979,6 +1018,7 @@ impl AuthenticationKey<V3, Local> {
   }
 }
 
+#[cfg(feature = "v4_local")]
 impl AuthenticationKey<V4, Local> {
   fn from(message: &Key<56>, key: &PasetoSymmetricKey<V4, Local>) -> Self {
     let mut context = VarBlake2b::new_keyed(key.as_ref(), 32);

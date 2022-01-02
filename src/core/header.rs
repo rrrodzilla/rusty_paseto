@@ -77,7 +77,7 @@ where
   }
 }
 
-#[cfg(test)]
+#[cfg(all(test, any(feature = "v4", feature = "v2")))]
 mod unit_tests {
 
   use super::*;
@@ -90,20 +90,25 @@ mod unit_tests {
     assert_eq!(header.as_ref(), valid_value.as_ref());
   }
 
+  #[cfg(feature = "v4_local")]
   #[test]
   fn test_v4_local_header_equality() {
     test_header_equality(Header::<V4, Local>::default(), "v4.local.");
   }
 
+  #[cfg(feature = "v4_public")]
   #[test]
   fn test_v4_public_header_equality() {
     test_header_equality(Header::<V4, Public>::default(), "v4.public.");
   }
 
+  #[cfg(feature = "v2_public")]
   #[test]
   fn test_v2_public_header_equality() {
     test_header_equality(Header::<V2, Public>::default(), "v2.public.");
   }
+
+  #[cfg(feature = "v2_local")]
   #[test]
   fn test_v2_local_header_equality() {
     test_header_equality(Header::<V2, Local>::default(), "v2.local.");

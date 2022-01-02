@@ -99,6 +99,7 @@ impl<'a, Version, Purpose> Default for PasetoParser<'a, Version, Purpose> {
   }
 }
 
+#[cfg(feature = "v1_local")]
 impl<'a> PasetoParser<'a, V1, Local> {
   pub fn parse(&mut self, token: &'a str, key: &'a PasetoSymmetricKey<V1, Local>) -> Result<Value, GenericParserError> {
     //return the full json value to the user
@@ -106,6 +107,7 @@ impl<'a> PasetoParser<'a, V1, Local> {
   }
 }
 
+#[cfg(feature = "v2_local")]
 impl<'a> PasetoParser<'a, V2, Local> {
   pub fn parse(&mut self, token: &'a str, key: &'a PasetoSymmetricKey<V2, Local>) -> Result<Value, GenericParserError> {
     //return the full json value to the user
@@ -113,6 +115,7 @@ impl<'a> PasetoParser<'a, V2, Local> {
   }
 }
 
+#[cfg(feature = "v3_local")]
 impl<'a> PasetoParser<'a, V3, Local> {
   pub fn parse(&mut self, token: &'a str, key: &'a PasetoSymmetricKey<V3, Local>) -> Result<Value, GenericParserError> {
     //return the full json value to the user
@@ -120,6 +123,7 @@ impl<'a> PasetoParser<'a, V3, Local> {
   }
 }
 
+#[cfg(feature = "v4_local")]
 impl<'a> PasetoParser<'a, V4, Local> {
   pub fn parse(&mut self, token: &'a str, key: &'a PasetoSymmetricKey<V4, Local>) -> Result<Value, GenericParserError> {
     //return the full json value to the user
@@ -127,6 +131,7 @@ impl<'a> PasetoParser<'a, V4, Local> {
   }
 }
 
+#[cfg(feature = "v1_public")]
 impl<'a> PasetoParser<'a, V1, Public> {
   pub fn parse(
     &mut self,
@@ -138,6 +143,7 @@ impl<'a> PasetoParser<'a, V1, Public> {
   }
 }
 
+#[cfg(feature = "v2_public")]
 impl<'a> PasetoParser<'a, V2, Public> {
   pub fn parse(
     &mut self,
@@ -151,6 +157,7 @@ impl<'a> PasetoParser<'a, V2, Public> {
 
 //TODO: V3, Public
 
+#[cfg(feature = "v4_public")]
 impl<'a> PasetoParser<'a, V4, Public> {
   pub fn parse(
     &mut self,
@@ -162,8 +169,8 @@ impl<'a> PasetoParser<'a, V4, Public> {
   }
 }
 
-#[cfg(test)]
-mod paseto_parser {
+#[cfg(all(test, feature = "v2"))]
+mod paseto_parser_unit_tests {
 
   use std::convert::TryFrom;
 
@@ -171,6 +178,7 @@ mod paseto_parser {
   use anyhow::Result;
   use time::format_description::well_known::Rfc3339;
 
+  #[cfg(feature = "local")]
   #[test]
   fn usage_before_ready_test() -> Result<()> {
     //create a key
@@ -191,6 +199,7 @@ mod paseto_parser {
     Ok(())
   }
 
+  #[cfg(feature = "local")]
   #[test]
   fn non_expiring_token_claim_test() -> Result<()> {
     //create a key
@@ -216,6 +225,7 @@ mod paseto_parser {
     Ok(())
   }
 
+  #[cfg(feature = "local")]
   #[test]
   fn expired_token_claim_test() -> Result<()> {
     //create a key
@@ -235,6 +245,7 @@ mod paseto_parser {
     Ok(())
   }
 
+  #[cfg(feature = "public")]
   #[test]
   fn basic_paseto_parser_test_v2_public() -> Result<()> {
     //setup
@@ -264,6 +275,7 @@ mod paseto_parser {
     Ok(())
   }
 
+  #[cfg(feature = "local")]
   #[test]
   fn basic_paseto_parser_test() -> Result<()> {
     //create a key
@@ -287,6 +299,7 @@ mod paseto_parser {
     Ok(())
   }
 
+  #[cfg(feature = "local")]
   #[test]
   fn update_default_issued_at_claim_test() -> Result<()> {
     //create a key
@@ -324,6 +337,7 @@ mod paseto_parser {
     Ok(())
   }
 
+  #[cfg(feature = "local")]
   #[test]
   fn check_for_default_issued_at_claim_test() -> Result<()> {
     //create a key
@@ -354,6 +368,7 @@ mod paseto_parser {
     Ok(())
   }
 
+  #[cfg(feature = "local")]
   #[test]
   fn update_default_expiration_claim_test() -> Result<()> {
     //create a key
@@ -391,6 +406,7 @@ mod paseto_parser {
     Ok(())
   }
 
+  #[cfg(feature = "local")]
   #[test]
   fn check_for_default_expiration_claim_test() -> Result<()> {
     //create a key
@@ -424,6 +440,7 @@ mod paseto_parser {
     Ok(())
   }
 
+  #[cfg(feature = "local")]
   #[test]
   fn full_paseto_parser_test() -> Result<()> {
     //create a key

@@ -2,6 +2,7 @@ use crate::core::traits::*;
 use std::fmt;
 use std::fmt::Display;
 
+/// Asymmetric authentication (public-key signatures)
 #[derive(Debug, Clone, Copy)]
 pub struct Public(&'static str);
 

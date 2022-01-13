@@ -95,7 +95,7 @@ rusty_paseto is meant to be flexible and configurable for your specific use case
 
  ![paseto_generic_small](https://user-images.githubusercontent.com/24578097/147881907-a765ede6-c8e5-44ff-9845-db53f0634f07.png)
 
- It includes all the PASETO and custom claims but allows you to create different default claims in your custom builder and parser or use a different time crate or make up your own default business rules.  As with the batteries_included layer, parsed tokens get returned as a serder_json Value. Again, specify the version and purpose to include in the crypto core:
+ It includes all the PASETO and custom claims but allows you to create different default claims in your custom builder and parser or use a different time crate or make up your own default business rules.  As with the batteries_included layer, parsed tokens get returned as a serde_json Value. Again, specify the version and purpose to include in the crypto core:
 
 
  ```toml

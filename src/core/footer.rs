@@ -7,6 +7,8 @@ use std::ops::Deref;
 ///
 /// # Usage
 /// ```
+/// # #[cfg(feature = "default")]
+/// # {
 /// # use rusty_paseto::prelude::*;
 /// # let key = PasetoSymmetricKey::<V4, Local>::from(Key::<32>::from(b"wubbalubbadubdubwubbalubbadubdub"));
 /// let token = PasetoBuilder::<V4, Local>::default()
@@ -18,6 +20,7 @@ use std::ops::Deref;
 /// let json_value = PasetoParser::<V4, Local>::default()
 ///   .set_footer(Footer::from("Sometimes science is more art than science"))
 ///   .parse(&token, &key)?;
+/// # }
 /// # Ok::<(),anyhow::Error>(())
 /// ```
 #[derive(Default, Debug, Clone, Copy)]

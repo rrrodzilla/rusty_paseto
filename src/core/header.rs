@@ -4,8 +4,12 @@ use std::fmt::Display;
 use std::marker::PhantomData;
 use std::ops::Deref;
 
+/// The [Header] identifies the [protocol version and cryptographic format](https://github.com/paseto-standard/paseto-spec/tree/master/docs/01-Protocol-Versions) for the token
+///
+/// [at least one code example that users can copy/paste to try it]
+///
 #[derive(PartialEq, Debug, Copy, Clone)]
-pub struct Header<Version, Purpose>
+pub(crate) struct Header<Version, Purpose>
 where
   Version: VersionTrait,
   Purpose: PurposeTrait,

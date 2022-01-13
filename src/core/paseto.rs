@@ -41,6 +41,40 @@ use std::{
   str, usize,
 };
 
+/// Used to build and encrypt / decrypt core PASETO tokens
+///
+/// Given a [Payload], optional [Footer] and optional [ImplicitAssertion] ([V3] or [V4] only)
+/// returns an encrypted token when [Local] is specified as the purpose or a signed token when
+/// [Public] is specified
+/// # Example usage
+/// ```
+/// # use serde_json::json;
+/// use rusty_paseto::core::*;
+///
+/// let key = PasetoSymmetricKey::<V4, Local>::from(Key::<32>::try_from("707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f")?);
+/// let nonce = Key::<32>::try_from("0000000000000000000000000000000000000000000000000000000000000000")?;
+/// // generate a random nonce with
+/// // let nonce = Key::<32>::try_new_random()?;
+/// let nonce = PasetoNonce::<V4, Local>::from(&nonce);
+///
+/// let payload = json!({"data": "this is a secret message", "exp":"2022-01-01T00:00:00+00:00"}).to_string();
+/// let payload = payload.as_str();
+/// let payload = Payload::from(payload);
+///
+/// //create a public v4 token
+/// let token = Paseto::<V4, Local>::builder()
+///   .set_payload(payload)
+///   .try_encrypt(&key, &nonce)?;
+///
+/// //validate the test vector
+/// assert_eq!(token.to_string(), "v4.local.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAr68PS4AXe7If_ZgesdkUMvSwscFlAl1pk5HC0e8kApeaqMfGo_7OpBnwJOAbY9V7WU6abu74MmcUE8YWAiaArVI8XJ5hOb_4v9RmDkneN0S92dx0OW4pgy7omxgf3S8c3LlQg");
+///
+/// //now let's try to decrypt it
+/// let json = Paseto::<V4, Local>::try_decrypt(&token, &key, None, None)?;
+/// assert_eq!(payload, json);
+/// # Ok::<(),anyhow::Error>(())
+/// ```
+
 #[derive(Default, Copy, Clone)]
 pub struct Paseto<'a, Version, Purpose>
 where
@@ -54,15 +88,74 @@ where
 }
 
 impl<'a, Version: VersionTrait, Purpose: PurposeTrait> Paseto<'a, Version, Purpose> {
+  /// Returns a builder for creating a PASETO token
+  ///
+  /// # Example usage
+  /// ```
+  /// # use serde_json::json;
+  /// # use rusty_paseto::core::*;
+  ///
+  /// # let key = PasetoSymmetricKey::<V4, Local>::from(Key::<32>::try_from("707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f")?);
+  /// # let nonce = Key::<32>::try_from("0000000000000000000000000000000000000000000000000000000000000000")?;
+  /// # // generate a random nonce with
+  /// # // let nonce = Key::<32>::try_new_random()?;
+  /// # let nonce = PasetoNonce::<V4, Local>::from(&nonce);
+  ///
+  /// # let payload = json!({"data": "this is a secret message", "exp":"2022-01-01T00:00:00+00:00"}).to_string();
+  /// # let payload = payload.as_str();
+  /// # let payload = Payload::from(payload);
+  ///
+  /// //create a public v4 token
+  /// let token = Paseto::<V4, Local>::builder()
+  ///   .set_payload(payload)
+  ///   .try_encrypt(&key, &nonce)?;
+  ///
+  /// # //validate the test vector
+  /// # assert_eq!(token.to_string(), "v4.local.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAr68PS4AXe7If_ZgesdkUMvSwscFlAl1pk5HC0e8kApeaqMfGo_7OpBnwJOAbY9V7WU6abu74MmcUE8YWAiaArVI8XJ5hOb_4v9RmDkneN0S92dx0OW4pgy7omxgf3S8c3LlQg");
+  ///
+  /// # //now let's try to decrypt it
+  /// # let json = Paseto::<V4, Local>::try_decrypt(&token, &key, None, None)?;
+  /// # assert_eq!(payload, json);
+  /// # Ok::<(),anyhow::Error>(())
+  /// ```
   pub fn builder() -> Paseto<'a, Version, Purpose> {
     Self { ..Default::default() }
   }
 
+  /// Sets the payload for the token
   pub fn set_payload(&mut self, payload: Payload<'a>) -> &mut Self {
     self.payload = payload;
     self
   }
 
+  /// Sets an optional footer for the token
+  ///
+  /// # Example usage
+  /// ```
+  /// # use serde_json::json;
+  /// # use rusty_paseto::core::*;
+  ///
+  /// # let key = PasetoSymmetricKey::<V4, Local>::from(Key::<32>::try_from("707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f")?);
+  /// # let nonce = Key::<32>::try_from("0000000000000000000000000000000000000000000000000000000000000000")?;
+  /// # // generate a random nonce with
+  /// # // let nonce = Key::<32>::try_new_random()?;
+  /// # let nonce = PasetoNonce::<V4, Local>::from(&nonce);
+  ///
+  /// # let payload = json!({"data": "this is a secret message", "exp":"2022-01-01T00:00:00+00:00"}).to_string();
+  /// # let payload = payload.as_str();
+  /// # let payload = Payload::from(payload);
+  ///
+  /// // Set the footer with a Footer struct
+  /// let token = Paseto::<V4, Local>::builder()
+  ///   .set_payload(payload)
+  ///   .set_footer(Footer::from("Supah doopah!"))
+  ///   .try_encrypt(&key, &nonce)?;
+  ///
+  /// # //now let's try to decrypt it
+  /// # let json = Paseto::<V4, Local>::try_decrypt(&token, &key, Footer::from("Supah doopah!"), None)?;
+  /// # assert_eq!(payload, json);
+  /// # Ok::<(),anyhow::Error>(())
+  /// ```
   pub fn set_footer(&mut self, footer: Footer<'a>) -> &mut Self {
     self.footer = Some(footer);
     self
@@ -122,7 +215,36 @@ where
   Purpose: PurposeTrait,
   Version: ImplicitAssertionCapable,
 {
-  /// Note: Only for V3, V4 tokens
+  /// Sets an optional [ImplicitAssertion] for the token
+  ///
+  /// *NOTE:* Only for [V3] or [V4] tokens
+  ///
+  /// # Example usage
+  /// ```
+  /// # use serde_json::json;
+  /// # use rusty_paseto::core::*;
+  ///
+  /// # let key = PasetoSymmetricKey::<V4, Local>::from(Key::<32>::try_from("707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f")?);
+  /// # let nonce = Key::<32>::try_from("0000000000000000000000000000000000000000000000000000000000000000")?;
+  /// # // generate a random nonce with
+  /// # // let nonce = Key::<32>::try_new_random()?;
+  /// # let nonce = PasetoNonce::<V4, Local>::from(&nonce);
+  ///
+  /// # let payload = json!({"data": "this is a secret message", "exp":"2022-01-01T00:00:00+00:00"}).to_string();
+  /// # let payload = payload.as_str();
+  /// # let payload = Payload::from(payload);
+  ///
+  /// // Set the ImplicitAssertion
+  /// let token = Paseto::<V4, Local>::builder()
+  ///   .set_payload(payload)
+  ///   .set_implicit_assertion(ImplicitAssertion::from("Supah doopah!"))
+  ///   .try_encrypt(&key, &nonce)?;
+  ///
+  /// # //now let's try to decrypt it
+  /// # let json = Paseto::<V4, Local>::try_decrypt(&token, &key, None, ImplicitAssertion::from("Supah doopah!"))?;
+  /// # assert_eq!(payload, json);
+  /// # Ok::<(),anyhow::Error>(())
+  /// ```
   pub fn set_implicit_assertion(&mut self, implicit_assertion: ImplicitAssertion<'a>) -> &mut Self {
     self.implicit_assertion = Some(implicit_assertion);
     self
@@ -218,8 +340,22 @@ impl<'a> Paseto<'a, V2, Public> {
 
 #[cfg(feature = "v1_local")]
 impl<'a> Paseto<'a, V1, Local> {
-  /// Attempt to parse an untrusted token string to validate and decrypt into a plaintext payload
-  /// Fails with a PasetoError if the token is malformed or can't be decrypted
+  /// Attempts to decrypt a PASETO token
+  /// ```
+  /// # use serde_json::json;
+  /// # use rusty_paseto::core::*;
+  /// # let key = PasetoSymmetricKey::<V1, Local>::from(Key::<32>::try_from("707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f")?);
+  /// # let nonce = Key::<32>::try_from("0000000000000000000000000000000000000000000000000000000000000000")?;
+  /// # let nonce = PasetoNonce::<V1, Local>::from(&nonce);
+  /// # let payload = json!({"data": "this is a secret message", "exp":"2022-01-01T00:00:00+00:00"}).to_string();
+  /// # let payload = payload.as_str();
+  /// # let payload = Payload::from(payload);
+  /// # let token = Paseto::<V1, Local>::builder().set_payload(payload).try_encrypt(&key, &nonce)?;
+  /// // decrypt a public v1 token
+  /// let json = Paseto::<V1, Local>::try_decrypt(&token, &key, None)?;
+  /// # assert_eq!(payload, json);
+  /// # Ok::<(),anyhow::Error>(())
+  /// ```
   pub fn try_decrypt(
     token: &'a str,
     key: &PasetoSymmetricKey<V1, Local>,
@@ -259,8 +395,22 @@ impl<'a> Paseto<'a, V1, Local> {
     Ok(decoded_str.to_owned())
   }
 
-  /// Attempt to encrypt a V1, Local Paseto token
-  /// Fails with a PasetoError if the token is malformed or can't be encrypted
+  /// Attempts to encrypt a PASETO token
+  /// ```
+  /// # use serde_json::json;
+  /// # use rusty_paseto::core::*;
+  /// # let key = PasetoSymmetricKey::<V1, Local>::from(Key::<32>::try_from("707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f")?);
+  /// # let nonce = Key::<32>::try_from("0000000000000000000000000000000000000000000000000000000000000000")?;
+  /// # let nonce = PasetoNonce::<V1, Local>::from(&nonce);
+  /// # let payload = json!({"data": "this is a secret message", "exp":"2022-01-01T00:00:00+00:00"}).to_string();
+  /// # let payload = payload.as_str();
+  /// # let payload = Payload::from(payload);
+  /// // encrypt a public v1 token
+  /// let token = Paseto::<V1, Local>::builder().set_payload(payload).try_encrypt(&key, &nonce)?;
+  /// # let json = Paseto::<V1, Local>::try_decrypt(&token, &key, None)?;
+  /// # assert_eq!(payload, json);
+  /// # Ok::<(),anyhow::Error>(())
+  /// ```
   pub fn try_encrypt(
     &mut self,
     key: &PasetoSymmetricKey<V1, Local>,
@@ -302,6 +452,22 @@ impl<'a> Paseto<'a, V1, Local> {
 
 #[cfg(feature = "v2_local")]
 impl<'a> Paseto<'a, V2, Local> {
+  /// Attempts to decrypt a PASETO token
+  /// ```
+  /// # use serde_json::json;
+  /// # use rusty_paseto::core::*;
+  /// # let key = PasetoSymmetricKey::<V2, Local>::from(Key::<32>::try_from("707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f")?);
+  /// # let nonce = Key::<32>::try_from("0000000000000000000000000000000000000000000000000000000000000000")?;
+  /// # let nonce = PasetoNonce::<V2, Local>::from(&nonce);
+  /// # let payload = json!({"data": "this is a secret message", "exp":"2022-01-01T00:00:00+00:00"}).to_string();
+  /// # let payload = payload.as_str();
+  /// # let payload = Payload::from(payload);
+  /// # let token = Paseto::<V2, Local>::builder().set_payload(payload).try_encrypt(&key, &nonce)?;
+  /// // decrypt a public v2 token
+  /// let json = Paseto::<V2, Local>::try_decrypt(&token, &key, None)?;
+  /// # assert_eq!(payload, json);
+  /// # Ok::<(),anyhow::Error>(())
+  /// ```
   pub fn try_decrypt(
     token: &'a str,
     key: &PasetoSymmetricKey<V2, Local>,
@@ -332,6 +498,22 @@ impl<'a> Paseto<'a, V2, Local> {
     Ok(decoded_str.to_owned())
   }
 
+  /// Attempts to encrypt a PASETO token
+  /// ```
+  /// # use serde_json::json;
+  /// # use rusty_paseto::core::*;
+  /// # let key = PasetoSymmetricKey::<V2, Local>::from(Key::<32>::try_from("707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f")?);
+  /// # let nonce = Key::<32>::try_from("0000000000000000000000000000000000000000000000000000000000000000")?;
+  /// # let nonce = PasetoNonce::<V2, Local>::from(&nonce);
+  /// # let payload = json!({"data": "this is a secret message", "exp":"2022-01-01T00:00:00+00:00"}).to_string();
+  /// # let payload = payload.as_str();
+  /// # let payload = Payload::from(payload);
+  /// // encrypt a public v2 token
+  /// let token = Paseto::<V2, Local>::builder().set_payload(payload).try_encrypt(&key, &nonce)?;
+  /// # let json = Paseto::<V2, Local>::try_decrypt(&token, &key, None)?;
+  /// # assert_eq!(payload, json);
+  /// # Ok::<(),anyhow::Error>(())
+  /// ```
   pub fn try_encrypt(
     &self,
     key: &PasetoSymmetricKey<V2, Local>,
@@ -364,7 +546,22 @@ impl<'a> Paseto<'a, V2, Local> {
 
 #[cfg(feature = "v3_local")]
 impl<'a> Paseto<'a, V3, Local> {
-  /// Parse an untrusted token string to validate and decrypt into a plaintext payload
+  /// Attempts to decrypt a PASETO token
+  /// ```
+  /// # use serde_json::json;
+  /// # use rusty_paseto::core::*;
+  /// # let key = PasetoSymmetricKey::<V3, Local>::from(Key::<32>::try_from("707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f")?);
+  /// # let nonce = Key::<32>::try_from("0000000000000000000000000000000000000000000000000000000000000000")?;
+  /// # let nonce = PasetoNonce::<V3, Local>::from(&nonce);
+  /// # let payload = json!({"data": "this is a secret message", "exp":"2022-01-01T00:00:00+00:00"}).to_string();
+  /// # let payload = payload.as_str();
+  /// # let payload = Payload::from(payload);
+  /// # let token = Paseto::<V3, Local>::builder().set_payload(payload).try_encrypt(&key, &nonce)?;
+  /// // decrypt a public v3 token
+  /// let json = Paseto::<V3, Local>::try_decrypt(&token, &key, None, None)?;
+  /// # assert_eq!(payload, json);
+  /// # Ok::<(),anyhow::Error>(())
+  /// ```
   pub fn try_decrypt(
     token: &'a str,
     key: &PasetoSymmetricKey<V3, Local>,
@@ -407,6 +604,22 @@ impl<'a> Paseto<'a, V3, Local> {
     Ok(decoded_str.to_owned())
   }
 
+  /// Attempts to encrypt a PASETO token
+  /// ```
+  /// # use serde_json::json;
+  /// # use rusty_paseto::core::*;
+  /// # let key = PasetoSymmetricKey::<V3, Local>::from(Key::<32>::try_from("707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f")?);
+  /// # let nonce = Key::<32>::try_from("0000000000000000000000000000000000000000000000000000000000000000")?;
+  /// # let nonce = PasetoNonce::<V3, Local>::from(&nonce);
+  /// # let payload = json!({"data": "this is a secret message", "exp":"2022-01-01T00:00:00+00:00"}).to_string();
+  /// # let payload = payload.as_str();
+  /// # let payload = Payload::from(payload);
+  /// // encrypt a public v3 token
+  /// let token = Paseto::<V3, Local>::builder().set_payload(payload).try_encrypt(&key, &nonce)?;
+  /// # let json = Paseto::<V3, Local>::try_decrypt(&token, &key, None, None)?;
+  /// # assert_eq!(payload, json);
+  /// # Ok::<(),anyhow::Error>(())
+  /// ```
   pub fn try_encrypt(
     &mut self,
     key: &PasetoSymmetricKey<V3, Local>,
@@ -441,6 +654,22 @@ impl<'a> Paseto<'a, V3, Local> {
 
 #[cfg(feature = "v4_local")]
 impl<'a> Paseto<'a, V4, Local> {
+  /// Attempts to decrypt a PASETO token
+  /// ```
+  /// # use serde_json::json;
+  /// # use rusty_paseto::core::*;
+  /// # let key = PasetoSymmetricKey::<V4, Local>::from(Key::<32>::try_from("707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f")?);
+  /// # let nonce = Key::<32>::try_from("0000000000000000000000000000000000000000000000000000000000000000")?;
+  /// # let nonce = PasetoNonce::<V4, Local>::from(&nonce);
+  /// # let payload = json!({"data": "this is a secret message", "exp":"2022-01-01T00:00:00+00:00"}).to_string();
+  /// # let payload = payload.as_str();
+  /// # let payload = Payload::from(payload);
+  /// # let token = Paseto::<V4, Local>::builder().set_payload(payload).try_encrypt(&key, &nonce)?;
+  /// // decrypt a public v4 token
+  /// let json = Paseto::<V4, Local>::try_decrypt(&token, &key, None, None)?;
+  /// # assert_eq!(payload, json);
+  /// # Ok::<(),anyhow::Error>(())
+  /// ```
   pub fn try_decrypt(
     token: &'a str,
     key: &PasetoSymmetricKey<V4, Local>,
@@ -483,6 +712,24 @@ impl<'a> Paseto<'a, V4, Local> {
     Ok(decoded_str.to_owned())
   }
 
+  /// Attempts to encrypt a PASETO token
+  /// ```
+  /// # use serde_json::json;
+  /// # use rusty_paseto::core::*;
+  /// # let key = PasetoSymmetricKey::<V4, Local>::from(Key::<32>::try_from("707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f")?);
+  /// # let nonce = Key::<32>::try_from("0000000000000000000000000000000000000000000000000000000000000000")?;
+  /// # // generate a random nonce with
+  /// # // let nonce = Key::<32>::try_new_random()?;
+  /// # let nonce = PasetoNonce::<V4, Local>::from(&nonce);
+  /// # let payload = json!({"data": "this is a secret message", "exp":"2022-01-01T00:00:00+00:00"}).to_string();
+  /// # let payload = payload.as_str();
+  /// # let payload = Payload::from(payload);
+  /// //create a public v4 token
+  /// let token = Paseto::<V4, Local>::builder().set_payload(payload).try_encrypt(&key, &nonce)?;
+  /// #  let json = Paseto::<V4, Local>::try_decrypt(&token, &key, None, None)?;
+  /// # assert_eq!(payload, json);
+  /// # Ok::<(),anyhow::Error>(())
+  /// ```
   pub fn try_encrypt(
     &mut self,
     key: &PasetoSymmetricKey<V4, Local>,

@@ -1,135 +1,63 @@
-# rusty_paseto
+<h1 align="center">rusty_paseto</h1>
 
-A type-driven, ergonomic implementation of the [PASETO](https://github.com/paseto-standard/paseto-spec) protocol for secure stateless tokens.
+<center><img align="center" style="display:block; margin-left:auto;margin-right:auto;" width="150" src="https://github.com/rrrodzilla/rusty_paseto/raw/main/assets/paseto_logo.png" /></center>
+
+<p align="center"> A type-driven, ergonomic implementation of the <a href="https://github.com/paseto-standard/paseto-spec">PASETO</a> protocol<br /> for secure stateless tokens.</p>
+
+
+![unit tests](https://github.com/rrrodzilla/rusty_paseto/actions/workflows/rust.yml/badge.svg)
+![GitHub](https://img.shields.io/github/license/rrrodzilla/rusty_paseto?label=License)
+[![unsafe forbidden](https://img.shields.io/badge/unsafe-forbidden-success.svg)](https://github.com/rust-secure-code/safety-dance/)
+[![Crates.io](https://img.shields.io/crates/v/rusty_paseto.svg)](https://crates.io/crates/rusty_paseto)
+[![Documentation](https://docs.rs/rusty_paseto/badge.svg)](https://docs.rs/rusty_paseto/)
+
+---
+
+## Table of Contents
+
+1) [About PASETO](#user-content-about-paseto)
+2) [Examples](#user-content-examples)
+    - [Building and parsing tokens](#user-content-building-and-parsing-tokens)
+    - [A default token](#user-content-a-default-token)
+    - [A default parser](#user-content-a-default-parser)
+    - [A token with a footer](#user-content-a-token-with-a-footer)
+    - [A token with an implicit assertion (V3/V4 only)](#user-content-a-token-with-an-implicit-assertion-v3-or-v4-versioned-tokens-only)
+    - [Setting a different expiration time](#user-content-setting-a-different-expiration-time)
+    - [Tokens that never expire](#user-content-tokens-that-never-expire)
+    - [Setting PASETO claims](#user-content-setting-paseto-claims)
+    - [Setting your own Custom Claims](#user-content-setting-your-own-custom-claims)
+    - [Validating claims](#user-content-validating-claims)
+        - [Checking claims](#user-content-checking-claims)
+        - [Custom validation](#user-content-custom-validation)
+3) [Architecture](#user-content-architecture)
+    - [Feature gates](#user-content-feature-gates)
+        - [default](#user-content-default)
+        - [batteries_included](#user-content-batteries_included)
+        - [generic](#user-content-generic)
+        - [core](#user-content-core)
+4) [Roadmap and Current Feature Status](#user-content-roadmap-and-current-feature-status)
+5) [Acknowledgments](#user-content-acknowledgments)
+6) [Support](#user-content-support)
+7) [Like this crate](#user-content-like-this-crate)
+
+---
+
+## About PASETO
 
 ### PASETO: Platform-Agnostic Security Tokens
 
 Paseto is everything you love about JOSE (JWT, JWE, JWS) without any of the
 [many design deficits that plague the JOSE standards](https://paragonie.com/blog/2017/03/jwt-json-web-tokens-is-bad-standard-that-everyone-should-avoid).
 
-![unit tests](https://github.com/rrrodzilla/rusty_paseto/actions/workflows/rust.yml/badge.svg)
-![GitHub](https://img.shields.io/github/license/rrrodzilla/rusty_paseto?label=License)
-
-## Roadmap and Current Feature Status
-
-| APIs, Tests & Documentation | v1.<br />local| v1.<br />public | v2.<br />local | v2.<br />public |v3.<br />local | v3.<br />public | v4.<br />local | v4.<br />public |
-| ------------: | :-----------: | :----------:    |:-----------:   |:-----------:    |:-----------:  |:-----------:    |:-----------:   |:-----------:    |
-| PASETO Token Builder		| :green_circle: | :green_circle: | :green_circle: | :green_circle: | :green_circle: | :black_circle: | :green_circle: | :green_circle: |
-| PASETO Token Parser		| :green_circle: | :green_circle: | :green_circle: | :green_circle: | :green_circle: | :black_circle: | :green_circle: | :green_circle: |
-| Flexible Claim Validation	| :green_circle: | :green_circle: | :green_circle: | :green_circle: | :green_circle: | :black_circle: | :green_circle: | :green_circle: |
-| Generic Token Builder		| :green_circle: | :green_circle: | :green_circle: | :green_circle: | :green_circle: | :black_circle: | :green_circle: | :green_circle: |
-| Generic Token Parser		| :green_circle: | :green_circle: | :green_circle: | :green_circle: | :green_circle: | :black_circle: | :green_circle: | :green_circle: |
-| Encryption/Signing		| :green_circle: |  :green_circle: | :green_circle: | :green_circle: | :green_circle: | :black_circle: | :green_circle: | :green_circle: |
-| Decryption/Verification	| :green_circle: |  :green_circle: | :green_circle: | :green_circle: | :green_circle: | :black_circle: | :green_circle: | :green_circle: |
-| [PASETO Test vectors](https://github.com/paseto-standard/test-vectors)  | :green_circle: | :green_circle: | :green_circle: | :green_circle: | :green_circle: | :black_circle: | :green_circle: | :green_circle: |
-| Documentation			| :black_circle: | :black_circle: | :orange_circle: | :black_circle: | :black_circle: | :black_circle: | :black_circle: | :black_circle: |
-
-| Feature 			| Status | 
-| ------------: 		| :-----------:  |   
-| Feature gates			| :green_circle: |
-| PASERK support			| :black_circle: |
+**rusty_paseto** is meant to be flexible and configurable for your specific use case.  Whether you want to [get started quickly](#user-content-default) with sensible defaults, [create your own version of rusty_paseto](#user-content-generic) in order to customize your own defaults and functionality or just want to use the [core PASETO crypto features](#user-content-core), the crate is heavily [feature gated](#user-content-feature-gates) to allow for your needs.  
 
 
- # Usage
-rusty_paseto is meant to be flexible and configurable for your specific use case.  Whether you want to get started quickly with sensible defaults, create your own version of rusty_paseto in order to customize your own defaults and functionality or just want to use the core PASETO crypto features, the crate is heavily feature gated to allow for your needs.  
 
- ## Architecture
+ ## Examples
 
- The rusty_paseto crate architecture is composed of three layers (batteries_included, generic and core) which can be further refined by the PASETO version(s) and purpose(s) required for your needs.  All layers use a common crypto core which includes various cipher crates depending on the version and purpose you choose.  The crate is heavily featured gated to allow you to use only the versions and purposes you need for your app which minimizes download compile times for using rusty_paseto.  A description of each architectural layer, their uses and limitations and how to minimize your required dependencies based on your required PASETO version and purpose follows:
+ ### Building and parsing tokens 
 
- ![paseto_batteries_included_small](https://user-images.githubusercontent.com/24578097/147881895-36878b22-bf17-49e4-98d7-f94920353368.png)  ![paseto_generic_small](https://user-images.githubusercontent.com/24578097/147881907-a765ede6-c8e5-44ff-9845-db53f0634f07.png)  ![paseto_core_small](https://user-images.githubusercontent.com/24578097/147881920-14c52256-1a0c-40be-9f18-759a8c9ad77d.png)
-
- batteries_included  --> generic --> core
-
- ### default
- The default feature is the quickest way to get started using rusty_paseto.
-
- ![paseto_default_small](https://user-images.githubusercontent.com/24578097/147882602-0a88c55e-3ba9-4545-ba99-867406ac9c76.png)
-
- The default feature includes the outermost architectural layer called batteries_included (described below) as well as the two latest PASETO versions (V3 - NIST MODERN, V4 - SODIUM MODERN) and the Public (Asymmetric) and Local (Symmetric) purposed key types for each of these versions.  That should be four specific version and purpose combinations however at the time of this writing I have yet to implement the V3 - Public combination, so there are 3 in the default feature.  Additionally, this feature includes JWT style claims and business rules for your PASETO token (default, but customizable expiration, issued at, not-before times, etc as described in the usage documentation and examples further below).
-
- ```toml
- ## Includes V3 (local) and V4 (local, public) versions, purposes and ciphers.
-
- rusty_paseto = "latest"
- ```
- ```
- // at the top of your source file
- use rusty_paseto::prelude::*;
- ```
-
- ### batteries_included
-
- The outermost architectural layer is called batteries_included.  This is what most people will need.  This feature includes JWT style claims and business rules for your PASETO token (default, but customizable expiration, issued at, not-before times, etc as described in the usage documentation and examples below).
-
- ![paseto_batteries_included_small](https://user-images.githubusercontent.com/24578097/147881895-36878b22-bf17-49e4-98d7-f94920353368.png)
-
- You must specify a version and purpose with this feature in order to reduce the size of your dependencies like in the following Cargo.toml entry which only includes the V4 - Local types with batteries_included functionality:
-
- ```toml
- ## Includes only v4 modern sodium cipher crypto core and local (symmetric)
- ## key types with all claims and default business rules.
-
- rusty_paseto = {version = "latest", features = ["batteries_included", "v4_local"] }
- ```
- ![paseto_batteries_included_v4_local_small](https://user-images.githubusercontent.com/24578097/147882822-46dac1d1-a922-4301-be45-d3341dabfee1.png)
-
- #### Feature gates
- Valid version/purpose feature combinations are as follows:
- - "v1_local" (NIST Original Symmetric Encryption)
- - "v2_local" (Sodium Original Symmetric Encryption)
- - "v3_local" (NIST Modern Symmetric Encryption)
- - "v4_local" (Sodium Modern Symmetric Encryption)
- - "v1_public" (NIST Original Asymmetric Authentication)
- - "v2_public" (Sodium Original Asymmetric Authentication)
- - *"v3_public" (NIST Modern Asymmetric Authentication)* - **NOT YET IMPLEMENTED**
- - "v4_public" (Sodium Modern Asymmetric Authentication)
-
- ```
- // at the top of your source file
- use rusty_paseto::prelude::*;
- ```
- ### generic
-
- The generic architectural and feature layer allows you to create your own custom version of the batteries_included layer by following the same pattern I've used in the source code to create your own custom builder and parser.  This is probably not what you need as it is for advanced usage.  The feature includes a generic builder and parser along with claims for you to extend.
-
- ![paseto_generic_small](https://user-images.githubusercontent.com/24578097/147881907-a765ede6-c8e5-44ff-9845-db53f0634f07.png)
-
- It includes all the PASETO and custom claims but allows you to create different default claims in your custom builder and parser or use a different time crate or make up your own default business rules.  As with the batteries_included layer, parsed tokens get returned as a serder_json Value. Again, specify the version and purpose to include in the crypto core:
-
-
- ```toml
- ## Includes only v4 modern sodium cipher crypto core and local (symmetric)
- ## key types with all claims and default business rules.
-
- rusty_paseto = {version = "latest", features = ["generic", "v4_local"] }
- ```
- ```
- // at the top of your source file
- use rusty_paseto::generic::*;
- ```
- ### core
-
- The core architectural layer is the most basic PASETO implementation as it accepts a Payload, optional Footer and (if v3 or v4) an optional Implicit Assertion along with the appropriate key to encrypt/sign and decrypt/verify basic strings.  
-
- ![paseto_core_small](https://user-images.githubusercontent.com/24578097/147881920-14c52256-1a0c-40be-9f18-759a8c9ad77d.png)
-
- There are no default claims or included claim structures, business rules or anything other than basic PASETO crypto functions.  Serde crates are not included in this feature so it is extremely lightweight.  You can use this when you don't need JWT-esque functionality but still want to leverage the safe cipher combinations and algorithm lucidity afforded by the PASETO specification.
-
- ```toml
- ## Includes only v4 modern sodium cipher crypto core and local (symmetric)
- ## key types with NO claims, defaults or validation, just basic PASETO
- ## encrypt/signing and decrypt/verification.
-
- rusty_paseto = {version = "latest", features = ["core", "v4_local"] }
- ```
-
-
- # Examples
-
- ## Building and parsing tokens with batteries_included
-
- Here's a basic, default token:
+ Here's a basic, default token with the [batteries_included](#user-content-batteries_included) feature:
  ```rust
  use rusty_paseto::prelude::*;
 
@@ -141,7 +69,7 @@ rusty_paseto is meant to be flexible and configurable for your specific use case
 
  ```
 
- ## A default token
+ ### A default token
 
  * Has no [footer](https://github.com/paseto-standard/paseto-spec/tree/master/docs)
  * Has no [implicit assertion](https://github.com/paseto-standard/paseto-spec/tree/master/docs)
@@ -164,17 +92,18 @@ rusty_paseto is meant to be flexible and configurable for your specific use case
 
  ```
 
- ## A default parser
+### A default parser
 
  * Validates the token structure and decryptes the payload or verifies the signature of the content
  * Validates the [footer](https://github.com/paseto-standard/paseto-spec/tree/master/docs) if
  one was provided
  * Validates the [implicit assertion](https://github.com/paseto-standard/paseto-spec/tree/master/docs) if one was provided (for V3 or V4 versioned tokens only)
 
- ## A token with a footer
+<h6 align="right"><a href="#user-content-table-of-contents">back to toc</a></h6>
 
- PASETO tokens can have an [optional footer](https://github.com/paseto-standard/paseto-spec/tree/master/docs).  In rusty_paseto we have strict types for most things.  
- So we can extend the previous example to add a footer to the token by using code like the
+### A token with a footer
+
+ PASETO tokens can have an [optional footer](https://github.com/paseto-standard/paseto-spec/tree/master/docs).  In rusty_paseto we have strict types for most things. So we can extend the previous example to add a footer to the token by using code like the
  following:
  ```rust
  use rusty_paseto::prelude::*;
@@ -201,8 +130,9 @@ rusty_paseto is meant to be flexible and configurable for your specific use case
 
  ```
 
+<h6 align="right"><a href="#user-content-table-of-contents">back to toc</a></h6>
 
- ## A token with an implicit assertion (V3 or V4 versioned tokens only)
+### A token with an implicit assertion (V3 or V4 versioned tokens only)
 
  Version 3 (V3) and Version 4 (V4) PASETO tokens can have an [optional implicit assertion](https://github.com/paseto-standard/paseto-spec/tree/master/docs).
  So we can extend the previous example to add an implicit assertion to the token by using code like the
@@ -229,7 +159,9 @@ rusty_paseto is meant to be flexible and configurable for your specific use case
 
  ```
 
- ## Setting a different expiration time
+<h6 align="right"><a href="#user-content-table-of-contents">back to toc</a></h6>
+
+### Setting a different expiration time
 
  As mentioned, default tokens expire **1 hour** from creation time.  You can set your own
  expiration time by adding an ExpirationClaim which takes an ISO 8601 (Rfc3339) compliant datetime string.
@@ -252,8 +184,9 @@ use rusty_paseto::prelude::*;
 
  ```
 
+<h6 align="right"><a href="#user-content-table-of-contents">back to toc</a></h6>
 
- ## Tokens that never expire
+### Tokens that never expire
 
  A **1 hour** ExpirationClaim is set by default because the use case for non-expiring tokens in the world of security tokens is fairly limited.
  Omitting an expiration claim or forgetting to require one when processing them
@@ -271,7 +204,9 @@ use rusty_paseto::prelude::*;
 
  ```
 
- ## Setting PASETO Claims
+<h6 align="right"><a href="#user-content-table-of-contents">back to toc</a></h6>
+
+### Setting PASETO Claims
 
  The PASETO specification includes [seven reserved claims](https://github.com/paseto-standard/paseto-spec/blob/master/docs/02-Implementation-Guide/04-Claims.md) which you can set with their explicit types:
  ```rust
@@ -301,7 +236,9 @@ use rusty_paseto::prelude::*;
 
  ```
 
- ## Setting your own Custom Claims
+<h6 align="right"><a href="#user-content-table-of-contents">back to toc</a></h6>
+
+### Setting your own Custom Claims
 
  The CustomClaim struct takes a tuple in the form of `(key: String, value: T)` where T is any
  serializable type
@@ -321,10 +258,13 @@ use rusty_paseto::prelude::*;
    .build(&key)?;
 
  ```
- # Validating claims
+
+<h6 align="right"><a href="#user-content-table-of-contents">back to toc</a></h6>
+
+### Validating claims
  rusty_paseto allows for flexible claim validation at parse time
 
- ## Checking claims
+#### Checking claims
 
  Let's see how we can check particular claims exist with expected values.
  ```rust
@@ -350,7 +290,9 @@ use rusty_paseto::prelude::*;
  //assert_eq!(json_value["Universe"], 137);
  ```
 
- # Custom validation
+<h6 align="right"><a href="#user-content-table-of-contents">back to toc</a></h6>
+
+#### Custom validation
 
  What if we have more complex validation requirements? You can pass in a reference to a closure which receives
  the key and value of the claim you want to validate so you can implement any validation logic
@@ -393,7 +335,156 @@ use rusty_paseto::prelude::*;
 
  ```
 
- # Acknowledgments
+<h6 align="right"><a href="#user-content-table-of-contents">back to toc</a></h6>
+
+---
+
+## Architecture
+
+ The rusty_paseto crate architecture is composed of three layers (batteries_included, generic and core) which can be further refined by the PASETO version(s) and purpose(s) required for your needs.  All layers use a common crypto core which includes various cipher crates depending on the version and purpose you choose.  The crate is heavily featured gated to allow you to use only the versions and purposes you need for your app which minimizes download compile times for using rusty_paseto.  A description of each architectural layer, their uses and limitations and how to minimize your required dependencies based on your required PASETO version and purpose follows:
+
+ ![paseto_batteries_included_small](https://user-images.githubusercontent.com/24578097/147881895-36878b22-bf17-49e4-98d7-f94920353368.png)  ![paseto_generic_small](https://user-images.githubusercontent.com/24578097/147881907-a765ede6-c8e5-44ff-9845-db53f0634f07.png)  ![paseto_core_small](https://user-images.githubusercontent.com/24578097/147881920-14c52256-1a0c-40be-9f18-759a8c9ad77d.png)
+
+ batteries_included  --> generic --> core
+
+<h6 align="right"><a href="#user-content-table-of-contents">back to toc</a></h6>
+
+### Feature gates
+
+ Valid version/purpose feature combinations are as follows:
+ - "v1_local" (NIST Original Symmetric Encryption)
+ - "v2_local" (Sodium Original Symmetric Encryption)
+ - "v3_local" (NIST Modern Symmetric Encryption)
+ - "v4_local" (Sodium Modern Symmetric Encryption)
+ - "v1_public" (NIST Original Asymmetric Authentication)
+ - "v2_public" (Sodium Original Asymmetric Authentication)
+ - *"v3_public" (NIST Modern Asymmetric Authentication)* - **NOT YET IMPLEMENTED**
+ - "v4_public" (Sodium Modern Asymmetric Authentication)
+
+<h6 align="right"><a href="#user-content-table-of-contents">back to toc</a></h6>
+
+#### default
+
+ The default feature is the quickest way to get started using rusty_paseto.
+
+ ![paseto_default_small](https://user-images.githubusercontent.com/24578097/147882602-0a88c55e-3ba9-4545-ba99-867406ac9c76.png)
+
+ The default feature includes the outermost architectural layer called batteries_included (described below) as well as the two latest PASETO versions (V3 - NIST MODERN, V4 - SODIUM MODERN) and the Public (Asymmetric) and Local (Symmetric) purposed key types for each of these versions.  That should be four specific version and purpose combinations however at the time of this writing I have yet to implement the V3 - Public combination, so there are 3 in the default feature.  Additionally, this feature includes JWT style claims and business rules for your PASETO token (default, but customizable expiration, issued at, not-before times, etc as described in the usage documentation and examples further below).
+
+ ```toml
+ ## Includes V3 (local) and V4 (local, public) versions, 
+ ## purposes and ciphers.
+
+ rusty_paseto = "latest"
+ ```
+ ```
+ // at the top of your source file
+ use rusty_paseto::prelude::*;
+ ```
+
+<h6 align="right"><a href="#user-content-table-of-contents">back to toc</a></h6>
+
+#### batteries_included
+
+ The outermost architectural layer is called batteries_included.  This is what most people will need.  This feature includes JWT style claims and business rules for your PASETO token (default, but customizable expiration, issued at, not-before times, etc as described in the usage documentation and examples below).
+
+ ![paseto_batteries_included_small](https://user-images.githubusercontent.com/24578097/147881895-36878b22-bf17-49e4-98d7-f94920353368.png)
+
+ You must specify a version and purpose with this feature in order to reduce the size of your dependencies like in the following Cargo.toml entry which only includes the V4 - Local types with batteries_included functionality:
+
+ ```toml
+ ## Includes only v4 modern sodium cipher crypto core 
+ ## and local (symmetric) key types with all claims and default business rules.
+
+ rusty_paseto = {version = "latest", features = ["batteries_included", "v4_local"] }
+ ```
+ ![paseto_batteries_included_v4_local_small](https://user-images.githubusercontent.com/24578097/147882822-46dac1d1-a922-4301-be45-d3341dabfee1.png)
+
+ ```
+ // at the top of your source file
+ use rusty_paseto::prelude::*;
+ ```
+
+<h6 align="right"><a href="#user-content-table-of-contents">back to toc</a></h6>
+
+#### generic
+
+ The generic architectural and feature layer allows you to create your own custom version of the batteries_included layer by following the same pattern I've used in the source code to create your own custom builder and parser.  This is probably not what you need as it is for advanced usage.  The feature includes a generic builder and parser along with claims for you to extend.
+
+ ![paseto_generic_small](https://user-images.githubusercontent.com/24578097/147881907-a765ede6-c8e5-44ff-9845-db53f0634f07.png)
+
+ It includes all the PASETO and custom claims but allows you to create different default claims in your custom builder and parser or use a different time crate or make up your own default business rules.  As with the batteries_included layer, parsed tokens get returned as a serder_json Value. Again, specify the version and purpose to include in the crypto core:
+
+
+ ```toml
+ ## Includes only v4 modern sodium cipher crypto core and local (symmetric)
+ ## key types with all claims and default business rules.
+
+ rusty_paseto = {version = "latest", features = ["generic", "v4_local"] }
+ ```
+ ```
+ // at the top of your source file
+ use rusty_paseto::generic::*;
+ ```
+
+<h6 align="right"><a href="#user-content-table-of-contents">back to toc</a></h6>
+
+#### core
+
+ The core architectural layer is the most basic PASETO implementation as it accepts a Payload, optional Footer and (if v3 or v4) an optional Implicit Assertion along with the appropriate key to encrypt/sign and decrypt/verify basic strings.  
+
+ ![paseto_core_small](https://user-images.githubusercontent.com/24578097/147881920-14c52256-1a0c-40be-9f18-759a8c9ad77d.png)
+
+ There are no default claims or included claim structures, business rules or anything other than basic PASETO crypto functions.  Serde crates are not included in this feature so it is extremely lightweight.  You can use this when you don't need JWT-esque functionality but still want to leverage the safe cipher combinations and algorithm lucidity afforded by the PASETO specification.
+
+ ```toml
+ ## Includes only v4 modern sodium cipher crypto core and local (symmetric)
+ ## key types with NO claims, defaults or validation, just basic PASETO
+ ## encrypt/signing and decrypt/verification.
+
+ rusty_paseto = {version = "latest", features = ["core", "v4_local"] }
+ ```
+
+<h6 align="right"><a href="#user-content-table-of-contents">back to toc</a></h6>
+
+---
+
+ ## Roadmap and Current Feature Status
+
+
+| APIs, Tests & Documentation |v1.L|v1.P|v2.L|v2.P|v3.L|v3.P|v4.L|v4.P|
+| ------------: |:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| PASETO Token Builder		|🟢|🟢|🟢|🟢|🟢|⚫|🟢|🟢|
+| PASETO Token Parser		|🟢|🟢|🟢|🟢|🟢|⚫|🟢|🟢|
+| Flexible Claim Validation	|🟢|🟢|🟢|🟢|🟢|⚫|🟢|🟢|
+| Generic Token Builder		|🟢|🟢|🟢|🟢|🟢|⚫|🟢|🟢|
+| Generic Token Parser		|🟢|🟢|🟢|🟢|🟢|⚫|🟢|🟢|
+| Encryption/Signing		|🟢|🟢|🟢|🟢|🟢|⚫|🟢|🟢|
+| Decryption/Verification	|🟢|🟢|🟢|🟢|🟢|⚫|🟢|🟢|
+| [PASETO Test vectors](https://github.com/paseto-standard/test-vectors)  |🟢|🟢|🟢|🟢|🟢|⚫|🟢|🟢|
+| Feature - core	|🟢|🟢|🟢|🟢|🟢|⚫|🟢|🟢|
+| Feature - generic	|🟢|🟢|🟢|🟢|🟢|⚫|🟢|🟢|
+| Feature - batteries_included	|🟢|🟢|🟢|🟢|🟢|⚫|🟢|🟢|
+| PASERK |⚫|⚫|⚫|⚫|⚫|⚫|⚫|⚫|
+| Docs - [core](#user-content-core)			|🟢|🟢|🟢|🟢|🟢|⚫|🟢|🟢|
+| Docs - [generic](#user-content-generic)			|⚫|⚫|⚫|⚫|⚫|⚫|⚫|⚫|
+| Docs - [batteries_included](#user-content-batteries_included)			|⚫|⚫|⚫|⚫|⚫|⚫|⚫|⚫|
+
+ <div align="center"><p>🟢 - completed&nbsp;⚫ - not yet</p></div>
+
+<h6 align="right"><a href="#user-content-table-of-contents">back to toc</a></h6>
+
+---
+
+## Support
+
+File an [issue](https://github.com/rrrodzilla/rusty_paseto/issues/new/choose) or hit me up on [Twitter](https://twitter.com/rrrodzilla)!
+
+<h6 align="right"><a href="#user-content-table-of-contents">back to toc</a></h6>
+
+---
+
+## Acknowledgments
 
  If the API of this crate doesn't suit your tastes, check out the other PASETO implementations
  in the Rust ecosystem which inspired rusty_paseto:
@@ -401,6 +492,18 @@ use rusty_paseto::prelude::*;
  - [paseto](https://crates.io/crates/paseto) - by [Cynthia Coan](https://crates.io/users/Mythra)
  - [pasetors](https://crates.io/crates/pasetors) - by [Johannes](https://crates.io/users/brycx)
 
-# Questions?
+<h6 align="right"><a href="#user-content-table-of-contents">back to toc</a></h6>
 
-File an issue or hit me up on [Twitter](https://twitter.com/rrrodzilla)!
+--- 
+
+## Like this crate?
+
+⭐ Star     https://github.com/rrrodzilla/rusty_paseto
+
+🐦 Follow   https://twitter.com/rrrodzilla
+
+---
+
+<h5 align="center">readme created with <a href="https://crates.io/crates/cargo-markdown">cargo-markdown</a></h5>
+
+

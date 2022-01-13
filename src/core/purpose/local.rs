@@ -2,6 +2,7 @@ use crate::core::traits::*;
 use std::fmt;
 use std::fmt::Display;
 
+/// Symmetric encryption
 #[derive(Debug, Clone, Copy)]
 pub struct Local(&'static str);
 impl PurposeTrait for Local {}

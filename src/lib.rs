@@ -1,7 +1,7 @@
 //#![deny(missing_docs)]
 //  #![doc(html_no_source)]
 //  #![deny(rustdoc::missing_crate_level_docs)]
-//#![warn(missing_docs)]
+//  #![warn(missing_docs)]
 #![forbid(unsafe_code)]
 //  #![warn(rustdoc::missing_doc_code_examples)]
 #![doc(
@@ -41,8 +41,11 @@
 //! rusty_paseto = "latest"
 //! ```
 //! ```
+//! # #[cfg(feature = "default")]
+//! # {
 //! // at the top of your source file
 //! use rusty_paseto::prelude::*;
+//! # }
 //! ```
 //!
 //! ### batteries_included
@@ -73,8 +76,11 @@
 //! - "v4_public" (Sodium Modern Asymmetric Authentication)
 //!
 //! ```
+//! # #[cfg(feature = "default")]
+//! # {
 //! // at the top of your source file
 //! use rusty_paseto::prelude::*;
+//! # }
 //! ```
 //! ### generic
 //!
@@ -92,8 +98,11 @@
 //! rusty_paseto = {version = "latest", features = ["generic", "v4_local"] }
 //! ```
 //! ```
+//! # #[cfg(feature = "default")]
+//! # {
 //! // at the top of your source file
 //! use rusty_paseto::generic::*;
+//! # }
 //! ```
 //! ### core
 //!
@@ -122,6 +131,8 @@
 //!
 //! Here's a basic, default token:
 //! ```
+//! # #[cfg(feature = "default")]
+//! # {
 //! use rusty_paseto::prelude::*;
 //!
 //! // create a key specifying the PASETO version and purpose
@@ -130,6 +141,7 @@
 //! let token = PasetoBuilder::<V4, Local>::default().build(&key)?;
 //! // token is a String in the form: "v4.local.encoded-payload"
 //!
+//! # }
 //! # Ok::<(),anyhow::Error>(())
 //! ```
 //!
@@ -145,6 +157,8 @@
 //!
 //! You can parse and validate an existing token with the following:
 //! ```
+//! # #[cfg(feature = "default")]
+//! # {
 //! # use rusty_paseto::prelude::*;
 //! let key = PasetoSymmetricKey::<V4, Local>::from(Key::from(b"wubbalubbadubdubwubbalubbadubdub"));
 //! # // use a default token builder with the same PASETO version and purpose
@@ -157,6 +171,7 @@
 //! //the IssuedAtClaim
 //! assert!(json_value["iat"].is_string());
 //!
+//! # }
 //! # Ok::<(),anyhow::Error>(())
 //! ```
 //!
@@ -173,6 +188,8 @@
 //! So we can extend the previous example to add a footer to the token by using code like the
 //! following:
 //! ```rust
+//! # #[cfg(feature = "default")]
+//! # {
 //! use rusty_paseto::prelude::*;
 //! let key = PasetoSymmetricKey::<V4, Local>::from(Key::from(b"wubbalubbadubdubwubbalubbadubdub"));
 //! let token = PasetoBuilder::<V4, Local>::default()
@@ -181,11 +198,14 @@
 //!   .build(&key)?;
 //!
 //! // token is now a String in the form: "v4.local.encoded-payload.footer"
+//! # }
 //!
 //! # Ok::<(),anyhow::Error>(())
 //! ```
 //! And parse it by passing in the same expected footer
 //! ```
+//! # #[cfg(feature = "default")]
+//! # {
 //! # use rusty_paseto::prelude::*;
 //! # let key = PasetoSymmetricKey::<V4, Local>::from(Key::from(b"wubbalubbadubdubwubbalubbadubdub"));
 //! # // use a default token builder with the same PASETO version and purpose
@@ -201,6 +221,7 @@
 //! assert!(json_value["exp"].is_string());
 //! //the IssuedAtClaim
 //! assert!(json_value["iat"].is_string());
+//! # }
 //!
 //! # Ok::<(),anyhow::Error>(())
 //! ```
@@ -212,7 +233,9 @@
 //! So we can extend the previous example to add an implicit assertion to the token by using code like the
 //! following:
 //! ```rust
-//! use rusty_paseto::prelude::*;
+//! # #[cfg(feature = "default")]
+//! # {
+//! # use rusty_paseto::prelude::*;
 //! let key = PasetoSymmetricKey::<V4, Local>::from(Key::from(b"wubbalubbadubdubwubbalubbadubdub"));
 //! let token = PasetoBuilder::<V4, Local>::default()
 //!   .set_footer(Footer::from("Sometimes science is more art than science"))
@@ -221,11 +244,14 @@
 //!   .build(&key)?;
 //!
 //! // token is now a String in the form: "v4.local.encoded-payload.footer"
+//! # }
 //!
 //! # Ok::<(),anyhow::Error>(())
 //! ```
 //! And parse it by passing in the same expected implicit assertion
 //! ```
+//! # #[cfg(feature = "default")]
+//! # {
 //! # use rusty_paseto::prelude::*;
 //! # let key = PasetoSymmetricKey::<V4, Local>::from(Key::from(b"wubbalubbadubdubwubbalubbadubdub"));
 //! # let token = PasetoBuilder::<V4, Local>::default()
@@ -242,7 +268,7 @@
 //! # assert!(json_value["exp"].is_string());
 //! # //the IssuedAtClaim
 //! # assert!(json_value["iat"].is_string());
-//!
+//! # }
 //! # Ok::<(),anyhow::Error>(())
 //! ```
 //!
@@ -252,6 +278,8 @@
 //! expiration time by adding an ExpirationClaim which takes an ISO 8601 compliant datetime string.
 //! #### Note: *claims taking an ISO 8601 string use the TryFrom trait and return a Result<(),PasetoClaimError>*
 //! ```rust
+//! # #[cfg(feature = "default")]
+//! # {
 //! # use rusty_paseto::prelude::*;
 //! // must include
 //! use std::convert::TryFrom;
@@ -268,7 +296,7 @@
 //!   .build(&key)?;
 //!
 //! // token is a String in the form: "v4.local.encoded-payload.footer"
-//!
+//! # }
 //! # Ok::<(),anyhow::Error>(())
 //! ```
 
@@ -282,6 +310,8 @@
 //! When it is a deliberate choice, you have the opportunity to deliberately remove this claim from the Builder.
 //! The method call required to do so ensures readers of the code understand the implicit risk.
 //! ```rust
+//! # #[cfg(feature = "default")]
+//! # {
 //! # use rusty_paseto::prelude::*;
 //! # use time::format_description::well_known::Rfc3339;
 //! # use std::convert::TryFrom;
@@ -293,7 +323,7 @@
 //!   // due to the method call below
 //!   .set_no_expiration_danger_acknowledged()
 //!   .build(&key)?;
-//!
+//! # }
 //! # Ok::<(),anyhow::Error>(())
 //! ```
 //!
@@ -301,6 +331,8 @@
 //!
 //! The PASETO specification includes [seven reserved claims](https://github.com/paseto-standard/paseto-spec/blob/master/docs/02-Implementation-Guide/04-Claims.md) which you can set with their explicit types:
 //! ```rust
+//! # #[cfg(feature = "default")]
+//! # {
 //! # use rusty_paseto::prelude::*;
 //! # use time::format_description::well_known::Rfc3339;
 //! # // must include
@@ -331,7 +363,7 @@
 //!   //json payload key: "jti"
 //!   .set_claim(TokenIdentifierClaim::from("Planet Music - Season 988"))
 //!   .build(&key)?;
-//!
+//! # }
 //! # Ok::<(),anyhow::Error>(())
 //! ```
 //!
@@ -340,8 +372,11 @@
 //! The CustomClaim struct takes a tuple in the form of `(key: String, value: T)` where T is any
 //! serializable type
 //! #### Note: *CustomClaims use the TryFrom trait and return a Result<(), PasetoClaimError> if you attempt to use one of the [reserved PASETO keys](https://github.com/paseto-standard/paseto-spec/blob/master/docs/02-Implementation-Guide/04-Claims.md) in your CustomClaim*
+//!
 //! ```rust
 //! # use rusty_paseto::prelude::*;
+//! # #[cfg(feature = "default")]
+//! # {
 //! # // must include
 //! # use std::convert::TryFrom;
 //! # let key = PasetoSymmetricKey::<V4, Local>::from(Key::from(b"wubbalubbadubdubwubbalubbadubdub"));
@@ -349,12 +384,15 @@
 //!   .set_claim(CustomClaim::try_from(("Co-star", "Morty Smith"))?)
 //!   .set_claim(CustomClaim::try_from(("Universe", 137))?)
 //!   .build(&key)?;
-//!
+//! # }
 //! # Ok::<(),GenericBuilderError>(())
 //! ```
+//!
 //! This throws an error:
 //! ```should_panic
 //! # use rusty_paseto::prelude::*;
+//! # #[cfg(feature = "default")]
+//! # {
 //! # // must include
 //! # use std::convert::TryFrom;
 //! # let key = PasetoSymmetricKey::<V4, Local>::from(Key::from(b"wubbalubbadubdubwubbalubbadubdub"));
@@ -362,7 +400,7 @@
 //! let token = PasetoBuilder::<V4, Local>::default()
 //!   .set_claim(CustomClaim::try_from(("exp", "Some expiration value"))?)
 //!   .build(&key)?;
-//!
+//! # }
 //! # Ok::<(),anyhow::Error>(())
 //! ```
 //! # Validating claims
@@ -372,6 +410,8 @@
 //!
 //! Let's see how we can check particular claims exist with expected values.
 //! ```
+//! # #[cfg(feature = "default")]
+//! # {
 //! # use rusty_paseto::prelude::*;
 //! # use std::convert::TryFrom;
 //!
@@ -397,6 +437,7 @@
 //! //assert_eq!(json_value["sub"], "Get schwifty");
 //! //assert_eq!(json_value["Contestant"], "Earth");
 //! //assert_eq!(json_value["Universe"], 137);
+//! # }
 //! # Ok::<(),anyhow::Error>(())
 //! ```
 //!
@@ -407,8 +448,11 @@
 //! you choose.  
 //!
 //! Let's see how we can validate our tokens only contain universes with prime numbers:
+//!
 //! ```
 //! # use rusty_paseto::prelude::*;
+//! # #[cfg(feature = "default")]
+//! # {
 //! # use std::convert::TryFrom;
 //!
 //! # // create a key specifying the PASETO version and purpose
@@ -436,12 +480,14 @@
 //!      }
 //!    })
 //!   .parse(&token, &key)?;
-//!
+//! # }
 //! # Ok::<(),anyhow::Error>(())
 //! ```
 //!
 //! This token will fail to parse with the validation code above:
 //! ```should_panic
+//! # #[cfg(feature = "default")]
+//! # {
 //! # use rusty_paseto::prelude::*;
 //! # use std::convert::TryFrom;
 //!
@@ -470,6 +516,7 @@
 //!#  .parse(&token, &key)?;
 //!
 //! # assert_eq!(json_value["Universe"], 136);
+//! # }
 //! # Ok::<(),anyhow::Error>(())
 //! ```
 //!

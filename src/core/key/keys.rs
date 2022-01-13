@@ -5,6 +5,7 @@ use std::fmt::Debug;
 use std::ops::Deref;
 use zeroize::Zeroize;
 
+/// A wrapper for a slice of bytes that constitute a key of a specific size
 #[derive(Zeroize)]
 #[zeroize(drop)]
 #[derive(Clone)]
@@ -60,6 +61,7 @@ impl<const KEYSIZE: usize> TryFrom<&str> for Key<KEYSIZE> {
 }
 
 impl<const KEYSIZE: usize> Key<KEYSIZE> {
+  /// Uses the system's RNG to create a random slice of bytes of a specific size
   pub fn try_new_random() -> Result<Self, PasetoError> {
     let rng = SystemRandom::new();
     let mut buf = [0u8; KEYSIZE];

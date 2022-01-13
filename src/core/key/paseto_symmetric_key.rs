@@ -3,6 +3,9 @@ use crate::core::Local;
 use std::convert::{AsRef, From};
 use std::marker::PhantomData;
 
+/// A wrapper for a symmetric key
+///
+/// Keys are created from [Key] of size 32
 pub struct PasetoSymmetricKey<Version, Purpose> {
   version: PhantomData<Version>,
   purpose: PhantomData<Purpose>,

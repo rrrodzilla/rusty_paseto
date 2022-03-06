@@ -7,7 +7,7 @@ use time::format_description::well_known::Rfc3339;
 pub struct PasetoBuilder<'a, Version, Purpose> {
   version: PhantomData<Version>,
   purpose: PhantomData<Purpose>,
-  builder: GenericBuilder<'a, Version, Purpose>,
+  builder: GenericBuilder<'a, 'a, Version, Purpose>,
   top_level_claims: HashSet<String>,
   dup_top_level_found: (bool, String),
   non_expiring_token: bool,
@@ -25,7 +25,7 @@ impl<'a, Version, Purpose> PasetoBuilder<'a, Version, Purpose> {
     }
   }
 
-  pub fn set_claim<T: PasetoClaim + erased_serde::Serialize + Sized + 'static>(&mut self, value: T) -> &mut Self {
+  pub fn set_claim<T: PasetoClaim + erased_serde::Serialize + Sized + 'a>(&mut self, value: T) -> &mut Self {
     //we need to inspect all the claims and verify there are no duplicates
     //overwrite nbf default claim if provided
     if value.get_key() == "nbf" {

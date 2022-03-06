@@ -2,15 +2,15 @@ use crate::generic::*;
 use core::marker::PhantomData;
 use std::{collections::HashMap, mem::take};
 
-pub struct GenericBuilder<'a, Version, Purpose> {
+pub struct GenericBuilder<'a, 'b, Version, Purpose> {
   version: PhantomData<Version>,
   purpose: PhantomData<Purpose>,
-  claims: HashMap<String, Box<dyn erased_serde::Serialize>>,
+  claims: HashMap<String, Box<dyn erased_serde::Serialize + 'b>>,
   footer: Option<Footer<'a>>,
   implicit_assertion: Option<ImplicitAssertion<'a>>,
 }
 
-impl<'a, Version, Purpose> GenericBuilder<'a, Version, Purpose> {
+impl<'a, 'b, Version, Purpose> GenericBuilder<'a, 'b, Version, Purpose> {
   fn new() -> Self {
     Self {
       version: PhantomData::<Version>,
@@ -31,7 +31,10 @@ impl<'a, Version, Purpose> GenericBuilder<'a, Version, Purpose> {
     self
   }
 
-  pub fn set_claim<T: PasetoClaim + erased_serde::Serialize + 'static>(&mut self, value: T) -> &mut Self {
+  pub fn set_claim<T: 'b + PasetoClaim + erased_serde::Serialize>(&mut self, value: T) -> &mut Self
+  where
+    'b: 'a,
+  {
     self.claims.insert(value.get_key().to_owned(), Box::new(value));
     self
   }
@@ -61,7 +64,7 @@ impl<'a, Version, Purpose> GenericBuilder<'a, Version, Purpose> {
   }
 }
 
-impl<'a, Version, Purpose> GenericBuilder<'a, Version, Purpose>
+impl<'a, 'b, Version, Purpose> GenericBuilder<'a, 'b, Version, Purpose>
 where
   Version: ImplicitAssertionCapable,
 {
@@ -71,14 +74,14 @@ where
   }
 }
 
-impl<Version, Purpose> Default for GenericBuilder<'_, Version, Purpose> {
+impl<Version, Purpose> Default for GenericBuilder<'_, '_, Version, Purpose> {
   fn default() -> Self {
     Self::new()
   }
 }
 
 #[cfg(feature = "v1_local")]
-impl GenericBuilder<'_, V1, Local> {
+impl GenericBuilder<'_, '_, V1, Local> {
   pub fn try_encrypt(&mut self, key: &PasetoSymmetricKey<V1, Local>) -> Result<String, GenericBuilderError> {
     let mut token_builder = Paseto::<V1, Local>::builder();
 
@@ -93,7 +96,7 @@ impl GenericBuilder<'_, V1, Local> {
 }
 
 #[cfg(feature = "v2_local")]
-impl GenericBuilder<'_, V2, Local> {
+impl GenericBuilder<'_, '_, V2, Local> {
   pub fn try_encrypt(&mut self, key: &PasetoSymmetricKey<V2, Local>) -> Result<String, GenericBuilderError> {
     let mut token_builder = Paseto::<V2, Local>::builder();
 
@@ -108,7 +111,7 @@ impl GenericBuilder<'_, V2, Local> {
 }
 
 #[cfg(feature = "v3_local")]
-impl GenericBuilder<'_, V3, Local> {
+impl GenericBuilder<'_, '_, V3, Local> {
   pub fn try_encrypt(&mut self, key: &PasetoSymmetricKey<V3, Local>) -> Result<String, GenericBuilderError> {
     let mut token_builder = Paseto::<V3, Local>::builder();
 
@@ -124,7 +127,7 @@ impl GenericBuilder<'_, V3, Local> {
 }
 
 #[cfg(feature = "v4_local")]
-impl GenericBuilder<'_, V4, Local> {
+impl GenericBuilder<'_, '_, V4, Local> {
   pub fn try_encrypt(&mut self, key: &PasetoSymmetricKey<V4, Local>) -> Result<String, GenericBuilderError> {
     let mut token_builder = Paseto::<V4, Local>::builder();
 
@@ -144,7 +147,7 @@ impl GenericBuilder<'_, V4, Local> {
 }
 
 #[cfg(feature = "v1_public")]
-impl GenericBuilder<'_, V1, Public> {
+impl GenericBuilder<'_, '_, V1, Public> {
   pub fn try_sign(&mut self, key: &PasetoAsymmetricPrivateKey<V1, Public>) -> Result<String, GenericBuilderError> {
     let mut token_builder = Paseto::<V1, Public>::builder();
 
@@ -158,7 +161,7 @@ impl GenericBuilder<'_, V1, Public> {
 }
 
 #[cfg(feature = "v2_public")]
-impl GenericBuilder<'_, V2, Public> {
+impl GenericBuilder<'_, '_, V2, Public> {
   pub fn try_sign(&mut self, key: &PasetoAsymmetricPrivateKey<V2, Public>) -> Result<String, GenericBuilderError> {
     let mut token_builder = Paseto::<V2, Public>::builder();
 
@@ -174,7 +177,7 @@ impl GenericBuilder<'_, V2, Public> {
 //TODO: V3, Public
 
 #[cfg(feature = "v4_public")]
-impl GenericBuilder<'_, V4, Public> {
+impl GenericBuilder<'_, '_, V4, Public> {
   pub fn try_sign(&mut self, key: &PasetoAsymmetricPrivateKey<V4, Public>) -> Result<String, GenericBuilderError> {
     let mut token_builder = Paseto::<V4, Public>::builder();
 

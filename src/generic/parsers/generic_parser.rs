@@ -5,16 +5,16 @@ use core::marker::PhantomData;
 use serde_json::Value;
 use std::collections::HashMap;
 
-pub struct GenericParser<'a, Version, Purpose> {
+pub struct GenericParser<'a, 'b, Version, Purpose> {
   version: PhantomData<Version>,
   purpose: PhantomData<Purpose>,
-  claims: HashMap<String, Box<dyn erased_serde::Serialize>>,
+  claims: HashMap<String, Box<dyn erased_serde::Serialize + 'b>>,
   claim_validators: ValidatorMap,
   footer: Footer<'a>,
   implicit_assertion: ImplicitAssertion<'a>,
 }
 
-impl<'a, Version, Purpose> GenericParser<'a, Version, Purpose> {
+impl<'a, 'b, Version, Purpose> GenericParser<'a, 'b, Version, Purpose> {
   pub fn new() -> Self {
     GenericParser::<Version, Purpose> {
       version: PhantomData::<Version>,
@@ -25,7 +25,7 @@ impl<'a, Version, Purpose> GenericParser<'a, Version, Purpose> {
       implicit_assertion: Default::default(),
     }
   }
-  pub fn extend_check_claims(&mut self, value: HashMap<String, Box<dyn erased_serde::Serialize>>) -> &mut Self {
+  pub fn extend_check_claims(&mut self, value: HashMap<String, Box<dyn erased_serde::Serialize + 'b>>) -> &mut Self {
     self.claims.extend(value);
     self
   }
@@ -36,7 +36,7 @@ impl<'a, Version, Purpose> GenericParser<'a, Version, Purpose> {
   }
 
   #[cfg(feature = "serde")]
-  fn set_validation_claim<T: PasetoClaim + 'static + serde::Serialize>(
+  fn set_validation_claim<T: PasetoClaim + 'b + serde::Serialize>(
     &mut self,
     value: T,
     validation_closure: Option<&'static ValidatorFn>,
@@ -53,7 +53,7 @@ impl<'a, Version, Purpose> GenericParser<'a, Version, Purpose> {
   }
 
   #[cfg(feature = "serde")]
-  pub fn validate_claim<T: PasetoClaim + 'static + serde::Serialize>(
+  pub fn validate_claim<T: PasetoClaim + 'b + serde::Serialize>(
     &mut self,
     value: T,
     validation_closure: &'static ValidatorFn,
@@ -62,7 +62,7 @@ impl<'a, Version, Purpose> GenericParser<'a, Version, Purpose> {
   }
 
   #[cfg(feature = "serde")]
-  pub fn check_claim<T: PasetoClaim + 'static + serde::Serialize>(&mut self, value: T) -> &mut Self {
+  pub fn check_claim<T: PasetoClaim + 'b + serde::Serialize>(&mut self, value: T) -> &mut Self {
     self.set_validation_claim(value, None)
   }
 
@@ -75,7 +75,7 @@ impl<'a, Version, Purpose> GenericParser<'a, Version, Purpose> {
   }
 }
 
-impl<'a, Version: ImplicitAssertionCapable, Purpose> GenericParser<'a, Version, Purpose> {
+impl<'a, 'b, Version: ImplicitAssertionCapable, Purpose> GenericParser<'a, 'b, Version, Purpose> {
   pub fn set_implicit_assertion(&mut self, implicit_assertion: ImplicitAssertion<'a>) -> &mut Self {
     self.implicit_assertion = implicit_assertion;
     self
@@ -86,7 +86,7 @@ impl<'a, Version: ImplicitAssertionCapable, Purpose> GenericParser<'a, Version, 
   }
 }
 
-impl<'a, Version, Purpose> GenericParser<'a, Version, Purpose> {
+impl<'a, 'b, Version, Purpose> GenericParser<'a, 'b, Version, Purpose> {
   fn verify_claims(&self, token: &str) -> Result<Value, GenericParserError> {
     let json: Value = serde_json::from_str(token)?;
 
@@ -131,7 +131,7 @@ impl<'a, Version, Purpose> GenericParser<'a, Version, Purpose> {
 }
 
 #[cfg(feature = "v1_local")]
-impl<'a> GenericParser<'a, V1, Local> {
+impl<'a, 'b> GenericParser<'a, 'b, V1, Local> {
   pub fn parse(
     &self,
     potential_token: &'a str,
@@ -145,7 +145,7 @@ impl<'a> GenericParser<'a, V1, Local> {
 }
 
 #[cfg(feature = "v2_local")]
-impl<'a> GenericParser<'a, V2, Local> {
+impl<'a, 'b> GenericParser<'a, 'b, V2, Local> {
   pub fn parse(
     &mut self,
     potential_token: &'a str,
@@ -159,7 +159,7 @@ impl<'a> GenericParser<'a, V2, Local> {
 }
 
 #[cfg(feature = "v3_local")]
-impl<'a> GenericParser<'a, V3, Local> {
+impl<'a, 'b> GenericParser<'a, 'b, V3, Local> {
   pub fn parse(
     &mut self,
     potential_token: &'a str,
@@ -174,7 +174,7 @@ impl<'a> GenericParser<'a, V3, Local> {
 }
 
 #[cfg(feature = "v4_local")]
-impl<'a> GenericParser<'a, V4, Local> {
+impl<'a, 'b> GenericParser<'a, 'b, V4, Local> {
   pub fn parse(
     &mut self,
     potential_token: &'a str,
@@ -189,7 +189,7 @@ impl<'a> GenericParser<'a, V4, Local> {
 }
 
 #[cfg(feature = "v1_public")]
-impl<'a> GenericParser<'a, V1, Public> {
+impl<'a, 'b> GenericParser<'a, 'b, V1, Public> {
   pub fn parse(
     &mut self,
     potential_token: &'a str,
@@ -203,7 +203,7 @@ impl<'a> GenericParser<'a, V1, Public> {
 }
 
 #[cfg(feature = "v2_public")]
-impl<'a> GenericParser<'a, V2, Public> {
+impl<'a, 'b> GenericParser<'a, 'b, V2, Public> {
   pub fn parse(
     &mut self,
     potential_token: &'a str,
@@ -219,7 +219,7 @@ impl<'a> GenericParser<'a, V2, Public> {
 //TODO: V3, Public
 
 #[cfg(feature = "v4_public")]
-impl<'a> GenericParser<'a, V4, Public> {
+impl<'a, 'b> GenericParser<'a, 'b, V4, Public> {
   pub fn parse(
     &mut self,
     potential_token: &'a str,
@@ -233,7 +233,7 @@ impl<'a> GenericParser<'a, V4, Public> {
   }
 }
 
-impl<'a, Version, Purpose> Default for GenericParser<'a, Version, Purpose> {
+impl<'a, 'b, Version, Purpose> Default for GenericParser<'a, 'b, Version, Purpose> {
   fn default() -> Self {
     Self::new()
   }

@@ -6,7 +6,7 @@ use time::format_description::well_known::Rfc3339;
 pub struct PasetoParser<'a, Version, Purpose> {
   version: PhantomData<Version>,
   purpose: PhantomData<Purpose>,
-  parser: GenericParser<'a, Version, Purpose>,
+  parser: GenericParser<'a, 'a, Version, Purpose>,
 }
 
 impl<'a, Version, Purpose> PasetoParser<'a, Version, Purpose> {
@@ -18,7 +18,7 @@ impl<'a, Version, Purpose> PasetoParser<'a, Version, Purpose> {
     }
   }
 
-  pub fn validate_claim<T: PasetoClaim + 'static + serde::Serialize>(
+  pub fn validate_claim<T: PasetoClaim + 'a + serde::Serialize>(
     &mut self,
     value: T,
     validation_closure: &'static ValidatorFn,

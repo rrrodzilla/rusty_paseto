@@ -20,7 +20,7 @@ fn validate_auth_token(request: &mut ServiceRequest) -> Result<Option<String>, E
 
   //get the identity from the identity cookie
   let identity = request.get_identity().expect("Couldn't find identity");
-  let id: &'static str = Box::leak(identity.clone().into_boxed_str());
+  let id = identity.as_str();
   //get the paseto key from the shared state
   let key_val = request.app_data::<Data<AppData>>().unwrap().paseto_key.as_bytes();
   //create a paseto key

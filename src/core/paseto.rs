@@ -20,7 +20,7 @@ use chacha20poly1305::{
 #[cfg(feature = "ed25519-dalek")]
 use ed25519_dalek::*;
 #[cfg(feature = "hmac")]
-use hmac::{Hmac, Mac, NewMac};
+use hmac::{Hmac, Mac};
 
 #[cfg(any(feature = "v1_local", feature = "v3_local", feature = "v4_local"))]
 use ring::constant_time::verify_slices_are_equal as ConstantTimeEquals;

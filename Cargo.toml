@@ -3,7 +3,7 @@ name = "rusty_paseto"
 version = "0.3.2"
 edition = "2021"
 readme = "readme.md"
-authors = ["Roland Rodriguez <rolandrodriguez@gmail.com"]
+authors = ["Roland Rodriguez <rolandrodriguez@gmail.com>"]
 description = "A type-driven, ergonomic alternative to JWT for secure stateless PASETO tokens."
 repository = "https://github.com/rrrodzilla/rusty_paseto"
 license = "MIT OR Apache-2.0"
@@ -59,3 +59,11 @@ time = { version =  "0.3.5", features = ["parsing", "formatting"]}
 anyhow = "1.0.45"
 serde_json = { version = "^1.0.68" }
 primes = "0.3.0"
+actix-web = "4"
+actix-identity = "0.4.0"
+tokio = "1.17.0"
+actix-utils = "3.0.0"
+uuid = { version = "0.8.2" , features = ["v4"] }
+
+[[example]]
+name = "actix_identity"

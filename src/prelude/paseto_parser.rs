@@ -155,7 +155,17 @@ impl<'a> PasetoParser<'a, V2, Public> {
   }
 }
 
-//TODO: V3, Public
+#[cfg(feature = "v3_public")]
+impl<'a> PasetoParser<'a, V3, Public> {
+  pub fn parse(
+    &mut self,
+    token: &'a str,
+    key: &'a PasetoAsymmetricPublicKey<V3, Public>,
+  ) -> Result<Value, GenericParserError> {
+    //return the full json value to the user
+    self.parser.parse(token, key)
+  }
+}
 
 #[cfg(feature = "v4_public")]
 impl<'a> PasetoParser<'a, V4, Public> {
@@ -168,7 +178,45 @@ impl<'a> PasetoParser<'a, V4, Public> {
     self.parser.parse(token, key)
   }
 }
+#[cfg(all(test, feature = "v3"))]
+mod paseto_parser_v3_unit_tests {
+  use std::convert::TryFrom;
 
+  use crate::prelude::*;
+  use anyhow::Result;
+
+  #[cfg(feature = "public")]
+  #[test]
+  fn basic_paseto_parser_test_v3_public() -> Result<()> {
+    //setup
+    let public_key = Key::<49>::try_from(
+      "02fbcb7c69ee1c60579be7a334134878d9c5c5bf35d552dab63c0140397ed14cef637d7720925c44699ea30e72874c72fb",
+    )?;
+    let public_key = PasetoAsymmetricPublicKey::<V3, Public>::try_from(&public_key)?;
+
+    let private_key = Key::<48>::try_from(
+      "20347609607477aca8fbfbc5e6218455f3199669792ef8b466faa87bdc67798144c848dd03661eed5ac62461340cea96",
+    )?;
+    let private_key = PasetoAsymmetricPrivateKey::<V3, Public>::from(&private_key);
+
+    //create a default builder
+    let token = PasetoBuilder::<V3, Public>::default().build(&private_key)?;
+
+    //default parser
+    let json = PasetoParser::<V3, Public>::default().parse(&token, &public_key)?;
+
+    //verify the default claims and no others are in the token
+    assert!(json["exp"].is_string());
+    assert!(json["iat"].is_string());
+    assert!(json["nbf"].is_string());
+    assert!(json["sub"].is_null());
+    assert!(json["iss"].is_null());
+    assert!(json["jti"].is_null());
+    assert!(json["aud"].is_null());
+    assert!(!json["aud"].is_string());
+    Ok(())
+  }
+}
 #[cfg(all(test, feature = "v2"))]
 mod paseto_parser_unit_tests {
 

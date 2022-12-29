@@ -141,7 +141,13 @@ impl PasetoBuilder<'_, V2, Public> {
   }
 }
 
-//TODO V3, Public
+#[cfg(feature = "v3_public")]
+impl PasetoBuilder<'_, V3, Public> {
+  pub fn build(&mut self, key: &PasetoAsymmetricPrivateKey<V3, Public>) -> Result<String, GenericBuilderError> {
+    self.verify_ready_to_build()?;
+    self.builder.try_sign(key)
+  }
+}
 
 #[cfg(feature = "v4_public")]
 impl PasetoBuilder<'_, V4, Public> {

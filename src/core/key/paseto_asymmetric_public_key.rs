@@ -2,7 +2,6 @@ use super::Key;
 use crate::core::*;
 use std::convert::{AsRef, From};
 use std::marker::PhantomData;
-
 /// A wrapper for the public half of an asymmetric key pair
 ///
 /// [V2] and [V4] keys are created from [Key] of size 32, [V1] keys are of an arbitrary size
@@ -26,6 +25,22 @@ impl<'a> From<&'a [u8]> for PasetoAsymmetricPublicKey<'a, V1, Public> {
       purpose: PhantomData,
       key,
     }
+  }
+}
+
+#[cfg(feature = "v3_public")]
+impl<'a> TryFrom<&'a Key<49>> for PasetoAsymmetricPublicKey<'a, V3, Public> {
+  type Error = PasetoError;
+  fn try_from(key: &'a Key<49>) -> Result<Self, Self::Error> {
+    if key[0] != 2 && key[0] != 3 {
+      return Err(PasetoError::InvalidKey);
+    }
+    //if this is successful, we can be sure our key is in a valid format
+    Ok(Self {
+      version: PhantomData,
+      purpose: PhantomData,
+      key: key.as_ref(),
+    })
   }
 }
 

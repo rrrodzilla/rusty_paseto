@@ -10,6 +10,9 @@ pub enum PasetoError {
   #[error("An unspecified cryption error occured")]
   Cryption,
   ///A problem generating a signature
+  #[error("Key was not in the correct format")]
+  InvalidKey,
+  ///A problem generating a signature
   #[error("Could not assemble final signature.")]
   Signature,
   /// Occurs when a private RSA key is not in pkcs#8 format

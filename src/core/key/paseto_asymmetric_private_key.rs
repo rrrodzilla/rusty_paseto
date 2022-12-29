@@ -54,3 +54,16 @@ where
     }
   }
 }
+
+#[cfg(feature = "v3_public")]
+impl<'a> From<&'a Key<48>> for PasetoAsymmetricPrivateKey<'a, V3, Public> {
+  fn from(key: &'a Key<48>) -> Self {
+    Self {
+      version: PhantomData,
+      purpose: PhantomData,
+      key: key.as_ref(),
+    }
+  }
+}
+
+

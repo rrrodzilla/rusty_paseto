@@ -216,7 +216,20 @@ impl<'a, 'b> GenericParser<'a, 'b, V2, Public> {
   }
 }
 
-//TODO: V3, Public
+#[cfg(feature = "v3_public")]
+impl<'a, 'b> GenericParser<'a, 'b, V3, Public> {
+  pub fn parse(
+    &mut self,
+    potential_token: &'a str,
+    key: &'a PasetoAsymmetricPublicKey<V3, Public>,
+  ) -> Result<Value, GenericParserError> {
+    //first we need to verify the token
+    let token =
+      Paseto::<V3, Public>::try_verify(potential_token, key, self.get_footer(), self.get_implicit_assertion())?;
+
+    self.verify_claims(&token)
+  }
+}
 
 #[cfg(feature = "v4_public")]
 impl<'a, 'b> GenericParser<'a, 'b, V4, Public> {

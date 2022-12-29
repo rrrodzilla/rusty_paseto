@@ -1,5 +1,6 @@
 use crate::generic::*;
 use core::marker::PhantomData;
+use std::fmt::Write;
 use std::{collections::HashMap, mem::take};
 
 pub struct GenericBuilder<'a, 'b, Version, Purpose> {
@@ -53,7 +54,7 @@ impl<'a, 'b, Version, Purpose> GenericBuilder<'a, 'b, Version, Purpose> {
     for claim in claims.into_values() {
       let raw = serde_json::to_string(&claim)?;
       let trimmed = raw.trim_start_matches('{').trim_end_matches('}');
-      payload.push_str(&format!("{},", trimmed));
+      let _ = write!(payload, "{},", trimmed);
     }
 
     //get rid of that trailing comma (this feels like a dirty approach, there's probably a better
@@ -174,7 +175,23 @@ impl GenericBuilder<'_, '_, V2, Public> {
   }
 }
 
-//TODO: V3, Public
+#[cfg(feature = "v3_public")]
+impl GenericBuilder<'_, '_, V3, Public> {
+  pub fn try_sign(&mut self, key: &PasetoAsymmetricPrivateKey<V3, Public>) -> Result<String, GenericBuilderError> {
+    let mut token_builder = Paseto::<V3, Public>::builder();
+
+    let payload = self.build_payload_from_claims()?;
+    token_builder.set_payload(Payload::from(payload.as_str()));
+
+    if let Some(footer) = &self.footer {
+      token_builder.set_footer(*footer);
+    }
+    if let Some(implicit_assertion) = &self.implicit_assertion {
+      token_builder.set_implicit_assertion(*implicit_assertion);
+    }
+    Ok(token_builder.try_sign(key)?)
+  }
+}
 
 #[cfg(feature = "v4_public")]
 impl GenericBuilder<'_, '_, V4, Public> {

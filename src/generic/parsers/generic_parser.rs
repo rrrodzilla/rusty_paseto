@@ -94,7 +94,7 @@ impl<'a, 'b, Version, Purpose> GenericParser<'a, 'b, Version, Purpose> {
     for (key, box_val) in &self.claims {
       //ensure the claim exists
       //get the raw value of the claim
-      let raw = serde_json::to_value(&box_val)?;
+      let raw = serde_json::to_value(box_val)?;
 
       //now let's run any custom validation if there is any
       if self.claim_validators.contains_key(key) {

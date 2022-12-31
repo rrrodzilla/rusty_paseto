@@ -1,3 +1,4 @@
+
 <h1 align="center">rusty_paseto</h1>
 
 <center><img align="center" style="display:block; margin-left:auto;margin-right:auto;" width="150" src="https://github.com/rrrodzilla/rusty_paseto/raw/main/assets/paseto_logo.png" /></center>

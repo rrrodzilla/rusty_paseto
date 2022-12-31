@@ -393,7 +393,7 @@ impl<'a> Paseto<'a, V1, Local> {
 
     //generate tags
     let tag = &decoded_payload[(nonce.len() + ciphertext.len())..];
-    let tag2 = &Tag::<V1, Local>::from(&authentication_key, &pae);
+    let tag2 = &Tag::<V1, Local>::from(authentication_key, &pae);
     //compare tags
     ConstantTimeEquals(tag, tag2)?;
 
@@ -451,7 +451,7 @@ impl<'a> Paseto<'a, V1, Local> {
     let pae = PreAuthenticationEncoding::parse(&[&self.header, nonce.as_ref(), &ciphertext, &footer]);
 
     //      //generate tag
-    let tag = Tag::<V1, Local>::from(&authentication_key, &pae);
+    let tag = Tag::<V1, Local>::from(authentication_key, &pae);
 
     //      //generate appended and base64 encoded payload
     let raw_payload = RawPayload::<V1, Local>::from(&nonce, &ciphertext, &tag)?;

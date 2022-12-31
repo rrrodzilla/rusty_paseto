@@ -22,7 +22,9 @@ pub use not_before_claim::NotBeforeClaim;
 pub use subject_claim::SubjectClaim;
 pub use token_identifier_claim::TokenIdentifierClaim;
 pub use traits::PasetoClaim;
+///A type for creating generic claim validation functions
 pub type ValidatorFn = dyn Fn(&str, &Value) -> Result<(), PasetoClaimError>;
+///A type for tracking claims in a token
 pub type ValidatorMap = HashMap<String, Box<ValidatorFn>>;
 
 #[cfg(test)]

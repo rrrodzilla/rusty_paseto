@@ -2,6 +2,7 @@ use super::{PasetoClaim, PasetoClaimError};
 #[cfg(feature = "serde")]
 use serde::ser::SerializeMap;
 
+///The reserved ['nbf'](https://github.com/paseto-standard/paseto-spec/blob/master/docs/02-Implementation-Guide/04-Claims.md) PASETO claim
 #[derive(Clone)]
 pub struct NotBeforeClaim((String, String));
 impl PasetoClaim for NotBeforeClaim {

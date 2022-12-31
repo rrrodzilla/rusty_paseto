@@ -3,9 +3,13 @@ use ring::constant_time::verify_slices_are_equal as ConstantTimeEquals;
 use std::fmt::Display;
 
 //marker traits
+/// Used by marker traits to determine at compile time which PASETO version the user is attempting to use
 pub trait VersionTrait: Display + Default + AsRef<str> {}
+/// Used by marker traits to determine at compile time which PASETO purpose the user is attempting to use
 pub trait PurposeTrait: Display + Default + AsRef<str> {}
 pub trait V1orV3: VersionTrait {}
+/// A marker trait used to determine if the PASETO token version is capable of using an implicit
+/// assertion. Currently this applies only to V3/V4 PASETO tokens
 pub trait ImplicitAssertionCapable: VersionTrait {}
 pub trait V2orV4: VersionTrait {}
 

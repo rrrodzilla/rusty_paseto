@@ -455,17 +455,17 @@ use rusty_paseto::prelude::*;
 
 | APIs, Tests & Documentation |v1.L|v1.P|v2.L|v2.P|v3.L|v3.P|v4.L|v4.P|
 | ------------: |:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| PASETO Token Builder		|🟢|🟢|🟢|🟢|🟢|⚫|🟢|🟢|
-| PASETO Token Parser		|🟢|🟢|🟢|🟢|🟢|⚫|🟢|🟢|
-| Flexible Claim Validation	|🟢|🟢|🟢|🟢|🟢|⚫|🟢|🟢|
-| Generic Token Builder		|🟢|🟢|🟢|🟢|🟢|⚫|🟢|🟢|
-| Generic Token Parser		|🟢|🟢|🟢|🟢|🟢|⚫|🟢|🟢|
-| Encryption/Signing		|🟢|🟢|🟢|🟢|🟢|⚫|🟢|🟢|
-| Decryption/Verification	|🟢|🟢|🟢|🟢|🟢|⚫|🟢|🟢|
-| [PASETO Test vectors](https://github.com/paseto-standard/test-vectors)  |🟢|🟢|🟢|🟢|🟢|⚫|🟢|🟢|
-| Feature - core	|🟢|🟢|🟢|🟢|🟢|⚫|🟢|🟢|
-| Feature - generic	|🟢|🟢|🟢|🟢|🟢|⚫|🟢|🟢|
-| Feature - batteries_included	|🟢|🟢|🟢|🟢|🟢|⚫|🟢|🟢|
+| PASETO Token Builder		|🟢|🟢|🟢|🟢|🟢|🟢|🟢|🟢|
+| PASETO Token Parser		|🟢|🟢|🟢|🟢|🟢|🟢|🟢|🟢|
+| Flexible Claim Validation	|🟢|🟢|🟢|🟢|🟢|🟢|🟢|🟢|
+| Generic Token Builder		|🟢|🟢|🟢|🟢|🟢|🟢|🟢|🟢|
+| Generic Token Parser		|🟢|🟢|🟢|🟢|🟢|🟢|🟢|🟢|
+| Encryption/Signing		|🟢|🟢|🟢|🟢|🟢|🟢|🟢|🟢|
+| Decryption/Verification	|🟢|🟢|🟢|🟢|🟢|🟢|🟢|🟢|
+| [PASETO Test vectors](https://github.com/paseto-standard/test-vectors)  |🟢|🟢|🟢|🟢|🟢|🟢|🟢|🟢|
+| Feature - core	|🟢|🟢|🟢|🟢|🟢|🟢|🟢|🟢|
+| Feature - generic	|🟢|🟢|🟢|🟢|🟢|🟢|🟢|🟢|
+| Feature - batteries_included	|🟢|🟢|🟢|🟢|🟢|🟢|🟢|🟢|
 | PASERK |⚫|⚫|⚫|⚫|⚫|⚫|⚫|⚫|
 | Docs - [core](#user-content-core)			|🟢|🟢|🟢|🟢|🟢|⚫|🟢|🟢|
 | Docs - [generic](#user-content-generic)			|⚫|⚫|⚫|⚫|⚫|⚫|⚫|⚫|

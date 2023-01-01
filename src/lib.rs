@@ -72,7 +72,7 @@
 //! - "v4_local" (Sodium Modern Symmetric Encryption)
 //! - "v1_public" (NIST Original Asymmetric Authentication)
 //! - "v2_public" (Sodium Original Asymmetric Authentication)
-//! - *"v3_public" (NIST Modern Asymmetric Authentication)* - **NOT YET IMPLEMENTED**
+//! - "v3_public" (NIST Modern Asymmetric Authentication)
 //! - "v4_public" (Sodium Modern Asymmetric Authentication)
 //!
 //! ```

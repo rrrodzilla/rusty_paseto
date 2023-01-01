@@ -12,6 +12,7 @@ pub enum GeneralPasetoError {
     #[from]
     source: std::convert::Infallible,
   },
+  ///An error with the data format
   #[error(transparent)]
   RFC3339Date(#[from] time::error::Format),
 }

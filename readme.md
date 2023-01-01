@@ -1,7 +1,7 @@
 
 <h1 align="center">rusty_paseto</h1>
 
-<center><img align="center" style="display:block; margin-left:auto;margin-right:auto;" width="150" src="https://github.com/rrrodzilla/rusty_paseto/raw/main/assets/paseto_logo.png" /></center>
+<center><img align="center" style="display:block; margin-left:auto;margin-right:auto;" width="150" src="https://github.com/rrrodzilla/rusty_paseto/raw/main/assets/RustyPasetoLogo.png" /></center>
 
 <p align="center"> A type-driven, ergonomic implementation of the <a href="https://github.com/paseto-standard/paseto-spec">PASETO</a> protocol<br /> for secure stateless tokens.</p>
 
@@ -344,7 +344,7 @@ use rusty_paseto::prelude::*;
 
  The rusty_paseto crate architecture is composed of three layers (batteries_included, generic and core) which can be further refined by the PASETO version(s) and purpose(s) required for your needs.  All layers use a common crypto core which includes various cipher crates depending on the version and purpose you choose.  The crate is heavily featured gated to allow you to use only the versions and purposes you need for your app which minimizes download compile times for using rusty_paseto.  A description of each architectural layer, their uses and limitations and how to minimize your required dependencies based on your required PASETO version and purpose follows:
 
- ![paseto_batteries_included_small](https://user-images.githubusercontent.com/24578097/147881895-36878b22-bf17-49e4-98d7-f94920353368.png)  ![paseto_generic_small](https://user-images.githubusercontent.com/24578097/147881907-a765ede6-c8e5-44ff-9845-db53f0634f07.png)  ![paseto_core_small](https://user-images.githubusercontent.com/24578097/147881920-14c52256-1a0c-40be-9f18-759a8c9ad77d.png)
+ ![paseto_batteries_included_small](https://github.com/rrrodzilla/rusty_paseto/raw/main/assets/RustyPasetoPreludeArchitecture.png)  ![paseto_generic_small](https://github.com/rrrodzilla/rusty_paseto/raw/main/assets/RustyPasetoGenericArchitecture.png)  ![paseto_core_small](https://github.com/rrrodzilla/rusty_paseto/raw/main/assets/RustyPasetoCoreArchitecture.png)
 
  batteries_included  --> generic --> core
 

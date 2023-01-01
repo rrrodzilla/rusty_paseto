@@ -37,6 +37,8 @@
         - [generic](#user-content-generic)
         - [core](#user-content-core)
 4) [Roadmap and Current Feature Status](#user-content-roadmap-and-current-feature-status)
+    - [PASETO Specification](#user-content-paseto-specification)
+    - [PASERK Specification](#user-content-paserk-specification)
 5) [Acknowledgments](#user-content-acknowledgments)
 6) [Support](#user-content-support)
 7) [Like this crate](#user-content-like-this-crate)
@@ -451,6 +453,7 @@ use rusty_paseto::prelude::*;
 
  ## Roadmap and Current Feature Status
 
+ ### [PASETO](https://github.com/paseto-standard/paseto-spec) specification
 
 | APIs, Tests & Documentation |v1.L|v1.P|v2.L|v2.P|v3.L|v3.P|v4.L|v4.P|
 | ------------: |:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
@@ -465,12 +468,21 @@ use rusty_paseto::prelude::*;
 | Feature - core	|🟢|🟢|🟢|🟢|🟢|🟢|🟢|🟢|
 | Feature - generic	|🟢|🟢|🟢|🟢|🟢|🟢|🟢|🟢|
 | Feature - batteries_included	|🟢|🟢|🟢|🟢|🟢|🟢|🟢|🟢|
-| PASERK |⚫|⚫|⚫|⚫|⚫|⚫|⚫|⚫|
 | Docs - [core](#user-content-core)			|🟢|🟢|🟢|🟢|🟢|🟢|🟢|🟢|
 | Docs - [generic](#user-content-generic)			|🟢|🟢|🟢|🟢|🟢|🟢|🟢|🟢|
 | Docs - [batteries_included](#user-content-batteries_included)			|🟢|🟢|🟢|🟢|🟢|🟢|🟢|🟢|
 
- <div align="center"><p>🟢 - completed&nbsp;⚫ - not yet</p></div>
+ <div align="center"><p>🟢 - completed&nbsp;⚫ - planned</p></div>
+
+<h6 align="right"><a href="#user-content-table-of-contents">back to toc</a></h6>
+
+ ### [PASERK](https://github.com/paseto-standard/paserk) specification
+
+|lid|local|seal|local-wrap|local-pw|sid|public|pid|secret|secret-wrap|secret-pw|
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+|⚫|⚫|⚫|⚫|⚫|⚫|⚫|⚫|⚫|⚫|⚫|
+ <div align="center"><p>🟢 - completed&nbsp;⚫ - planned</p></div>
+
 
 <h6 align="right"><a href="#user-content-table-of-contents">back to toc</a></h6>
 

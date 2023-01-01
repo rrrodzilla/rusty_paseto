@@ -344,7 +344,7 @@ use rusty_paseto::prelude::*;
 
  The rusty_paseto crate architecture is composed of three layers (batteries_included, generic and core) which can be further refined by the PASETO version(s) and purpose(s) required for your needs.  All layers use a common crypto core which includes various cipher crates depending on the version and purpose you choose.  The crate is heavily featured gated to allow you to use only the versions and purposes you need for your app which minimizes download compile times for using rusty_paseto.  A description of each architectural layer, their uses and limitations and how to minimize your required dependencies based on your required PASETO version and purpose follows:
 
- ![paseto_batteries_included_small](https://github.com/rrrodzilla/rusty_paseto/raw/main/assets/RustyPasetoPreludeArchitecture.png)  ![paseto_generic_small](https://github.com/rrrodzilla/rusty_paseto/raw/main/assets/RustyPasetoGenericArchitecture.png)  ![paseto_core_small](https://github.com/rrrodzilla/rusty_paseto/raw/main/assets/RustyPasetoCoreArchitecture.png)
+ <img src="https://github.com/rrrodzilla/rusty_paseto/raw/main/assets/RustyPasetoPreludeArchitecture.png" width="150" />  <img src="https://github.com/rrrodzilla/rusty_paseto/raw/main/assets/RustyPasetoGenericArchitecture.png" width="150" /> <img src="https://github.com/rrrodzilla/rusty_paseto/raw/main/assets/RustyPasetoCoreArchitecture.png" width="150" />
 
  batteries_included  --> generic --> core
 
@@ -368,7 +368,7 @@ use rusty_paseto::prelude::*;
 
  The default feature is the quickest way to get started using rusty_paseto.
 
- ![paseto_default_small](https://user-images.githubusercontent.com/24578097/147882602-0a88c55e-3ba9-4545-ba99-867406ac9c76.png)
+ <img src="https://github.com/rrrodzilla/rusty_paseto/raw/main/assets/RustyPasetoPreludeArchitecture.png" width="150" />
 
  The default feature includes the outermost architectural layer called batteries_included (described below) as well as the two latest PASETO versions (V3 - NIST MODERN, V4 - SODIUM MODERN) and the Public (Asymmetric) and Local (Symmetric) purposed key types for each of these versions.  That should be four specific version and purpose combinations however at the time of this writing I have yet to implement the V3 - Public combination, so there are 3 in the default feature.  Additionally, this feature includes JWT style claims and business rules for your PASETO token (default, but customizable expiration, issued at, not-before times, etc as described in the usage documentation and examples further below).
 
@@ -389,8 +389,7 @@ use rusty_paseto::prelude::*;
 
  The outermost architectural layer is called batteries_included.  This is what most people will need.  This feature includes JWT style claims and business rules for your PASETO token (default, but customizable expiration, issued at, not-before times, etc as described in the usage documentation and examples below).
 
- ![paseto_batteries_included_small](https://user-images.githubusercontent.com/24578097/147881895-36878b22-bf17-49e4-98d7-f94920353368.png)
-
+  <img src="https://github.com/rrrodzilla/rusty_paseto/raw/main/assets/RustyPasetoBatteriesIncludedArchitecture.png" width="150" />
  You must specify a version and purpose with this feature in order to reduce the size of your dependencies like in the following Cargo.toml entry which only includes the V4 - Local types with batteries_included functionality:
 
  ```toml
@@ -399,7 +398,7 @@ use rusty_paseto::prelude::*;
 
  rusty_paseto = {version = "latest", features = ["batteries_included", "v4_local"] }
  ```
- ![paseto_batteries_included_v4_local_small](https://user-images.githubusercontent.com/24578097/147882822-46dac1d1-a922-4301-be45-d3341dabfee1.png)
+ <img src="https://github.com/rrrodzilla/rusty_paseto/raw/main/assets/RustyPasetoV4LocalArchitecture.png" width="150" />
 
  ```
  // at the top of your source file
@@ -412,7 +411,7 @@ use rusty_paseto::prelude::*;
 
  The generic architectural and feature layer allows you to create your own custom version of the batteries_included layer by following the same pattern I've used in the source code to create your own custom builder and parser.  This is probably not what you need as it is for advanced usage.  The feature includes a generic builder and parser along with claims for you to extend.
 
- ![paseto_generic_small](https://user-images.githubusercontent.com/24578097/147881907-a765ede6-c8e5-44ff-9845-db53f0634f07.png)
+ <img src="https://github.com/rrrodzilla/rusty_paseto/raw/main/assets/RustyPasetoGenericArchitecture.png" width="150" />
 
  It includes all the PASETO and custom claims but allows you to create different default claims in your custom builder and parser or use a different time crate or make up your own default business rules.  As with the batteries_included layer, parsed tokens get returned as a serder_json Value. Again, specify the version and purpose to include in the crypto core:
 
@@ -434,7 +433,7 @@ use rusty_paseto::prelude::*;
 
  The core architectural layer is the most basic PASETO implementation as it accepts a Payload, optional Footer and (if v3 or v4) an optional Implicit Assertion along with the appropriate key to encrypt/sign and decrypt/verify basic strings.  
 
- ![paseto_core_small](https://user-images.githubusercontent.com/24578097/147881920-14c52256-1a0c-40be-9f18-759a8c9ad77d.png)
+ <img src="https://github.com/rrrodzilla/rusty_paseto/raw/main/assets/RustyPasetoCoreArchitecture.png" width="150" />
 
  There are no default claims or included claim structures, business rules or anything other than basic PASETO crypto functions.  Serde crates are not included in this feature so it is extremely lightweight.  You can use this when you don't need JWT-esque functionality but still want to leverage the safe cipher combinations and algorithm lucidity afforded by the PASETO specification.
 

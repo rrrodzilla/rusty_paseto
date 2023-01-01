@@ -469,7 +469,7 @@ use rusty_paseto::prelude::*;
 | PASERK |⚫|⚫|⚫|⚫|⚫|⚫|⚫|⚫|
 | Docs - [core](#user-content-core)			|🟢|🟢|🟢|🟢|🟢|🟢|🟢|🟢|
 | Docs - [generic](#user-content-generic)			|🟢|🟢|🟢|🟢|🟢|🟢|🟢|🟢|
-| Docs - [batteries_included](#user-content-batteries_included)			|⚫|⚫|⚫|⚫|⚫|⚫|⚫|⚫|
+| Docs - [batteries_included](#user-content-batteries_included)			|🟢|🟢|🟢|🟢|🟢|🟢|🟢|🟢|
 
  <div align="center"><p>🟢 - completed&nbsp;⚫ - not yet</p></div>
 

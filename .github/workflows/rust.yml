@@ -46,3 +46,6 @@ jobs:
         with:
           command: clippy
           args: -- -D warnings
+  audit:
+    - name: rust-audit-check
+      uses: actions-rs/audit-check@v1.2.0

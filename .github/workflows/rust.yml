@@ -47,5 +47,7 @@ jobs:
           command: clippy
           args: -- -D warnings
   audit:
-    name: rust-audit-check
-    uses: actions-rs/audit-check@v1.2.0
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions-rs/audit-check@v1.2.0

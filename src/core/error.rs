@@ -1,3 +1,4 @@
+use std::array::TryFromSliceError;
 use thiserror::Error;
 
 /// Potential errors from attempting to build a token claim
@@ -40,6 +41,12 @@ pub enum PasetoError {
   ///Occurs when a signature fails verification
   #[error("The token signature could not be verified")]
   InvalidSignature,
+  #[error("A slice conversion error occurred")]
+  TryFromSlice {
+    ///Surfaces errors from slice conversion attempts
+    #[from]
+    source: TryFromSliceError,
+  },
   ///Occurs when an untrusted token string is unable to be parsed into its constituent parts
   #[error("This string has an incorrect number of parts and cannot be parsed into a token")]
   IncorrectSize,

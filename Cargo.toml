@@ -1,6 +1,6 @@
 [package]
 name = "rusty_paseto"
-version = "0.5.0"
+version = "0.6.0"
 edition = "2021"
 readme = "readme.md"
 authors = ["Roland Rodriguez <rolandrodriguez@gmail.com>"]
@@ -9,11 +9,11 @@ repository = "https://github.com/rrrodzilla/rusty_paseto"
 license = "MIT OR Apache-2.0"
 keywords = ["paseto", "token", "security", "api", "web"]
 categories = [
-  "cryptography",
-  "authentication",
-  "encoding",
-  "network-programming",
-  "web-programming",
+    "cryptography",
+    "authentication",
+    "encoding",
+    "network-programming",
+    "web-programming",
 ]
 documentation = "https://docs.rs/rusty_paseto/latest/rusty_paseto/"
 
@@ -29,18 +29,16 @@ v2_local = ["v2", "local", "core", "blake2", "chacha20poly1305"]
 v3_local = ["v3", "local", "core", "aes", "hmac", "sha2", "chacha20"]
 v4_local = ["v4", "local", "core", "blake2", "chacha20"]
 v1_public = ["v1", "public", "core"]
-v2_public = ["v2", "public", "core", "ed25519-dalek"]
+v2_public = ["v2", "public", "core", "ed25519-dalek", "ring/std"]
 v3_public = ["v3", "public", "core", "p384"]
-v4_public = ["v4", "public", "core", "ed25519-dalek"]
+v4_public = ["v4", "public", "core", "ed25519-dalek", "ring/std"]
 core = []
 generic = ["core", "serde", "erased-serde", "serde_json"]
 batteries_included = ["generic"]
 default = [
-  "batteries_included",
-  "v3_public",
-  "v3_local",
-  "v4_local",
-  "v4_public",
+    "batteries_included",
+    "v4_local",
+    "v4_public",
 ]
 
 [lib]
@@ -56,7 +54,7 @@ ring = { version = "^0.16", features = ["std"], optional = false }
 base64 = { version = "^0.13.0", optional = false }
 hex = { version = "^0.4.3", optional = false }
 serde = { version = "1.0.117", features = ["derive"], optional = true }
-ed25519-dalek = { version = "1.0.1", optional = true }
+ed25519-dalek = { version = "2.0.0", features = ["zeroize"], optional = true }
 serde_json = { version = "^1.0.68", optional = true }
 thiserror = "1.0.29"
 iso8601 = "0.4.0"

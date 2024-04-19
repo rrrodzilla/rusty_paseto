@@ -131,7 +131,6 @@ where
   ///Adds an optional [implicit assertion](ImplicitAssertion) to the token builder for V3/V4
   ///tokens only
   pub fn set_implicit_assertion(&mut self, implicit_assertion: ImplicitAssertion<'a>) -> &mut Self {
-    eprintln!("Implicit assertion in generic builder: {}", &implicit_assertion);
     self.implicit_assertion = Some(implicit_assertion);
     self
   }

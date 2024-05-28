@@ -18,7 +18,7 @@ use blake2::{
 #[cfg(all(feature = "chacha20", any(feature = "v2_local", feature = "v4_local")))]
 use chacha20::{Key as ChaChaKey, XNonce as ChaChaNonce};
 #[cfg(feature = "chacha20")]
-use chacha20::cipher::{NewCipher, StreamCipher};
+use chacha20::cipher::{KeyIvInit, StreamCipher};
 #[cfg(feature = "chacha20poly1305")]
 use chacha20poly1305::{
     aead::{Aead, NewAead, Payload as AeadPayload},

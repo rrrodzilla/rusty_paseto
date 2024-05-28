@@ -44,8 +44,13 @@ use ring::constant_time::verify_slices_are_equal as ConstantTimeEquals;
 use ring::hkdf;
 // #[cfg(any(feature = "v1_local", feature = "v3_local", feature = "v4_local"))]
 #[cfg(all(
-any(feature = "v1_local", feature = "v3_local", feature = "v4_local"),
-not(any(feature = "v1_public", feature = "v2_public", feature = "v3_public", feature = "v4_public")),
+    any(feature = "v1_local", feature = "v3_local", feature = "v4_local"),
+    not(any(
+        feature = "v1_public",
+        feature = "v2_public",
+        feature = "v3_public",
+        feature = "v4_public"
+    )),
 ))]
 use ring::hmac::SigningKey;
 #[cfg(all(feature = "p384", feature = "v3_public"))]

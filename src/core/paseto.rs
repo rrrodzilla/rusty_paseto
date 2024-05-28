@@ -12,8 +12,8 @@ use aes::{Aes256Ctr, cipher::generic_array::GenericArray};
 use base64::prelude::*;
 #[cfg(feature = "blake2")]
 use blake2::{
-    digest::{Update, VariableOutput},
-    VarBlake2b,
+    Blake2bMac,
+    digest::{FixedOutput, KeyInit, Update},
 };
 #[cfg(all(feature = "chacha20", any(feature = "v2_local", feature = "v4_local")))]
 use chacha20::{Key as ChaChaKey, XNonce as ChaChaNonce};
@@ -42,7 +42,6 @@ use ring::{
 };
 use ring::constant_time::verify_slices_are_equal as ConstantTimeEquals;
 use ring::hkdf;
-// #[cfg(any(feature = "v1_local", feature = "v3_local", feature = "v4_local"))]
 #[cfg(all(
     any(feature = "v1_local", feature = "v3_local", feature = "v4_local"),
     not(any(
@@ -1071,10 +1070,14 @@ struct Tag<Version, Purpose> {
 #[cfg(feature = "v4_local")]
 impl Tag<V4, Local> {
     fn from(authentication_key: impl AsRef<[u8]>, pae: &PreAuthenticationEncoding) -> Self {
-        let mut tag_context = VarBlake2b::new_keyed(authentication_key.as_ref(), 32);
+        // let mut tag_context = Blake2bVar::new_keyed(authentication_key.as_ref(), 32);
+        let mut tag_context = Blake2bMac::new_from_slice(authentication_key.as_ref()).expect("Failure in V4, Local Tag creation.");
+        // tag_context.update(authentication_key.as_ref());
         tag_context.update(pae.as_ref());
+        let mut buf = [0u8;32];
+        tag_context.finalize_into((&mut buf).into());
         Self {
-            tag: tag_context.finalize_boxed().as_ref().to_vec(),
+            tag: buf.into(),
             version: PhantomData,
             purpose: PhantomData,
         }
@@ -1248,9 +1251,12 @@ impl EncryptionKey<V3, Local> {
 impl EncryptionKey<V4, Local> {
     fn from(message: &Key<53>, key: &PasetoSymmetricKey<V4, Local>) -> Self {
         //let mut context = Blake2b::new_keyed(key.as_ref(), 56);
-        let mut context = VarBlake2b::new_keyed(key.as_ref(), 56);
+        let mut context = Blake2bMac::new_from_slice(key.as_ref()).expect("Failure in v4 Local Encryption Key creation");
+        // context.update(key.as_ref());
         context.update(message.as_ref());
-        let context = context.finalize_boxed();
+        let mut buf = [0u8;56];
+        context.finalize_into((&mut buf).into());
+        let context = buf;
         let key = context.as_ref()[..32].to_vec();
         let nonce = context.as_ref()[32..].to_vec();
         assert_eq!(key.len(), 32);
@@ -1364,12 +1370,15 @@ impl AuthenticationKey<V3, Local> {
 #[cfg(feature = "v4_local")]
 impl AuthenticationKey<V4, Local> {
     fn from(message: &Key<56>, key: &PasetoSymmetricKey<V4, Local>) -> Self {
-        let mut context = VarBlake2b::new_keyed(key.as_ref(), 32);
+        // let mut context = Blake2bVar::new_keyed(key.as_ref(), 32);
+        let mut context = Blake2bMac::new_from_slice(key.as_ref()).expect("Failure in v4 Local Authentication Key creation");
         context.update(message.as_ref());
+        let mut buf = [0u8;32];
+        context.finalize_into((&mut buf).into());
         Self {
             version: PhantomData,
             purpose: PhantomData,
-            key: context.finalize_boxed().as_ref().to_vec(),
+            key: buf.into(),
         }
     }
 }

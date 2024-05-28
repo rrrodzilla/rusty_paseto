@@ -57,7 +57,7 @@ serde = { version = "1.0.117", features = ["derive"], optional = true }
 ed25519-dalek = { version = "2.0.0", features = ["zeroize"], optional = true }
 serde_json = { version = "^1.0.68", optional = true }
 thiserror = "1.0.29"
-iso8601 = "0.4.0"
+iso8601 = "0.6.1"
 erased-serde = { version = "0.3.16", optional = true }
 aes = { version = "0.7.5", features = ["ctr"], optional = true }
 hmac = { version = "0.12.1", optional = true }
@@ -73,7 +73,7 @@ actix-web = "4"
 actix-identity = "0.4.0"
 tokio = "1.17.0"
 actix-utils = "3.0.0"
-uuid = { version = "0.8.2", features = ["v4"] }
+uuid = { version = "1.8.0", features = ["v4"] }
 
 [[example]]
 name = "actix_identity"

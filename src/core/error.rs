@@ -38,6 +38,14 @@ pub enum PasetoError {
     #[from]
     source: ed25519_dalek::ed25519::Error,
   },
+  #[cfg(feature = "blake2")]
+  ///An RSA cipher error
+  #[error("An unspecified cipher error occurred")]
+  InvalidLength {
+    ///An RSA cipher error
+    #[from]
+    source: blake2::digest::InvalidLength,
+  },
   ///Occurs when a signature fails verification
   #[error("The token signature could not be verified")]
   InvalidSignature,

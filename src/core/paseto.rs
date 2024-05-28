@@ -13,12 +13,12 @@ use base64::{encode_config, URL_SAFE_NO_PAD};
 #[cfg(feature = "blake2")]
 use blake2::{
     digest::{Update, VariableOutput},
-    Blake2b,
+    VarBlake2b,
 };
 #[cfg(all(feature = "chacha20", any(feature = "v2_local", feature = "v4_local")))]
 use chacha20::{Key as ChaChaKey, XNonce as ChaChaNonce};
 #[cfg(feature = "chacha20")]
-use chacha20::cipher::{KeyIvInit, StreamCipher};
+use chacha20::cipher::{NewCipher, StreamCipher};
 #[cfg(feature = "chacha20poly1305")]
 use chacha20poly1305::{
     aead::{Aead, NewAead, Payload as AeadPayload},
@@ -1066,7 +1066,7 @@ struct Tag<Version, Purpose> {
 #[cfg(feature = "v4_local")]
 impl Tag<V4, Local> {
     fn from(authentication_key: impl AsRef<[u8]>, pae: &PreAuthenticationEncoding) -> Self {
-        let mut tag_context = Blake2b::new_with_prefix(authentication_key.as_ref());
+        let mut tag_context = VarBlake2b::new_keyed(authentication_key.as_ref(), 32);
         tag_context.update(pae.as_ref());
         Self {
             tag: tag_context.finalize_boxed().as_ref().to_vec(),
@@ -1243,7 +1243,7 @@ impl EncryptionKey<V3, Local> {
 impl EncryptionKey<V4, Local> {
     fn from(message: &Key<53>, key: &PasetoSymmetricKey<V4, Local>) -> Self {
         //let mut context = Blake2b::new_keyed(key.as_ref(), 56);
-        let mut context = Blake2b::new_with_prefix(key.as_ref());
+        let mut context = VarBlake2b::new_keyed(key.as_ref(), 56);
         context.update(message.as_ref());
         let context = context.finalize_boxed();
         let key = context.as_ref()[..32].to_vec();
@@ -1359,7 +1359,7 @@ impl AuthenticationKey<V3, Local> {
 #[cfg(feature = "v4_local")]
 impl AuthenticationKey<V4, Local> {
     fn from(message: &Key<56>, key: &PasetoSymmetricKey<V4, Local>) -> Self {
-        let mut context = Blake2b::new_with_prefix(key.as_ref());
+        let mut context = VarBlake2b::new_keyed(key.as_ref(), 32);
         context.update(message.as_ref());
         Self {
             version: PhantomData,

@@ -843,7 +843,7 @@ mod parsers {
   use crate::generic::*;
   use anyhow::Result;
 
-  #[cfg(feature = "public")]
+  #[cfg(all(test, feature="v2_public"))]
   #[test]
   fn full_parser_test_v2_public() -> Result<()> {
     //create a key
@@ -900,7 +900,7 @@ mod parsers {
     Ok(())
   }
 
-  #[cfg(feature = "local")]
+  #[cfg(all(test, feature="v2_local"))]
   #[test]
   fn full_parser_test() -> Result<()> {
     //create a key
@@ -951,7 +951,7 @@ mod parsers {
     Ok(())
   }
 
-  #[cfg(feature = "local")]
+  #[cfg(all(feature="v2",feature = "local"))]
   #[test]
   fn basic_claim_validation_test() -> Result<()> {
     //create a key
@@ -978,7 +978,7 @@ mod parsers {
     Ok(())
   }
 
-  #[cfg(feature = "local")]
+  #[cfg(all(feature="v2",feature = "local"))]
   #[test]
   fn claim_custom_validator_test() -> Result<()> {
     //create a key
@@ -1013,7 +1013,7 @@ mod parsers {
     Ok(())
   }
 
-  #[cfg(feature = "local")]
+  #[cfg(all(feature="v2",feature = "local"))]
   #[test]
   fn claim_custom_validator_failure_test() -> Result<()> {
     //create a key
@@ -1051,7 +1051,7 @@ mod parsers {
     Ok(())
   }
 
-  #[cfg(feature = "local")]
+  #[cfg(all(feature="v2",feature = "local"))]
   #[test]
   fn custom_claim_custom_validator_test() -> Result<()> {
     //create a key
@@ -1090,7 +1090,7 @@ mod parsers {
     Ok(())
   }
 
-  #[cfg(feature = "local")]
+  #[cfg(all(feature="v2",feature = "local"))]
   #[test]
   fn missing_claim_validation_test() -> Result<()> {
     //create a key

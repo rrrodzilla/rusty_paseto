@@ -21,7 +21,7 @@ use chacha20::{Key as ChaChaKey, XNonce as ChaChaNonce};
 use chacha20::cipher::{KeyIvInit, StreamCipher};
 #[cfg(feature = "chacha20poly1305")]
 use chacha20poly1305::{
-    aead::{Aead, NewAead, Payload as AeadPayload},
+    aead::{Aead, Payload as AeadPayload},
     XChaCha20Poly1305, XNonce,
 };
 #[cfg(feature = "ed25519-dalek")]
@@ -545,9 +545,10 @@ impl<'a> Paseto<'a, V2, Local> {
         let footer = self.footer.unwrap_or_default();
 
         //create the blake2 context to generate the nonce
-        let mut blake2 = VarBlake2b::new_keyed(nonce.as_ref(), 24);
+        let mut blake2 = Blake2bMac::new_from_slice(nonce.as_ref())?;
         blake2.update(&*self.payload);
-        let context = blake2.finalize_boxed();
+        let mut context = [0u8;24];
+        blake2.finalize_into((&mut context).into());
 
         //create the nonce
         let nonce = XNonce::from_slice(&context);

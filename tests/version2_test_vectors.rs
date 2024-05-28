@@ -4,7 +4,7 @@ mod v2_test_vectors {
   use rusty_paseto::core::*;
   use serde_json::json;
 
-  #[cfg(feature = "local")]
+  #[cfg(feature = "v2_local")]
   #[test]
   fn test_2_e_1() -> Result<()> {
     //setup
@@ -32,7 +32,7 @@ mod v2_test_vectors {
     Ok(())
   }
 
-  #[cfg(feature = "local")]
+  #[cfg(feature = "v2_local")]
   #[test]
   fn test_2_e_2() -> Result<()> {
     //setup
@@ -279,7 +279,7 @@ mod v2_test_vectors {
     Ok(())
   }
 
-  #[cfg(feature = "public")]
+  #[cfg(feature = "v2_public")]
   #[test]
   fn test_2_s_1() -> Result<()> {
     let private_key = Key::<64>::try_from("b4cbfb43df4ce210727d953e4a713307fa19bb7d9f85041438d9e11b942a37741eb9dbbbbc047c03fd70604e0071f0987e16b28b757225c11f00415d0e20b1a2")?;
@@ -306,7 +306,7 @@ mod v2_test_vectors {
     Ok(())
   }
 
-  #[cfg(feature = "public")]
+  #[cfg(feature = "v2_public")]
   #[test]
   fn test_2_s_2() -> Result<()> {
     //setup
@@ -340,7 +340,7 @@ mod v2_test_vectors {
     Ok(())
   }
 
-  #[cfg(feature = "public")]
+  #[cfg(feature = "v2_public")]
   #[test]
   fn test_2_s_3() -> Result<()> {
     //setup

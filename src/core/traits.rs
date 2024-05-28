@@ -1,4 +1,5 @@
-use base64::{decode_config, encode_config, DecodeError, URL_SAFE_NO_PAD};
+use base64::DecodeError;
+use base64::prelude::*;
 use ring::constant_time::verify_slices_are_equal as ConstantTimeEquals;
 use std::fmt::Display;
 
@@ -17,10 +18,10 @@ pub trait V2orV4: VersionTrait {}
 /// constant time comparision
 pub(crate) trait Base64Encodable<T: ?Sized + AsRef<[u8]>>: Display + AsRef<T> {
   fn encode(&self) -> String {
-    encode_config(self.as_ref(), URL_SAFE_NO_PAD)
+    BASE64_URL_SAFE_NO_PAD.encode(self.as_ref())
   }
   fn decode(&self) -> Result<Vec<u8>, DecodeError> {
-    decode_config(self.as_ref(), URL_SAFE_NO_PAD)
+    BASE64_URL_SAFE_NO_PAD.decode(self.as_ref())
   }
   fn constant_time_equals<B>(&self, other: B) -> bool
   where

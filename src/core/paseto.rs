@@ -9,7 +9,7 @@ use std::{
 
 #[cfg(feature = "aes")]
 use aes::{Aes256Ctr, cipher::generic_array::GenericArray};
-use base64::{encode_config, URL_SAFE_NO_PAD};
+use base64::prelude::*;
 #[cfg(feature = "blake2")]
 use blake2::{
     digest::{Update, VariableOutput},
@@ -18,7 +18,7 @@ use blake2::{
 #[cfg(all(feature = "chacha20", any(feature = "v2_local", feature = "v4_local")))]
 use chacha20::{Key as ChaChaKey, XNonce as ChaChaNonce};
 #[cfg(feature = "chacha20")]
-use chacha20::cipher::{NewCipher, StreamCipher};
+use chacha20::cipher::{KeyIvInit, StreamCipher};
 #[cfg(feature = "chacha20poly1305")]
 use chacha20poly1305::{
     aead::{Aead, NewAead, Payload as AeadPayload},
@@ -1121,7 +1121,7 @@ impl<Version> RawPayload<Version, Public> {
         let mut raw_token = Vec::from(payload);
         raw_token.extend_from_slice(signature.as_ref());
 
-        encode_config(&raw_token, URL_SAFE_NO_PAD)
+        BASE64_URL_SAFE_NO_PAD.encode(&raw_token)
     }
 }
 
@@ -1132,7 +1132,7 @@ impl RawPayload<V2, Local> {
         raw_token.extend_from_slice(blake2_hash);
         raw_token.extend_from_slice(ciphertext);
 
-        encode_config(&raw_token, URL_SAFE_NO_PAD)
+        BASE64_URL_SAFE_NO_PAD.encode(&raw_token)
     }
 }
 
@@ -1158,7 +1158,7 @@ impl<Version> RawPayload<Version, Local>
             .copy_from_slice(ciphertext.as_ref());
         raw_token[concat_len - tag_len..].copy_from_slice(tag.as_ref());
 
-        Ok(encode_config(&raw_token, URL_SAFE_NO_PAD))
+        Ok(BASE64_URL_SAFE_NO_PAD.encode(&raw_token))
     }
 }
 
@@ -1181,7 +1181,7 @@ impl RawPayload<V4, Local> {
             .copy_from_slice(ciphertext.as_ref());
         raw_token[concat_len - tag_len..].copy_from_slice(tag.as_ref());
 
-        Ok(encode_config(&raw_token, URL_SAFE_NO_PAD))
+        Ok(BASE64_URL_SAFE_NO_PAD.encode(&raw_token))
     }
 }
 

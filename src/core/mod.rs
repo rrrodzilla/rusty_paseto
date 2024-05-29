@@ -14,6 +14,8 @@
 //! ```
 //! # Example usage
 //! ```
+//! # #[cfg(feature = "v4_local")]
+//! # {
 //! # use serde_json::json;
 //! use rusty_paseto::core::*;
 //!
@@ -38,6 +40,7 @@
 //! //now let's try to decrypt it
 //! let json = Paseto::<V4, Local>::try_decrypt(&token, &key, None, None)?;
 //! assert_eq!(payload, json);
+//! }
 //! # Ok::<(),anyhow::Error>(())
 //! ```
 
@@ -51,6 +54,8 @@ mod payload;
 mod purpose;
 mod traits;
 mod version;
+mod common;
+mod paseto_impl;
 
 pub use error::PasetoError;
 pub use footer::Footer;

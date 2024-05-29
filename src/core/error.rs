@@ -38,6 +38,14 @@ pub enum PasetoError {
     #[from]
     source: ed25519_dalek::ed25519::Error,
   },
+  #[cfg(feature = "p384")]
+  ///An ECSDA cipher error
+  #[error("An unspecified ECSDA error occurred")]
+  ECSDAError {
+    ///An ECSDA cipher error
+    #[from]
+    source: p384::ecdsa::Error,
+  },
   #[cfg(feature = "blake2")]
   ///An RSA cipher error
   #[error("An unspecified cipher error occurred")]

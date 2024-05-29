@@ -24,13 +24,13 @@ v3 = []
 v4 = []
 public = []
 local = []
-v1_local = ["v1", "local", "core", "aes", "chacha20", "hmac", "sha2"]
+v1_local = ["v1", "local", "core", "aes", "chacha20", "hmac", "sha2", "blake2"]
 v2_local = ["v2", "local", "core", "blake2", "chacha20poly1305"]
 v3_local = ["v3", "local", "core", "aes", "hmac", "sha2", "chacha20"]
 v4_local = ["v4", "local", "core", "blake2", "chacha20"]
-v1_public = ["v1", "public", "core"]
+v1_public = ["v1", "public", "core", "ed25519-dalek"]
 v2_public = ["v2", "public", "core", "ed25519-dalek", "ring/std"]
-v3_public = ["v3", "public", "core", "p384"]
+v3_public = ["v3", "public", "core", "p384", "sha2"]
 v4_public = ["v4", "public", "core", "ed25519-dalek", "ring/std"]
 core = []
 generic = ["core", "serde", "erased-serde", "serde_json"]
@@ -59,11 +59,13 @@ serde_json = { version = "^1.0.68", optional = true }
 thiserror = "1.0.29"
 iso8601 = "0.6.1"
 erased-serde = { version = "0.4.5", optional = true }
-aes = { version = "0.8.4", optional = true }
+aes = { version = "0.7.5", features = ["ctr"], optional = true }
 hmac = { version = "0.12.1", optional = true }
 sha2 = { version = "0.10.2", optional = true }
 zeroize = { version = "1.4.3", features = ["zeroize_derive"] }
 time = { version = "0.3.5", features = ["parsing", "formatting"] }
+rand_core = "0.6.4"
+digest = "0.10.7"
 
 [dev-dependencies]
 anyhow = "1.0.45"
@@ -77,3 +79,5 @@ uuid = { version = "1.8.0", features = ["v4"] }
 
 [[example]]
 name = "actix_identity"
+required-features = ["default"]
+

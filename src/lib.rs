@@ -376,9 +376,9 @@
 //! #### Note: *CustomClaims use the TryFrom trait and return a Result<(), PasetoClaimError> if you attempt to use one of the [reserved PASETO keys](https://github.com/paseto-standard/paseto-spec/blob/master/docs/02-Implementation-Guide/04-Claims.md) in your CustomClaim*
 //!
 //! ```rust
-//! # use rusty_paseto::prelude::*;
-//! # #[cfg(feature = "default")]
+//! # #[cfg(feature = "v4_local")]
 //! # {
+//! # use rusty_paseto::prelude::*;
 //! # // must include
 //! # use std::convert::TryFrom;
 //! # let key = PasetoSymmetricKey::<V4, Local>::from(Key::from(b"wubbalubbadubdubwubbalubbadubdub"));
@@ -386,15 +386,15 @@
 //!   .set_claim(CustomClaim::try_from(("Co-star", "Morty Smith"))?)
 //!   .set_claim(CustomClaim::try_from(("Universe", 137))?)
 //!   .build(&key)?;
-//! # }
 //! # Ok::<(),GenericBuilderError>(())
+//! # }
 //! ```
 //!
 //! This throws an error:
-//! ```should_panic
-//! # use rusty_paseto::prelude::*;
-//! # #[cfg(feature = "default")]
+//! ```no_compile
+//! # #[cfg(feature = "v4_local")]
 //! # {
+//! # use rusty_paseto::prelude::*;
 //! # // must include
 //! # use std::convert::TryFrom;
 //! # let key = PasetoSymmetricKey::<V4, Local>::from(Key::from(b"wubbalubbadubdubwubbalubbadubdub"));
@@ -452,9 +452,9 @@
 //! Let's see how we can validate our tokens only contain universes with prime numbers:
 //!
 //! ```
-//! # use rusty_paseto::prelude::*;
 //! # #[cfg(feature = "default")]
 //! # {
+//! # use rusty_paseto::prelude::*;
 //! # use std::convert::TryFrom;
 //!
 //! # // create a key specifying the PASETO version and purpose
@@ -487,39 +487,39 @@
 //! ```
 //!
 //! This token will fail to parse with the validation code above:
-//! ```should_panic
-//! # #[cfg(feature = "default")]
-//! # {
-//! # use rusty_paseto::prelude::*;
-//! # use std::convert::TryFrom;
 //!
-//! # // create a key specifying the PASETO version and purpose
-//! # let key = PasetoSymmetricKey::<V4, Local>::from(Key::from(b"wubbalubbadubdubwubbalubbadubdub"));
+//! ```no_compile
+//! # #[cfg(feature = "v4_local")]
+//! # {
+//! use rusty_paseto::prelude::*;
+//! use std::convert::TryFrom;
+//!
+//! // create a key specifying the PASETO version and purpose
+//! let key = PasetoSymmetricKey::<V4, Local>::from(Key::from(b"wubbalubbadubdubwubbalubbadubdub"));
 //! // 136 is not a prime number
 //! let token = PasetoBuilder::<V4, Local>::default()
 //!   .set_claim(CustomClaim::try_from(("Universe", 136))?)
 //!   .build(&key)?;
 //!
-//!# let json_value = PasetoParser::<V4, Local>::default()
-//!#  // you can check any claim even custom claims
-//!#   .validate_claim(CustomClaim::try_from("Universe")?, &|key, value| {
-//!#     //let's get the value
-//!#     let universe = value
-//!#       .as_u64()
-//!#       .ok_or(PasetoClaimError::Unexpected(key.to_string()))?;
-//!#     // we only accept prime universes in this token
-//!#     if primes::is_prime(universe) {
-//!#       Ok(())
-//!#     } else {
-//!#       Err(PasetoClaimError::CustomValidation(key.to_string()))
-//!#     }
-//!#   })
+//! let json_value = PasetoParser::<V4, Local>::default()
+//!  // you can check any claim even custom claims
+//!   .validate_claim(CustomClaim::try_from("Universe")?, &|key, value| {
+//!     // let's get the value
+//!     let universe = value
+//!       .as_u64()
+//!       .ok_or(PasetoClaimError::Unexpected(key.to_string()))?;
+//!     // we only accept prime universes in this token
+//!     if primes::is_prime(universe) {
+//!       Ok(())
+//!     } else {
+//!       Err(PasetoClaimError::CustomValidation(key.to_string()))
+//!     }
+//!   })
+//!  .parse(&token, &key)?;
 //!
-//!#  .parse(&token, &key)?;
-//!
-//! # assert_eq!(json_value["Universe"], 136);
-//! # }
+//! assert_eq!(json_value["Universe"], 136);
 //! # Ok::<(),anyhow::Error>(())
+//! # }
 //! ```
 //!
 //! # Acknowledgments

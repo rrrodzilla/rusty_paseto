@@ -60,7 +60,7 @@ mod v2_test_vectors {
     Ok(())
   }
 
-  #[cfg(feature = "local")]
+  #[cfg(feature = "v2_local")]
   #[test]
   fn test_2_e_3() -> Result<()> {
     //setup
@@ -88,7 +88,7 @@ mod v2_test_vectors {
     Ok(())
   }
 
-  #[cfg(feature = "local")]
+  #[cfg(feature = "v2_local")]
   #[test]
   fn test_2_e_4() -> Result<()> {
     //setup
@@ -118,7 +118,7 @@ mod v2_test_vectors {
     Ok(())
   }
 
-  #[cfg(feature = "local")]
+  #[cfg(feature = "v2_local")]
   #[test]
   fn test_2_e_5() -> Result<()> {
     //setup
@@ -150,7 +150,7 @@ mod v2_test_vectors {
     Ok(())
   }
 
-  #[cfg(feature = "local")]
+  #[cfg(feature = "v2_local")]
   #[test]
   fn test_2_e_6() -> Result<()> {
     //setup
@@ -182,7 +182,7 @@ mod v2_test_vectors {
     Ok(())
   }
 
-  #[cfg(feature = "local")]
+  #[cfg(feature = "v2_local")]
   #[test]
   fn test_2_e_7() -> Result<()> {
     //setup
@@ -215,7 +215,7 @@ mod v2_test_vectors {
     Ok(())
   }
 
-  #[cfg(feature = "local")]
+  #[cfg(feature = "v2_local")]
   #[test]
   fn test_2_e_8() -> Result<()> {
     //setup
@@ -248,7 +248,7 @@ mod v2_test_vectors {
     Ok(())
   }
 
-  #[cfg(feature = "local")]
+  #[cfg(feature = "v2_local")]
   #[test]
   fn test_2_e_9() -> Result<()> {
     //setup

@@ -951,7 +951,7 @@ mod parsers {
     Ok(())
   }
 
-  #[cfg(all(feature="v2",feature = "local"))]
+  #[cfg(feature="v2_local")]
   #[test]
   fn basic_claim_validation_test() -> Result<()> {
     //create a key
@@ -978,7 +978,7 @@ mod parsers {
     Ok(())
   }
 
-  #[cfg(all(feature="v2",feature = "local"))]
+  #[cfg(feature="v2_local")]
   #[test]
   fn claim_custom_validator_test() -> Result<()> {
     //create a key
@@ -1013,7 +1013,7 @@ mod parsers {
     Ok(())
   }
 
-  #[cfg(all(feature="v2",feature = "local"))]
+  #[cfg(feature="v2_local")]
   #[test]
   fn claim_custom_validator_failure_test() -> Result<()> {
     //create a key
@@ -1051,7 +1051,7 @@ mod parsers {
     Ok(())
   }
 
-  #[cfg(all(feature="v2",feature = "local"))]
+  #[cfg(feature="v2_local")]
   #[test]
   fn custom_claim_custom_validator_test() -> Result<()> {
     //create a key
@@ -1090,7 +1090,7 @@ mod parsers {
     Ok(())
   }
 
-  #[cfg(all(feature="v2",feature = "local"))]
+  #[cfg(feature="v2_local")]
   #[test]
   fn missing_claim_validation_test() -> Result<()> {
     //create a key

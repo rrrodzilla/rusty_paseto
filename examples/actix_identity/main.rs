@@ -1,3 +1,4 @@
+
 /// This example shows how you might use a PASETO token to store some data in a cookie once the
 /// user has been logged in.  
 ///
@@ -91,7 +92,6 @@ async fn logout(id: Identity) -> String {
 pub(crate) struct AppData {
     paseto_key: &'static str
 }
-
 
 #[actix_web::main] // or #[tokio::main]
 async fn main() -> std::io::Result<()> {

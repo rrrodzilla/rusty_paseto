@@ -125,8 +125,8 @@ impl<'a, Version: VersionTrait, Purpose: PurposeTrait> Paseto<'a, Version, Purpo
     /// # //now let's try to decrypt it
     /// # let json = Paseto::<V4, Local>::try_decrypt(&token, &key, Footer::from("Supah doopah!"), None)?;
     /// # assert_eq!(payload, json);
-    /// # Ok::<(),anyhow::Error>(())
     /// }
+    /// # Ok::<(),anyhow::Error>(())
     /// ```
     pub fn set_footer(&mut self, footer: Footer<'a>) -> &mut Self {
         self.footer = Some(footer);

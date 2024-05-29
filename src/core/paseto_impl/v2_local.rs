@@ -78,7 +78,7 @@ impl<'a> Paseto<'a, V2, Local> {
 
         //create the blake2 context to generate the nonce
         let mut blake2 = Blake2bMac::new_from_slice(nonce.as_ref())?;
-        blake2.update(&*self.payload);
+        blake2.update(&self.payload);
         let mut context = [0u8; 24];
         blake2.finalize_into((&mut context).into());
 

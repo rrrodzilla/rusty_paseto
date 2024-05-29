@@ -1,6 +1,6 @@
 #![cfg(feature = "v4_public")]
-use ed25519_dalek::{Signature, SigningKey, VerifyingKey};
-use crate::core::{Footer, Header, ImplicitAssertion, Paseto, PasetoAsymmetricPrivateKey, PasetoAsymmetricPublicKey, PasetoError, Public};
+use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
+use crate::core::{Footer, Header, ImplicitAssertion, Paseto, PasetoAsymmetricPrivateKey, PasetoAsymmetricPublicKey, PasetoError, Public, V4};
 use crate::core::common::{PreAuthenticationEncoding, RawPayload};
 
 impl<'a> Paseto<'a, V4, Public> {

@@ -1,6 +1,6 @@
 #![cfg(feature = "v2_public")]
 use std::marker::PhantomData;
-use crate::core::PasetoNonce;
+use crate::core::{PasetoNonce, Public, V2};
 
 impl<'a, T> From<&'a T> for PasetoNonce<'a, V2, Public>
     where

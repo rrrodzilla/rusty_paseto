@@ -1,6 +1,6 @@
 #[cfg(all(test, feature = "v4"))]
 mod v4_test_vectors {
-    use anyhow::{Error, Result};
+    use anyhow::{Result};
     use serde_json::json;
 
     use rusty_paseto::core::*;
@@ -360,7 +360,7 @@ mod v4_test_vectors {
             }
             Err(thiserror) => {
                 eprintln!("here's the error: {}", thiserror);
-                Err(Error::from(thiserror))
+                Err(anyhow::Error::from(thiserror))
             }
         }
     }

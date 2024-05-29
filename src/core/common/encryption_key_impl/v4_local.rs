@@ -1,7 +1,7 @@
 #![cfg(feature = "v4_local")]
 use std::marker::PhantomData;
 use std::ops::Deref;
-use blake2::digest::consts::U53;
+use blake2::digest::consts::U56;
 use blake2::{Blake2bMac, digest::Update};
 use blake2::digest::FixedOutput;
 use digest::KeyInit;
@@ -11,12 +11,13 @@ use crate::core::{Local, PasetoSymmetricKey, V4};
 
 impl EncryptionKey<V4, Local> {
     pub(crate) fn from(message: &crate::core::Key<53>, key: &PasetoSymmetricKey<V4, Local>) -> Self {
-        let mut context = Blake2bMac::<U53>::new_from_slice(key.as_ref()).unwrap();
+        let mut context = Blake2bMac::<U56>::new_from_slice(key.as_ref()).unwrap();
         context.update(message.as_ref());
         let binding = context.finalize_fixed();
-        let context = binding.deref();
-        let key = context.as_ref()[..32].to_vec();
-        let nonce = context.as_ref()[32..].to_vec();
+        let context = binding.to_vec();
+        let key = context[..32].to_vec();
+        let nonce = context[32..56].to_vec();
+
         assert_eq!(key.len(), 32);
         assert_eq!(nonce.len(), 24);
         Self {

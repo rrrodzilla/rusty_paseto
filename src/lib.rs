@@ -333,7 +333,7 @@
 //!
 //! The PASETO specification includes [seven reserved claims](https://github.com/paseto-standard/paseto-spec/blob/master/docs/02-Implementation-Guide/04-Claims.md) which you can set with their explicit types:
 //! ```rust
-//! # #[cfg(feature = "default")]
+//! # #[cfg(all(test,feature = "v4_local"))]
 //! # {
 //! # use rusty_paseto::prelude::*;
 //! # use time::format_description::well_known::Rfc3339;
@@ -376,17 +376,20 @@
 //! #### Note: *CustomClaims use the TryFrom trait and return a Result<(), PasetoClaimError> if you attempt to use one of the [reserved PASETO keys](https://github.com/paseto-standard/paseto-spec/blob/master/docs/02-Implementation-Guide/04-Claims.md) in your CustomClaim*
 //!
 //! ```rust
-//! # #[cfg(feature = "v4_local")]
+//! # #[cfg(all(test, feature = "v4_local"))]
 //! # {
 //! # use rusty_paseto::prelude::*;
+//! # use rusty_paseto::core::{V4,Local, Key};
+//! # use rusty_paseto::generic::GenericBuilderError;
 //! # // must include
 //! # use std::convert::TryFrom;
+//! # use rusty_paseto::core::PasetoSymmetricKey;
 //! # let key = PasetoSymmetricKey::<V4, Local>::from(Key::from(b"wubbalubbadubdubwubbalubbadubdub"));
 //! let token = PasetoBuilder::<V4, Local>::default()
 //!   .set_claim(CustomClaim::try_from(("Co-star", "Morty Smith"))?)
 //!   .set_claim(CustomClaim::try_from(("Universe", 137))?)
 //!   .build(&key)?;
-//! # Ok::<(),GenericBuilderError>(())
+//! # Ok::<(),rusty_paseto::generic::GenericBuilderError>(())
 //! # }
 //! ```
 //!

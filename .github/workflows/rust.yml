@@ -30,7 +30,35 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --all-features
+          args: --features v1_local
+      - uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --features v1_public
+      - uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --features v2_local
+      - uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --features v2_public
+      - uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --features v3_local
+      - uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --features v3_public
+      - uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --features v4_local
+      - uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --features v4_public
   clippy:
     name: Clippy
     runs-on: ubuntu-latest

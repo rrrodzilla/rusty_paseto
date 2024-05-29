@@ -4,6 +4,7 @@ mod v3_test_vectors {
   use rusty_paseto::core::*;
   use serde_json::json;
 
+  #[cfg(all(test, feature = "v3_local"))]
   #[test]
   fn test_3_e_1() -> Result<()> {
     //setup
@@ -31,6 +32,7 @@ mod v3_test_vectors {
     Ok(())
   }
 
+  #[cfg(all(test, feature = "v3_local"))]
   #[test]
   fn test_3_e_2() -> Result<()> {
     let key = PasetoSymmetricKey::<V3, Local>::from(Key::<32>::try_from(
@@ -57,6 +59,7 @@ mod v3_test_vectors {
     Ok(())
   }
 
+  #[cfg(all(test, feature = "v3_local"))]
   #[test]
   fn test_3_e_3() -> Result<()> {
     //setup
@@ -85,6 +88,7 @@ mod v3_test_vectors {
     Ok(())
   }
 
+  #[cfg(all(test, feature = "v3_local"))]
   #[test]
   fn test_3_e_4() -> Result<()> {
     //setup
@@ -113,6 +117,7 @@ mod v3_test_vectors {
     Ok(())
   }
 
+  #[cfg(all(test, feature = "v3_local"))]
   #[test]
   fn test_3_e_5() -> Result<()> {
     //setup
@@ -145,6 +150,7 @@ mod v3_test_vectors {
     Ok(())
   }
 
+  #[cfg(all(test, feature = "v3_local"))]
   #[test]
   fn test_3_e_6() -> Result<()> {
     //setup
@@ -177,6 +183,7 @@ mod v3_test_vectors {
     Ok(())
   }
 
+  #[cfg(all(test, feature = "v3_local"))]
   #[test]
   fn test_3_e_7() -> Result<()> {
     //setup
@@ -214,6 +221,7 @@ mod v3_test_vectors {
     Ok(())
   }
 
+  #[cfg(all(test, feature = "v3_local"))]
   #[test]
   fn test_3_e_8() -> Result<()> {
     //setup
@@ -251,6 +259,7 @@ mod v3_test_vectors {
     Ok(())
   }
 
+  #[cfg(all(test, feature = "v3_local"))]
   #[test]
   fn test_3_e_9() -> Result<()> {
     //setup
@@ -556,8 +565,9 @@ mod v3_test_vectors {
     assert_ne!(token.to_string(), test_token);
 
     ////now let's try to decrypt it
-    let verify_attempt = Paseto::<V3, Local>::try_decrypt(&test_token, &key, footer, implicit_assertion)?;
-    assert_ne!(verify_attempt, "");
+    let verify_attempt = Paseto::<V3, Local>::try_decrypt(&test_token, &key, footer, implicit_assertion);
+    assert!(verify_attempt.is_err());
+    // assert_ne!(verify_attempt, "");
     Ok(())
   }
 }

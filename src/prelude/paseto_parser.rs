@@ -849,14 +849,14 @@ impl<'a> PasetoParser<'a, V4, Public> {
     }
 }
 
-#[cfg(all(test, feature = "v3"))]
+#[cfg(all(test, feature = "v3_public"))]
 mod paseto_parser_v3_unit_tests {
     use std::convert::TryFrom;
 
     use crate::prelude::*;
     use anyhow::Result;
 
-    #[cfg(feature = "public")]
+    #[cfg(feature = "v3_public")]
     #[test]
     fn basic_paseto_parser_test_v3_public() -> Result<()> {
         //setup
@@ -889,15 +889,16 @@ mod paseto_parser_v3_unit_tests {
     }
 }
 
-#[cfg(all(test, feature = "v2"))]
+#[cfg(all(test, feature = "v2_local"))]
 mod paseto_parser_unit_tests {
     use std::convert::TryFrom;
 
     use crate::prelude::*;
     use anyhow::Result;
+    #[cfg(feature="v2_local")]
     use time::format_description::well_known::Rfc3339;
 
-    #[cfg(all(feature="v2",feature = "local"))]
+    #[cfg(feature="v2_local")]
     #[test]
     fn usage_before_ready_test() -> Result<()> {
         //create a key
@@ -918,7 +919,7 @@ mod paseto_parser_unit_tests {
         Ok(())
     }
 
-    #[cfg(all(feature="v2",feature = "local"))]
+    #[cfg(feature="v2_local")]
     #[test]
     fn non_expiring_token_claim_test() -> Result<()> {
         //create a key
@@ -944,7 +945,7 @@ mod paseto_parser_unit_tests {
         Ok(())
     }
 
-    #[cfg(all(feature="v2",feature = "local"))]
+    #[cfg(feature="v2_local")]
     #[test]
     fn expired_token_claim_test() -> Result<()> {
         //create a key
@@ -994,7 +995,7 @@ mod paseto_parser_unit_tests {
         Ok(())
     }
 
-    #[cfg(all(feature="v2",feature = "local"))]
+    #[cfg(feature="v2_local")]
     #[test]
     fn github_issue_29_test() -> Result<()> {
         //create a key
@@ -1010,7 +1011,7 @@ mod paseto_parser_unit_tests {
     }
 
 
-    #[cfg(all(feature="v2",feature = "local"))]
+    #[cfg(feature="v2_local")]
     #[test]
     fn basic_paseto_parser_test() -> Result<()> {
         //create a key
@@ -1034,7 +1035,7 @@ mod paseto_parser_unit_tests {
         Ok(())
     }
 
-    #[cfg(all(feature="v2",feature = "local"))]
+    #[cfg(feature="v2_local")]
     #[test]
     fn update_default_issued_at_claim_test() -> Result<()> {
         //create a key
@@ -1072,7 +1073,7 @@ mod paseto_parser_unit_tests {
         Ok(())
     }
 
-    #[cfg(all(feature="v2",feature = "local"))]
+    #[cfg(feature="v2_local")]
     #[test]
     fn check_for_default_issued_at_claim_test() -> Result<()> {
         //create a key
@@ -1103,7 +1104,7 @@ mod paseto_parser_unit_tests {
         Ok(())
     }
 
-    #[cfg(all(feature="v2",feature = "local"))]
+    #[cfg(feature="v2_local")]
     #[test]
     fn update_default_expiration_claim_test() -> Result<()> {
         //create a key
@@ -1141,7 +1142,7 @@ mod paseto_parser_unit_tests {
         Ok(())
     }
 
-    #[cfg(all(feature="v2",feature = "local"))]
+    #[cfg(feature="v2_local")]
     #[test]
     fn check_for_default_expiration_claim_test() -> Result<()> {
         //create a key
@@ -1175,7 +1176,7 @@ mod paseto_parser_unit_tests {
         Ok(())
     }
 
-    #[cfg(all(feature="v2",feature = "local"))]
+    #[cfg(feature="v2_local")]
     #[test]
     fn full_paseto_parser_test() -> Result<()> {
         //create a key

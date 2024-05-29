@@ -1,3 +1,4 @@
+#![cfg(any(feature = "v2", doc))]
 use crate::core::traits::*;
 use std::fmt;
 use std::fmt::Display;

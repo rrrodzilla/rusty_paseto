@@ -1,3 +1,5 @@
 /.idea
 /target
 Cargo.lock
+
+tests/generated_tests.rs

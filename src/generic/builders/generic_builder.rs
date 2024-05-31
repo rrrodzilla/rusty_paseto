@@ -1,7 +1,11 @@
-use crate::generic::*;
 use core::marker::PhantomData;
-use std::fmt::Write;
-use std::{collections::HashMap, mem::take};
+use std::collections::HashMap;
+// use std::fmt::Write;
+
+// use erased_serde::Serialize;
+use serde_json::{Map, Value};
+
+use crate::generic::*;
 
 ///The GenericBuilder is created at compile time by specifying a PASETO version and purpose and
 ///providing a key of the same version and purpose. This structure allows setting [PASETO claims](https://github.com/paseto-standard/paseto-spec/blob/master/docs/02-Implementation-Guide/04-Claims.md),
@@ -89,14 +93,40 @@ impl<'a, 'b, Version, Purpose> GenericBuilder<'a, 'b, Version, Purpose> {
     self
   }
 
-  ///Adds a [claim](PasetoClaim) to the token builder
-  pub fn set_claim<T: 'b + PasetoClaim + erased_serde::Serialize>(&mut self, value: T) -> &mut Self
-  where
-    'b: 'a,
-  {
-    self.claims.insert(value.get_key().to_owned(), Box::new(value));
-    self
-  }
+    ///Adds a [claim](PasetoClaim) to the token builder
+    pub fn set_claim<T: 'b + PasetoClaim + erased_serde::Serialize>(&mut self, value: T) -> &mut Self
+        where
+            'b: 'a,
+    {
+        let key = value.get_key().to_owned();
+
+        // Ignore empty keys
+        if key.is_empty() {
+            return self;
+        }
+
+        // Serialize the claim value to serde_json::Value
+        let mut serialized_value = Vec::new();
+        let mut serializer = serde_json::Serializer::new(&mut serialized_value);
+        erased_serde::serialize(&value, &mut serializer).unwrap();
+        let value_json: serde_json::Value = serde_json::from_slice(&serialized_value).unwrap();
+
+        // Handle the special case for Null values
+        let value = match value_json {
+            serde_json::Value::Object(mut obj) => {
+                if obj.len() == 1 && obj.contains_key(&key) {
+                    obj.remove(&key).unwrap()
+                } else {
+                    serde_json::Value::Object(obj)
+                }
+            }
+            other => other,
+        };
+
+        // Insert the processed claim into the claims map
+        self.claims.insert(key, Box::new(value));
+        self
+    }
 
   ///Adds an optional [footer](Footer) to the token builder
   pub fn set_footer(&mut self, footer: Footer<'a>) -> &mut Self {
@@ -104,25 +134,75 @@ impl<'a, 'b, Version, Purpose> GenericBuilder<'a, 'b, Version, Purpose> {
     self
   }
 
-  fn build_payload_from_claims(&mut self) -> Result<String, GenericBuilderError> {
-    //here we need to go through all the claims and serialize them to build a payload
-    let mut payload = String::from('{');
+    /// Builds a JSON payload from the claims
+    ///
+    /// # Returns
+    /// A `Result` containing the JSON payload as a `String` or a `serde_json::Error`
+    /// Fixes (issue #39)[https://github.com/rrrodzilla/rusty_paseto/issues/39] reported by @xbb
+    pub fn build_payload_from_claims(&mut self) -> Result<String, serde_json::Error> {
+        // Take the claims from the builder, replacing it with an empty HashMap
+        let claims = std::mem::take(&mut self.claims);
 
-    let claims = take(&mut self.claims);
+        // Serialize each claim to a serde_json::Value
+        let serialized_claims: HashMap<String, Value> = claims
+            .into_iter()
+            .map(|(k, v)| (k, serde_json::to_value(v).unwrap_or(Value::Null)))
+            .collect();
 
-    for claim in claims.into_values() {
-      let raw = serde_json::to_string(&claim)?;
-      let trimmed = raw.trim_start_matches('{').trim_end_matches('}');
-      let _ = write!(payload, "{},", trimmed);
+        // Wrap the serialized claims to ensure proper nesting
+        let wrapped_claims = wrap_claims(serialized_claims);
+
+        // Convert the wrapped claims to a JSON string
+        serde_json::to_string(&wrapped_claims)
     }
-
-    //get rid of that trailing comma (this feels like a dirty approach, there's probably a better
-    //way to do this)
-    payload = payload.trim_end_matches(',').to_string();
-    payload.push('}');
-    Ok(payload)
-  }
 }
+
+// Wrap claims in an outer JSON object to ensure proper nesting
+//
+// # Parameters
+// - `claims`: A `HashMap` containing the claims as `serde_json::Value`
+//
+// # Returns
+// A `serde_json::Value` representing the wrapped claims
+fn wrap_claims(claims: HashMap<String, Value>) -> Value {
+    // Recursively wrap each claim value
+    let wrapped: HashMap<String, Value> = claims
+        .into_iter()
+        .map(|(k, v)| (k, wrap_value(v)))
+        .collect();
+
+    // Return the wrapped claims as a JSON object
+    Value::Object(Map::from_iter(wrapped))
+}
+
+// Recursively wrap values to ensure all values are valid JSON objects
+//
+// # Parameters
+// - `value`: A `serde_json::Value` to be wrapped
+//
+// # Returns
+// A `serde_json::Value` representing the wrapped value
+fn wrap_value(value: Value) -> Value {
+    match value {
+        // If the value is an object, check if it's empty
+        Value::Object(map) => {
+            if map.is_empty() {
+                // Wrap empty map as an empty JSON object
+                Value::Object(Map::new())
+            } else {
+                // Recursively wrap each key-value pair in the map
+                Value::Object(map.into_iter().map(|(k, v)| (k, wrap_value(v))).collect())
+            }
+        }
+        // If the value is an array, recursively wrap each element
+        Value::Array(arr) => Value::Array(arr.into_iter().map(wrap_value).collect()),
+        // If the value is null, return it as is
+        Value::Null => Value::Null,
+        // For primitive values, return them as is
+        other => other,
+    }
+}
+
 
 impl<'a, 'b, Version, Purpose> GenericBuilder<'a, 'b, Version, Purpose>
 where
@@ -1110,6 +1190,143 @@ mod generic_v3_local_builders {
   }
 }
 
+#[cfg(all(test, feature = "default"))]
+mod tests {
+    use serde::Serialize;
+    use super::*;
+
+    #[derive(Serialize)]
+    struct TestStruct {
+        field1: String,
+        field2: i32,
+    }
+
+    #[test]
+    fn test_custom_claim_serialization() {
+        let mut builder = GenericBuilder::<V4, Local>::default();
+        let key = PasetoSymmetricKey::<V4, Local>::from(Key::<32>::from(*b"wubbalubbadubdubwubbalubbadubdub"));
+
+        // Create a custom claim with a serializable struct
+        let custom_claim = CustomClaim::try_from((
+            "custom",
+            TestStruct {
+                field1: "value1".to_string(),
+                field2: 42,
+            },
+        ))
+            .unwrap();
+
+        // Add the custom claim to the builder
+        builder.set_claim(custom_claim);
+
+        // Build the token
+        let token = builder.try_encrypt(&key).unwrap();
+
+        // Decrypt the token and verify the values
+        let json = GenericParser::<V4, Local>::default().parse(&token, &key).unwrap();
+        assert_eq!(json["custom"]["field1"], "value1");
+        assert_eq!(json["custom"]["field2"], 42);
+    }
+
+    #[test]
+    fn test_empty_claims() {
+        let mut builder = GenericBuilder::<V4, Local>::default();
+        let key = PasetoSymmetricKey::<V4, Local>::from(Key::<32>::from(*b"wubbalubbadubdubwubbalubbadubdub"));
+
+        // Build the token with no claims
+        let token = builder.try_encrypt(&key).unwrap();
+
+        // Decrypt the token and verify the values
+        let json = GenericParser::<V4, Local>::default().parse(&token, &key).unwrap();
+        assert!(json.as_object().unwrap().is_empty());
+    }
+
+    #[test]
+    fn test_null_claims() {
+        let mut builder = GenericBuilder::<V4, Local>::default();
+        let key = PasetoSymmetricKey::<V4, Local>::from(Key::<32>::from(*b"wubbalubbadubdubwubbalubbadubdub"));
+
+        // Create a custom claim with a null value
+        let custom_claim = CustomClaim::try_from(("custom", Value::Null)).unwrap();
+        builder.set_claim(custom_claim);
+
+        // Build the token
+        let token = builder.try_encrypt(&key).unwrap();
+
+        // Decrypt the token and verify the values
+        let json = GenericParser::<V4, Local>::default().parse(&token, &key).unwrap();
+        assert_eq!(json["custom"], Value::Null);
+    }
+
+    #[test]
+    fn test_nested_structures() {
+        let mut builder = GenericBuilder::<V4, Local>::default();
+        let key = PasetoSymmetricKey::<V4, Local>::from(Key::<32>::from(*b"wubbalubbadubdubwubbalubbadubdub"));
+
+        // Create nested claims
+        let nested_claim = CustomClaim::try_from((
+            "nested",
+            serde_json::json!({
+                "level1": {
+                    "level2": {
+                        "field": "value"
+                    }
+                }
+            }),
+        ))
+            .unwrap();
+        builder.set_claim(nested_claim);
+
+        // Build the token
+        let token = builder.try_encrypt(&key).unwrap();
+
+        // Decrypt the token and verify the values
+        let json = GenericParser::<V4, Local>::default().parse(&token, &key).unwrap();
+        assert_eq!(json["nested"]["level1"]["level2"]["field"], "value");
+    }
+
+    #[test]
+    fn test_multiple_claims() {
+        let mut builder = GenericBuilder::<V4, Local>::default();
+        let key = PasetoSymmetricKey::<V4, Local>::from(Key::<32>::from(*b"wubbalubbadubdubwubbalubbadubdub"));
+
+        // Create multiple claims
+        builder.set_claim(CustomClaim::try_from(("claim1", "value1")).unwrap());
+        builder.set_claim(CustomClaim::try_from(("claim2", 42)).unwrap());
+        builder.set_claim(CustomClaim::try_from(("claim3", true)).unwrap());
+
+        // Build the token
+        let token = builder.try_encrypt(&key).unwrap();
+
+        // Decrypt the token and verify the values
+        let json = GenericParser::<V4, Local>::default().parse(&token, &key).unwrap();
+        assert_eq!(json["claim1"], "value1");
+        assert_eq!(json["claim2"], 42);
+        assert_eq!(json["claim3"], true);
+    }
+
+    #[test]
+    fn test_different_data_types() {
+        let mut builder = GenericBuilder::<V4, Local>::default();
+        let key = PasetoSymmetricKey::<V4, Local>::from(Key::<32>::from(*b"wubbalubbadubdubwubbalubbadubdub"));
+
+        // Create claims with different data types
+        builder.set_claim(CustomClaim::try_from(("string", "value")).unwrap());
+        builder.set_claim(CustomClaim::try_from(("number", 12345)).unwrap());
+        builder.set_claim(CustomClaim::try_from(("boolean", true)).unwrap());
+        builder.set_claim(CustomClaim::try_from(("null", Value::Null)).unwrap());
+
+        // Build the token
+        let token = builder.try_encrypt(&key).unwrap();
+
+        // Decrypt the token and verify the values
+        let json = GenericParser::<V4, Local>::default().parse(&token, &key).unwrap();
+        assert_eq!(json["string"], "value");
+        assert_eq!(json["number"], 12345);
+        assert_eq!(json["boolean"], true);
+        assert_eq!(json["null"], Value::Null);
+    }
+}
 #[cfg(all(test, feature = "v2_local"))]
 mod builders {
   use std::convert::TryFrom;

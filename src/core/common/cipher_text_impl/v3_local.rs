@@ -2,9 +2,11 @@
 use std::marker::PhantomData;
 use aes::Aes256Ctr;
 use aes::cipher::generic_array::GenericArray;
-use aes::cipher::{NewCipher, StreamCipher};
+use aes::cipher::{KeyIvInit, StreamCipher};
 use crate::core::common::{CipherText, EncryptionKey};
 use crate::core::{Local, V3};
+
+type Aes256Ctr = ctr::Ctr64BE<aes::Aes256>;
 
 impl CipherText<V3, Local> {
     pub(crate) fn from(payload: &[u8], encryption_key: &EncryptionKey<V3, Local>) -> Self {

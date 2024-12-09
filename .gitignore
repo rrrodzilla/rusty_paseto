@@ -1,6 +1,6 @@
 /.idea
 /target
 Cargo.lock
-.envrc
+**/.envrc
 /.direnv
 tests/generated_tests.rs

@@ -9,11 +9,11 @@ repository = "https://github.com/rrrodzilla/rusty_paseto"
 license = "MIT OR Apache-2.0"
 keywords = ["paseto", "token", "security", "api", "web"]
 categories = [
-    "cryptography",
-    "authentication",
-    "encoding",
-    "network-programming",
-    "web-programming",
+  "cryptography",
+  "authentication",
+  "encoding",
+  "network-programming",
+  "web-programming",
 ]
 documentation = "https://docs.rs/rusty_paseto/latest/rusty_paseto/"
 
@@ -35,51 +35,46 @@ v4_public = ["v4", "public", "core", "ed25519-dalek", "ring/std"]
 core = []
 generic = ["core", "serde", "erased-serde", "serde_json"]
 batteries_included = ["generic"]
-default = [
-    "batteries_included",
-    "v4_local",
-    "v4_public",
-]
+default = ["batteries_included", "v4_local", "v4_public"]
 
 [lib]
 doctest = true
 
 
 [dependencies]
-p384 = { version = "0.13.0", optional = true }
-chacha20 = { version = "0.9.1", optional = true }
-blake2 = { version = "0.10.6", optional = true }
-chacha20poly1305 = { version = "0.10.1", optional = true }
-ring = { version = "^0.17", features = ["std"], optional = false }
-base64 = { version = "0.22.1", optional = false }
-hex = { version = "^0.4.3", optional = false }
-serde = { version = "1.0.117", features = ["derive"], optional = true }
-ed25519-dalek = { version = "2.0.0", features = ["zeroize"], optional = true }
-serde_json = { version = "^1.0.68", optional = true }
-thiserror = "1.0.29"
-iso8601 = "0.6.1"
-erased-serde = { version = "0.4.5", optional = true }
-aes = { version = "0.7.5", features = ["ctr"], optional = true }
-hmac = { version = "0.12.1", optional = true }
-sha2 = { version = "0.10.2", optional = true }
-zeroize = { version = "1.4.3", features = ["zeroize_derive"] }
-time = { version = "0.3.5", features = ["parsing", "formatting"] }
-rand_core = "0.6.4"
-digest = "0.10.7"
+p384 = { version = "0.13", optional = true }
+chacha20 = { version = "0.9", optional = true }
+blake2 = { version = "0.10", optional = true }
+chacha20poly1305 = { version = "0.10", optional = true }
+ring = { version = "0.17", features = ["std"], optional = false }
+base64 = { version = "0.22", optional = false }
+hex = { version = "0.4", optional = false }
+serde = { version = "1.0", features = ["derive"], optional = true }
+ed25519-dalek = { version = "2.0", features = ["zeroize"], optional = true }
+serde_json = { version = "1.0", optional = true }
+thiserror = "1.0"
+iso8601 = "0.6"
+erased-serde = { version = "0.4", optional = true }
+aes = { version = "0.7", features = ["ctr"], optional = true }
+hmac = { version = "0.12", optional = true }
+sha2 = { version = "0.10", optional = true }
+zeroize = { version = "1.4", features = ["zeroize_derive"] }
+time = { version = "0.3", features = ["parsing", "formatting"] }
+rand_core = "0.6"
+digest = "0.10"
 
 [dev-dependencies]
-anyhow = "1.0.45"
-serde_json = { version = "^1.0.68" }
-primes = "0.3.0"
+anyhow = "1.0"
+serde_json = { version = "1.0" }
+primes = "0.3"
 actix-web = "4"
-actix-identity = "0.4.0"
-tokio = "1.17.0"
-actix-utils = "3.0.0"
-uuid = { version = "1.8.0", features = ["v4"] }
-proptest = "1.4.0"
-erased-serde = { version = "0.4.5" }
+actix-identity = "0.4"
+tokio = "1.17"
+actix-utils = "3.0"
+uuid = { version = "1.8", features = ["v4"] }
+proptest = "1.4"
+erased-serde = { version = "0.4" }
 
 [[example]]
 name = "actix_identity"
 required-features = ["default"]
-

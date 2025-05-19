@@ -72,7 +72,19 @@ let token = PasetoBuilder::<V4, Local>::default()
     id.remember(authenticated_user_id.to_string());
 
     // return the response creating a new cookie to hold the token
-     HttpResponse::build(StatusCode::OK).cookie(Cookie::build("auth-token", token).path("/").expires(OffsetDateTime::now_utc()).secure(false).http_only(true).same_site(SameSite::Lax).finish()).finish()
+  HttpResponse::build(StatusCode::OK)
+    .cookie(
+      Cookie::build("auth-token", token)
+        .path("/")
+        .expires(OffsetDateTime::now_utc())
+        // Using `secure(false)` so the example works over HTTP.
+        // In production use `secure(true)` and handle errors gracefully.
+        .secure(false)
+        .http_only(true)
+        .same_site(SameSite::Lax)
+        .finish(),
+    )
+    .finish()
 
  
 }
@@ -97,9 +109,12 @@ pub(crate) struct AppData {
 async fn main() -> std::io::Result<()> {
  HttpServer::new(move || {
     // create cookie identity backend (inside closure, since policy is not Clone)
-    let policy = IdentityService::new(CookieIdentityPolicy::new(&[0; 32])
-        .name("auth-cookie")
-        .secure(false));
+  let policy = IdentityService::new(
+    CookieIdentityPolicy::new(&[0; 32])
+      .name("auth-cookie")
+      // `secure(false)` is used for local development; set `secure(true)` when running over HTTPS.
+      .secure(false),
+  );
 
     // create a paseto cookie policy, for this use case, however I recommend using a middleware but
      // this shows how you might use a policy instead

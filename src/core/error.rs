@@ -35,7 +35,6 @@ pub enum PasetoError {
   #[error("An unspecified cipher error occurred")]
   RsaCipher {
     ///An RSA cipher error
-    #[from]
     source: ed25519_dalek::ed25519::Error,
   },
   #[cfg(feature = "p384")]
@@ -103,4 +102,14 @@ pub enum PasetoError {
     #[from]
     source: std::string::FromUtf8Error,
   },
+}
+
+
+/// It seems that when this trait is implemented when the `p384` feature is enabled
+/// it results in a conflicting implementation. So this is done to avoid the conflict.
+#[cfg(all(feature = "ed25519-dalek", not(feature = "p384")))]
+impl From<ed25519_dalek::ed25519::Error> for PasetoError {
+  fn from(source: ed25519_dalek::ed25519::Error) -> Self {
+      PasetoError::RsaCipher{source}
+  }
 }

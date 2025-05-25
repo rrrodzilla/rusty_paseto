@@ -51,9 +51,12 @@ impl<const KEYSIZE: usize> From<[u8; KEYSIZE]> for Key<KEYSIZE> {
 }
 
 impl<const KEYSIZE: usize> TryFrom<&str> for Key<KEYSIZE> {
-  type Error = hex::FromHexError;
+  type Error = PasetoError;
   fn try_from(value: &str) -> Result<Self, Self::Error> {
-    let key = hex::decode(value)?;
+    let key = hex::decode(value).map_err(|_| PasetoError::InvalidKey)?;
+    if key.len() != KEYSIZE {
+      return Err(PasetoError::InvalidKey);
+    }
     let mut me = Key::<KEYSIZE>::default();
     me.0.copy_from_slice(&key);
     Ok(me)

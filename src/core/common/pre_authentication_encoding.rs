@@ -7,8 +7,8 @@ pub struct PreAuthenticationEncoding(Vec<u8>);
 ///
 impl PreAuthenticationEncoding {
     /// * `pieces` - The Pieces to concatenate, and encode together.
-    /// Refactored from original code found at
-    /// <https://github.com/instructure/paseto/blob/trunk/src/pae.rs>
+    ///   Refactored from original code found at
+    ///   <https://github.com/instructure/paseto/blob/trunk/src/pae.rs>
     pub fn parse<'a>(pieces: &'a [&'a [u8]]) -> Self {
         let the_vec = PreAuthenticationEncoding::le64(pieces.len() as u64);
 
@@ -21,7 +21,7 @@ impl PreAuthenticationEncoding {
     /// Encodes a u64-bit unsigned integer into a little-endian binary string.
     ///
     /// * `to_encode` - The u8 to encode.
-    /// Copied and gently refactored from <https://github.com/instructure/paseto/blob/trunk/src/pae.rs>
+    ///   Copied and gently refactored from <https://github.com/instructure/paseto/blob/trunk/src/pae.rs>
     pub(crate) fn le64(mut to_encode: u64) -> Vec<u8> {
         let mut the_vec = Vec::with_capacity(8);
 

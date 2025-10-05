@@ -105,10 +105,10 @@ jobs:
   release:
     name: Create Release
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
-    needs: [default-features, test, clippy, audit]
     permissions:
       contents: write
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    needs: [default-features, test, clippy, audit]
     steps:
       - uses: actions/checkout@v3
         with:
@@ -133,4 +133,5 @@ jobs:
             --title "Release $TAG_NAME" \
             --notes "See [CHANGELOG](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details." \
             --draft=false \
-            --prerelease=false
+            --prerelease=false \
+            CHANGELOG.md

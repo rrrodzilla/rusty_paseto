@@ -51,7 +51,6 @@
 use std::collections::HashMap;
 
 use proptest::prelude::*;
-use erased_serde::Serialize;
 use serde_json::{Map, Number, Value};
 
 // Define a strategy to generate arbitrary JSON values

@@ -30,8 +30,6 @@ use std::ops::Deref;
 /// # }
 /// # Ok::<(),anyhow::Error>(())
 /// ```
-
-
 pub struct PasetoNonce<'a, Version, Purpose> {
   pub(crate) version: PhantomData<Version>,
   pub(crate) purpose: PhantomData<Purpose>,

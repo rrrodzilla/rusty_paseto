@@ -1,7 +1,6 @@
 use core::marker::PhantomData;
 use std::collections::HashMap;
 
-use erased_serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::generic::*;

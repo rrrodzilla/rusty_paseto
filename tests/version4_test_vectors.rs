@@ -345,8 +345,8 @@ mod v4_test_vectors {
         //  //  //create a local v2 token
         //let token = Paseto::<V2, Public>::build_token(header, message, &key, None);
         let token = Paseto::<V4, Public>::default()
-            .set_payload(message.clone())
-            .set_footer(footer.clone())
+            .set_payload(message)
+            .set_footer(footer)
             .try_sign(&private_key);
         match token {
             Ok(token) => {
@@ -389,8 +389,8 @@ mod v4_test_vectors {
         //  //  //create a local v2 token
         //let token = Paseto::<V2, Public>::build_token(header, message, &key, None);
         let token = Paseto::<V4, Public>::default()
-            .set_payload(message.clone())
-            .set_footer(footer.clone())
+            .set_payload(message)
+            .set_footer(footer)
             .set_implicit_assertion(assertion)
             .try_sign(&private_key)?;
 

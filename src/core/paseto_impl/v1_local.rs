@@ -52,7 +52,7 @@ impl<'a> Paseto<'a, V1, Local> {
         let tag2 = &Tag::<V1, Local>::from(authentication_key, &pae);
         //compare tags
         if !tag.ct_eq(tag2.as_ref()).into() {
-            return Err(PasetoError::InvalidToken);
+            return Err(PasetoError::Cryption);
         }
 
         //decrypt payload

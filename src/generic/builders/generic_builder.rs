@@ -170,21 +170,13 @@ fn wrap_claims(claims: HashMap<String, Value>) -> Value {
 // A `serde_json::Value` representing the wrapped value
 fn wrap_value(value: Value) -> Value {
     match value {
-        // If the value is an object, check if it's empty
+        // Recursively wrap each key-value pair in the map
         Value::Object(map) => {
-            if map.is_empty() {
-                // Wrap empty map as an empty JSON object
-                Value::Object(Map::new())
-            } else {
-                // Recursively wrap each key-value pair in the map
-                Value::Object(map.into_iter().map(|(k, v)| (k, wrap_value(v))).collect())
-            }
+            Value::Object(map.into_iter().map(|(k, v)| (k, wrap_value(v))).collect())
         }
-        // If the value is an array, recursively wrap each element
+        // Recursively wrap each element in the array
         Value::Array(arr) => Value::Array(arr.into_iter().map(wrap_value).collect()),
-        // If the value is null, return it as is
-        Value::Null => Value::Null,
-        // For primitive values, return them as is
+        // For null and primitive values, return them as is
         other => other,
     }
 }

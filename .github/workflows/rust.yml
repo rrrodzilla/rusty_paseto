@@ -1,8 +1,8 @@
 on: [push, pull_request]
 name: Continuous integration
 jobs:
-  check:
-    name: Check
+  default-features:
+    name: Default Features (batteries_included + v4)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -11,9 +11,16 @@ jobs:
           profile: minimal
           toolchain: stable
           override: true
-      - uses: actions-rs/cargo@v1
+          components: clippy
+      - name: Install nextest
+        uses: taiki-e/install-action@nextest
+      - name: Clippy (default features)
+        uses: actions-rs/cargo@v1
         with:
-          command: check
+          command: clippy
+          args: -- -D warnings
+      - name: Test (default features)
+        run: cargo nextest run
   test:
     name: Test Suite
     runs-on: ubuntu-latest
@@ -35,10 +42,36 @@ jobs:
           profile: minimal
           toolchain: stable
           override: true
+      - name: Install nextest
+        uses: taiki-e/install-action@nextest
+      - name: Run tests
+        run: cargo nextest run --no-default-features --features ${{ matrix.feature }}
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        feature:
+          - v1_local
+          - v1_public
+          - v2_local
+          - v2_public
+          - v3_local
+          - v3_public
+          - v4_local
+          - v4_public
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+          components: clippy
       - uses: actions-rs/cargo@v1
         with:
-          command: test
-          args: --no-default-features --features ${{ matrix.feature }}
+          command: clippy
+          args: --no-default-features --features ${{ matrix.feature }} -- -D warnings
   audit:
     name: Security Audit
     runs-on: ubuntu-latest

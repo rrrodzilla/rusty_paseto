@@ -1,11 +1,14 @@
 #![cfg(feature = "v1_local")]
 use std::marker::PhantomData;
-use aes::Aes256Ctr;
-use aes::cipher::generic_array::GenericArray;
-use aes::cipher::{NewCipher, StreamCipher};
+use aes::Aes256;
+use ctr::cipher::{KeyIvInit, StreamCipher};
+use ctr::cipher::generic_array::GenericArray;
+use ctr::Ctr128BE;
 use crate::core::common::cipher_text::CipherText;
 use crate::core::{Local, V1};
 use crate::core::common::EncryptionKey;
+
+type Aes256Ctr = Ctr128BE<Aes256>;
 
 impl CipherText<V1, Local> {
     pub(crate) fn from(payload: &[u8], encryption_key: &EncryptionKey<V1, Local>) -> Self {

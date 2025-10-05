@@ -24,9 +24,9 @@ v3 = []
 v4 = []
 public = []
 local = []
-v1_local = ["v1", "local", "core", "aes", "chacha20", "hmac", "sha2", "blake2"]
+v1_local = ["v1", "local", "core", "aes", "ctr", "chacha20", "hmac", "sha2", "blake2"]
 v2_local = ["v2", "local", "core", "blake2", "chacha20poly1305"]
-v3_local = ["v3", "local", "core", "aes", "hmac", "sha2", "chacha20"]
+v3_local = ["v3", "local", "core", "aes", "ctr", "hmac", "sha2", "chacha20"]
 v4_local = ["v4", "local", "core", "blake2", "chacha20"]
 v1_public = ["v1", "public", "core", "ed25519-dalek"]
 v2_public = ["v2", "public", "core", "ed25519-dalek", "ring/std"]
@@ -55,7 +55,8 @@ serde_json = { version = "1.0", optional = true }
 thiserror = "1.0"
 iso8601 = "0.6"
 erased-serde = { version = "0.4", optional = true }
-aes = { version = "0.7", features = ["ctr"], optional = true }
+aes = { version = "0.8", optional = true }
+ctr = { version = "0.9", optional = true }
 hmac = { version = "0.12", optional = true }
 sha2 = { version = "0.10", optional = true }
 zeroize = { version = "1.4", features = ["zeroize_derive"] }

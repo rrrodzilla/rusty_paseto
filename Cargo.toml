@@ -79,7 +79,7 @@ digest = "0.10"
 [dev-dependencies]
 anyhow = "1.0"
 serde_json = { version = "1.0" }
-primes = "0.3"
+primes = "0.4"
 actix-web = "4"
 actix-identity = "0.4"
 tokio = "1.17"

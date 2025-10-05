@@ -219,6 +219,10 @@
 //! * Validates the [footer](https://github.com/paseto-standard/paseto-spec/tree/master/docs) if
 //!   one was provided
 //! * Validates the [implicit assertion](https://github.com/paseto-standard/paseto-spec/tree/master/docs) if one was provided (for V3 or V4 versioned tokens only)
+//! * Validates expiration (`exp`) and not-before (`nbf`) claims automatically
+//! * Returns a [`GenericParserError`](generic::GenericParserError) if validation fails (expired tokens, premature usage, invalid claims)
+//!
+//! **Note**: `PasetoParser::default()` includes automatic expiration and not-before validation. Use `PasetoParser::new()` to construct a parser without these automatic validations.
 //!
 //! ## A token with a footer
 //!
@@ -572,9 +576,12 @@
 
 // Compile-time checks for incompatible feature combinations
 // Multiple public features cause conflicting trait implementations for PasetoError
-#[cfg(all(feature = "v3_public", any(feature = "v1_public", feature = "v2_public", feature = "v4_public")))]
+#[cfg(all(
+  feature = "v3_public",
+  any(feature = "v1_public", feature = "v2_public", feature = "v4_public")
+))]
 compile_error!(
-    "Cannot enable v3_public with other public features due to conflicting trait implementations. \n\
+  "Cannot enable v3_public with other public features due to conflicting trait implementations. \n\
      Choose only ONE public feature: v1_public, v2_public, v3_public, or v4_public. \n\
      The PASETO specification recommends using a single version throughout your application. \n\
      See: https://github.com/rrrodzilla/rusty_paseto/issues/48"
@@ -590,7 +597,7 @@ compile_error!(
 
 #[cfg(all(feature = "v2_public", feature = "v4_public"))]
 compile_error!(
-    "Cannot enable both v2_public and v4_public due to conflicting trait implementations. \n\
+  "Cannot enable both v2_public and v4_public due to conflicting trait implementations. \n\
      Choose only ONE public feature: v1_public, v2_public, v3_public, or v4_public. \n\
      The PASETO specification recommends using a single version throughout your application. \n\
      See: https://github.com/rrrodzilla/rusty_paseto/issues/48"

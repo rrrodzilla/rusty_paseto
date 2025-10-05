@@ -21,6 +21,7 @@
     - [Building and parsing tokens](#user-content-building-and-parsing-tokens)
     - [A default token](#user-content-a-default-token)
     - [A default parser](#user-content-a-default-parser)
+    - [Validating tokens and handling errors](#user-content-validating-tokens-and-handling-errors)
     - [A token with a footer](#user-content-a-token-with-a-footer)
     - [A token with an implicit assertion (V3/V4 only)](#user-content-a-token-with-an-implicit-assertion-v3-or-v4-versioned-tokens-only)
     - [Setting a different expiration time](#user-content-setting-a-different-expiration-time)
@@ -101,6 +102,36 @@ Paseto is everything you love about JOSE (JWT, JWE, JWS) without any of the
  * Validates the [footer](https://github.com/paseto-standard/paseto-spec/tree/master/docs) if
  one was provided
  * Validates the [implicit assertion](https://github.com/paseto-standard/paseto-spec/tree/master/docs) if one was provided (for V3 or V4 versioned tokens only)
+ * Validates expiration (`exp`) and not-before (`nbf`) claims automatically
+ * Returns a `GenericParserError` if validation fails (expired tokens, premature usage, invalid claims)
+
+**Note**: `PasetoParser::default()` includes automatic expiration and not-before validation. Use `PasetoParser::new()` to construct a parser without these automatic validations.
+
+### Validating tokens and handling errors
+
+Token validation occurs during parsing. Expired tokens or tokens used before their `nbf` time return errors.
+
+```rust
+use rusty_paseto::prelude::*;
+
+let key = PasetoSymmetricKey::<V4, Local>::from(Key::from(b"wubbalubbadubdubwubbalubbadubdub"));
+
+// Create a token that expires in the past
+let token = PasetoBuilder::<V4, Local>::default()
+  .set_claim(ExpirationClaim::try_from("2019-01-01T00:00:00+00:00")?)
+  .build(&key)?;
+
+// Parsing the expired token returns an error
+match PasetoParser::<V4, Local>::default().parse(&token, &key) {
+  Ok(json_value) => {
+    println!("Token valid: {}", json_value);
+  }
+  Err(err) => {
+    // This will print: "This token is expired"
+    eprintln!("Token validation failed: {}", err);
+  }
+}
+```
 
 <h6 align="right"><a href="#user-content-table-of-contents">back to toc</a></h6>
 

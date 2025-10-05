@@ -12,15 +12,15 @@ jobs:
           toolchain: stable
           override: true
           components: clippy
+      - name: Install nextest
+        uses: taiki-e/install-action@nextest
       - name: Clippy (default features)
         uses: actions-rs/cargo@v1
         with:
           command: clippy
           args: -- -D warnings
       - name: Test (default features)
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
+        run: cargo nextest run
   test:
     name: Test Suite
     runs-on: ubuntu-latest
@@ -42,10 +42,10 @@ jobs:
           profile: minimal
           toolchain: stable
           override: true
-      - uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --no-default-features --features ${{ matrix.feature }}
+      - name: Install nextest
+        uses: taiki-e/install-action@nextest
+      - name: Run tests
+        run: cargo nextest run --no-default-features --features ${{ matrix.feature }}
   clippy:
     name: Clippy
     runs-on: ubuntu-latest

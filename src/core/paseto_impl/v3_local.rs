@@ -2,7 +2,7 @@
 
 use std::str;
 
-use ring::constant_time::verify_slices_are_equal as ConstantTimeEquals;
+use subtle::ConstantTimeEq;
 
 use crate::core::{Footer, Header, ImplicitAssertion, Key, Local, Paseto, PasetoError, PasetoNonce, PasetoSymmetricKey, V3};
 use crate::core::common::{AuthenticationKey, AuthenticationKeySeparator, CipherText, EncryptionKey, EncryptionKeySeparator, PreAuthenticationEncoding, RawPayload, Tag};
@@ -55,7 +55,9 @@ impl<'a> Paseto<'a, V3, Local> {
         let tag = &decoded_payload[(nonce.len() + ciphertext.len())..];
         let tag2 = &Tag::<V3, Local>::from(authentication_key, &pae);
         //compare tags
-        ConstantTimeEquals(tag, tag2)?;
+        if !tag.ct_eq(tag2.as_ref()).into() {
+            return Err(PasetoError::InvalidToken);
+        }
 
         //decrypt payload
         let ciphertext = CipherText::<V3, Local>::from(ciphertext, &encryption_key);

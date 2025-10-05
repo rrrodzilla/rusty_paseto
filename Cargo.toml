@@ -17,6 +17,18 @@ categories = [
 ]
 documentation = "https://docs.rs/rusty_paseto/latest/rusty_paseto/"
 
+[package.metadata.docs.rs]
+# ARCHITECTURAL DESIGN: This crate uses mutually exclusive features by design.
+# The PASETO specification recommends choosing a single version per application.
+# Multiple public features cannot coexist due to intentionally conflicting trait
+# implementations - this enforces compile-time safety and prevents version mixing.
+# The feature-gated architecture minimizes binary size by only compiling the
+# cryptographic dependencies you actually use.
+all-features = false
+# Build docs with default features (batteries_included + v4_local + v4_public)
+# This showcases the complete API with the modern recommended PASETO version
+features = ["batteries_included", "v4_local", "v4_public"]
+
 [features]
 v1 = []
 v2 = []

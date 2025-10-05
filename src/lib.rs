@@ -535,6 +535,32 @@
 //!
 //!
 
+// Compile-time checks for incompatible feature combinations
+// Multiple public features cause conflicting trait implementations for PasetoError
+#[cfg(all(feature = "v3_public", any(feature = "v1_public", feature = "v2_public", feature = "v4_public")))]
+compile_error!(
+    "Cannot enable v3_public with other public features due to conflicting trait implementations. \n\
+     Choose only ONE public feature: v1_public, v2_public, v3_public, or v4_public. \n\
+     The PASETO specification recommends using a single version throughout your application. \n\
+     See: https://github.com/rrrodzilla/rusty_paseto/issues/48"
+);
+
+#[cfg(all(feature = "v1_public", any(feature = "v2_public", feature = "v4_public")))]
+compile_error!(
+    "Cannot enable multiple public features (v1_public with v2_public or v4_public) due to conflicting trait implementations. \n\
+     Choose only ONE public feature: v1_public, v2_public, v3_public, or v4_public. \n\
+     The PASETO specification recommends using a single version throughout your application. \n\
+     See: https://github.com/rrrodzilla/rusty_paseto/issues/48"
+);
+
+#[cfg(all(feature = "v2_public", feature = "v4_public"))]
+compile_error!(
+    "Cannot enable both v2_public and v4_public due to conflicting trait implementations. \n\
+     Choose only ONE public feature: v1_public, v2_public, v3_public, or v4_public. \n\
+     The PASETO specification recommends using a single version throughout your application. \n\
+     See: https://github.com/rrrodzilla/rusty_paseto/issues/48"
+);
+
 //public interface
 #[cfg(feature = "core")]
 pub mod core;

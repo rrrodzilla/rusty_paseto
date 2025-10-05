@@ -129,4 +129,5 @@ jobs:
             --title "Release $TAG_NAME" \
             --notes "See [CHANGELOG](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details." \
             --draft=false \
-            --prerelease=false
+            --prerelease=false \
+            Changelog.md

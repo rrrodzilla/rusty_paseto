@@ -14,8 +14,8 @@ impl<'a> Paseto<'a, V3, Public> {
     pub fn try_verify(
         signature: &'a str,
         public_key: &PasetoAsymmetricPublicKey<V3, Public>,
-        footer: (impl Into<Option<Footer<'a>>> + Copy),
-        implicit_assertion: (impl Into<Option<ImplicitAssertion<'a>>> + Copy),
+        footer: impl Into<Option<Footer<'a>>> + Copy,
+        implicit_assertion: impl Into<Option<ImplicitAssertion<'a>>> + Copy,
     ) -> Result<String, PasetoError> {
         let decoded_payload = Self::parse_raw_token(signature, footer, &V3::default(), &Public::default())?;
 

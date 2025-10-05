@@ -25,7 +25,7 @@ impl<'a> Paseto<'a, V2, Local> {
     pub fn try_decrypt(
         token: &'a str,
         key: &PasetoSymmetricKey<V2, Local>,
-        footer: (impl Into<Option<Footer<'a>>> + Copy),
+        footer: impl Into<Option<Footer<'a>>> + Copy,
     ) -> Result<String, PasetoError> {
         //get footer
 

@@ -187,7 +187,7 @@
 //!
 //! * Has no [footer](https://github.com/paseto-standard/paseto-spec/tree/master/docs)
 //! * Has no [implicit assertion](https://github.com/paseto-standard/paseto-spec/tree/master/docs)
-//! for V3 or V4 versioned tokens
+//!   for V3 or V4 versioned tokens
 //! * Expires in **1 hour** after creation (due to an included default ExpirationClaim)
 //! * Contains an IssuedAtClaim defaulting to the current utc time the token was created
 //! * Contains a NotBeforeClaim defaulting to the current utc time the token was created
@@ -217,7 +217,7 @@
 //!
 //! * Validates the token structure and decryptes the payload or verifies the signature of the content
 //! * Validates the [footer](https://github.com/paseto-standard/paseto-spec/tree/master/docs) if
-//! one was provided
+//!   one was provided
 //! * Validates the [implicit assertion](https://github.com/paseto-standard/paseto-spec/tree/master/docs) if one was provided (for V3 or V4 versioned tokens only)
 //!
 //! ## A token with a footer

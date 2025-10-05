@@ -1,6 +1,6 @@
 use base64::DecodeError;
 use base64::prelude::*;
-use ring::constant_time::verify_slices_are_equal as ConstantTimeEquals;
+use subtle::ConstantTimeEq;
 use std::fmt::Display;
 
 //marker traits
@@ -27,6 +27,6 @@ pub(crate) trait Base64Encodable<T: ?Sized + AsRef<[u8]>>: Display + AsRef<T> {
   where
     B: AsRef<str>,
   {
-    ConstantTimeEquals(self.encode().as_ref(), other.as_ref().as_bytes()).is_ok()
+    self.encode().as_bytes().ct_eq(other.as_ref().as_bytes()).into()
   }
 }

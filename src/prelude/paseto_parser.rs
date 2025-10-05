@@ -161,7 +161,7 @@ impl<'a, Version, Purpose> PasetoParser<'a, Version, Purpose> {
  /// # }
     /// # Ok::<(),anyhow::Error>(())
     ///   ```
-    pub fn check_claim<T: PasetoClaim + 'static + serde::Serialize>(&mut self, value: T) -> &mut Self {
+    pub fn check_claim<T: PasetoClaim + 'a + serde::Serialize>(&mut self, value: T) -> &mut Self {
         self.parser.check_claim(value);
         self
     }

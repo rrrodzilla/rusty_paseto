@@ -319,7 +319,7 @@ mod v3_test_vectors {
 
     //  //  //create a local v2 token
     let token = Paseto::<V3, Public>::default()
-      .set_payload(message.clone())
+      .set_payload(message)
       .try_sign(&private_key)?;
 
     //  //validate the test vector
@@ -354,8 +354,8 @@ mod v3_test_vectors {
 
     //  //  //create a local v2 token
     let token = Paseto::<V3, Public>::default()
-      .set_payload(message.clone())
-      .set_footer(footer.clone())
+      .set_payload(message)
+      .set_footer(footer)
       .try_sign(&private_key)?;
 
     //  //validate the test vector
@@ -390,9 +390,9 @@ mod v3_test_vectors {
 
     //  //  //create a local v2 token
     let token = Paseto::<V3, Public>::default()
-      .set_payload(message.clone())
-      .set_footer(footer.clone())
-      .set_implicit_assertion(assertion.clone())
+      .set_payload(message)
+      .set_footer(footer)
+      .set_implicit_assertion(assertion)
       .try_sign(&private_key)?;
 
     //  //validate the test vector
@@ -420,8 +420,8 @@ mod v3_test_vectors {
     //  //  //create a v3 public signed token
     let token = Paseto::<V3, Public>::default()
       //.set_payload(message.clone())
-      .set_footer(footer.clone())
-      .set_implicit_assertion(assertion.clone())
+      .set_footer(footer)
+      .set_implicit_assertion(assertion)
       .try_sign(&private_key)?;
 
     //  //validate the test vector
@@ -460,7 +460,7 @@ mod v3_test_vectors {
     assert_ne!(token.to_string(), test_token);
 
     ////now let's try to decrypt it
-    let verify_attempt = Paseto::<V3, Local>::try_decrypt(&test_token, &key, footer, implicit_assertion);
+    let verify_attempt = Paseto::<V3, Local>::try_decrypt(test_token, &key, footer, implicit_assertion);
     assert!(verify_attempt.is_err());
     Ok(())
   }
@@ -495,7 +495,7 @@ mod v3_test_vectors {
     assert_ne!(token.to_string(), test_token);
 
     ////now let's try to decrypt it
-    let verify_attempt = Paseto::<V3, Local>::try_decrypt(&test_token, &key, footer, implicit_assertion);
+    let verify_attempt = Paseto::<V3, Local>::try_decrypt(test_token, &key, footer, implicit_assertion);
     assert!(verify_attempt.is_err());
     Ok(())
   }
@@ -530,7 +530,7 @@ mod v3_test_vectors {
     assert_ne!(token.to_string(), test_token);
 
     ////now let's try to decrypt it
-    let verify_attempt = Paseto::<V3, Local>::try_decrypt(&test_token, &key, footer, implicit_assertion);
+    let verify_attempt = Paseto::<V3, Local>::try_decrypt(test_token, &key, footer, implicit_assertion);
     assert!(verify_attempt.is_err());
     Ok(())
   }
@@ -565,7 +565,7 @@ mod v3_test_vectors {
     assert_ne!(token.to_string(), test_token);
 
     ////now let's try to decrypt it
-    let verify_attempt = Paseto::<V3, Local>::try_decrypt(&test_token, &key, footer, implicit_assertion);
+    let verify_attempt = Paseto::<V3, Local>::try_decrypt(test_token, &key, footer, implicit_assertion);
     assert!(verify_attempt.is_err());
     // assert_ne!(verify_attempt, "");
     Ok(())

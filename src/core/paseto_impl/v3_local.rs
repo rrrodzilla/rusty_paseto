@@ -55,7 +55,7 @@ impl<'a> Paseto<'a, V3, Local> {
         let tag = &decoded_payload[(nonce.len() + ciphertext.len())..];
         let tag2 = &Tag::<V3, Local>::from(authentication_key, &pae);
         //compare tags
-        if !tag.ct_eq(tag2.as_ref()).into() {
+        if !bool::from(tag.ct_eq(tag2.as_ref())) {
             return Err(PasetoError::Cryption);
         }
 

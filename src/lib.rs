@@ -22,6 +22,42 @@
 
 //! The rusty_paseto crate architecture is composed of three layers (batteries_included, generic and core) which can be further refined by the PASETO version(s) and purpose(s) required for your needs.  All layers use a common crypto core which includes various cipher crates depending on the version and purpose you choose.  The crate is heavily featured gated to allow you to use only the versions and purposes you need for your app which minimizes download compile times for using rusty_paseto.  A description of each architectural layer, their uses and limitations and how to minimize your required dependencies based on your required PASETO version and purpose follows:
 //!
+//! ### ⚠️ Feature-Gated Design - Important
+//!
+//! **This crate uses mutually exclusive features by design.** The PASETO specification recommends choosing a single version per application. This architectural choice:
+//!
+//! - **Minimizes binary size** by only compiling required cryptographic dependencies
+//! - **Enforces compile-time safety** through intentionally conflicting trait implementations
+//! - **Prevents version mixing** that could introduce security vulnerabilities
+//!
+//! **Important:** Building with `--all-features` **will fail**. This is intentional, not a bug.
+//!
+//! #### Valid Feature Combinations
+//!
+//! ```toml
+//! # Single version + purpose ✅
+//! rusty_paseto = { version = "latest", features = ["v4_local"] }
+//! rusty_paseto = { version = "latest", features = ["v4_public"] }
+//!
+//! # Same version, both purposes ✅
+//! rusty_paseto = { version = "latest", features = ["v4_local", "v4_public"] }
+//!
+//! # Default (recommended) ✅
+//! # Enables: batteries_included + v4_local + v4_public
+//! rusty_paseto = "latest"
+//! ```
+//!
+//! #### Invalid Feature Combinations
+//!
+//! ```toml
+//! # Multiple public features ❌ (Trait conflict)
+//! rusty_paseto = { version = "latest", features = ["v1_public", "v2_public"] }
+//! rusty_paseto = { version = "latest", features = ["v3_public", "v4_public"] }
+//! ```
+//!
+//! See [Issue #48](https://github.com/rrrodzilla/rusty_paseto/issues/48) for technical details.
+//!
+//! ### Architecture Layers
 //!
 //! <img src="https://github.com/rrrodzilla/rusty_paseto/raw/main/assets/RustyPasetoPreludeArchitecture.png" width="150" />  <img src="https://github.com/rrrodzilla/rusty_paseto/raw/main/assets/RustyPasetoGenericArchitecture.png" width="150" /> <img src="https://github.com/rrrodzilla/rusty_paseto/raw/main/assets/RustyPasetoCoreArchitecture.png" width="150" />
 
@@ -534,6 +570,32 @@
 //! - [pasetors](https://crates.io/crates/pasetors) - by [Johannes](https://crates.io/users/brycx)
 //!
 //!
+
+// Compile-time checks for incompatible feature combinations
+// Multiple public features cause conflicting trait implementations for PasetoError
+#[cfg(all(feature = "v3_public", any(feature = "v1_public", feature = "v2_public", feature = "v4_public")))]
+compile_error!(
+    "Cannot enable v3_public with other public features due to conflicting trait implementations. \n\
+     Choose only ONE public feature: v1_public, v2_public, v3_public, or v4_public. \n\
+     The PASETO specification recommends using a single version throughout your application. \n\
+     See: https://github.com/rrrodzilla/rusty_paseto/issues/48"
+);
+
+#[cfg(all(feature = "v1_public", any(feature = "v2_public", feature = "v4_public")))]
+compile_error!(
+    "Cannot enable multiple public features (v1_public with v2_public or v4_public) due to conflicting trait implementations. \n\
+     Choose only ONE public feature: v1_public, v2_public, v3_public, or v4_public. \n\
+     The PASETO specification recommends using a single version throughout your application. \n\
+     See: https://github.com/rrrodzilla/rusty_paseto/issues/48"
+);
+
+#[cfg(all(feature = "v2_public", feature = "v4_public"))]
+compile_error!(
+    "Cannot enable both v2_public and v4_public due to conflicting trait implementations. \n\
+     Choose only ONE public feature: v1_public, v2_public, v3_public, or v4_public. \n\
+     The PASETO specification recommends using a single version throughout your application. \n\
+     See: https://github.com/rrrodzilla/rusty_paseto/issues/48"
+);
 
 //public interface
 #[cfg(feature = "core")]

@@ -327,8 +327,8 @@ mod v2_test_vectors {
     //  //  //create a local v2 token
     //let token = Paseto::<V2, Public>::build_token(header, message, &key, None);
     let token = Paseto::<V2, Public>::default()
-      .set_payload(message.clone())
-      .set_footer(footer.clone())
+      .set_payload(message)
+      .set_footer(footer)
       .try_sign(&private_key)?;
 
     //  //validate the test vector
@@ -361,8 +361,8 @@ mod v2_test_vectors {
     //  //  //create a local v2 token
     //let token = Paseto::<V2, Public>::build_token(header, message, &key, None);
     let token = Paseto::<V2, Public>::default()
-      .set_payload(message.clone())
-      .set_footer(footer.clone())
+      .set_payload(message)
+      .set_footer(footer)
       .try_sign(&private_key)?;
 
     //  //validate the test vector

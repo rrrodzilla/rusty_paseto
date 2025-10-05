@@ -337,7 +337,6 @@
 //! # }
 //! # Ok::<(),anyhow::Error>(())
 //! ```
-
 //!
 //! ## Tokens that never expire
 //!

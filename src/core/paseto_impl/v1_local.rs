@@ -1,9 +1,9 @@
 #![cfg(feature = "v1_local")]
 use std::str;
 use hmac::{Hmac, Mac};
+use subtle::ConstantTimeEq;
 use crate::core::{Footer, Header, Key, Local, Paseto, PasetoError, PasetoNonce, PasetoSymmetricKey, V1};
 use crate::core::common::{AuthenticationKey, AuthenticationKeySeparator, CipherText, EncryptionKey, EncryptionKeySeparator, PreAuthenticationEncoding, RawPayload, Tag};
-use ring::constant_time::verify_slices_are_equal as ConstantTimeEquals;
 use sha2::Sha384;
 
 impl<'a> Paseto<'a, V1, Local> {
@@ -26,7 +26,7 @@ impl<'a> Paseto<'a, V1, Local> {
     pub fn try_decrypt(
         token: &'a str,
         key: &PasetoSymmetricKey<V1, Local>,
-        footer: (impl Into<Option<Footer<'a>>> + Copy),
+        footer: impl Into<Option<Footer<'a>>> + Copy,
     ) -> Result<String, PasetoError> {
         let decoded_payload = Self::parse_raw_token(token, footer, &V1::default(), &Local::default())?;
         let nonce = Key::from(&decoded_payload[..32]);
@@ -51,7 +51,9 @@ impl<'a> Paseto<'a, V1, Local> {
         let tag = &decoded_payload[(nonce.len() + ciphertext.len())..];
         let tag2 = &Tag::<V1, Local>::from(authentication_key, &pae);
         //compare tags
-        ConstantTimeEquals(tag, tag2)?;
+        if !bool::from(tag.ct_eq(tag2.as_ref())) {
+            return Err(PasetoError::Cryption);
+        }
 
         //decrypt payload
         let ciphertext = CipherText::<V1, Local>::from(ciphertext, &encryption_key);

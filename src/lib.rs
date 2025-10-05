@@ -22,6 +22,42 @@
 
 //! The rusty_paseto crate architecture is composed of three layers (batteries_included, generic and core) which can be further refined by the PASETO version(s) and purpose(s) required for your needs.  All layers use a common crypto core which includes various cipher crates depending on the version and purpose you choose.  The crate is heavily featured gated to allow you to use only the versions and purposes you need for your app which minimizes download compile times for using rusty_paseto.  A description of each architectural layer, their uses and limitations and how to minimize your required dependencies based on your required PASETO version and purpose follows:
 //!
+//! ### ⚠️ Feature-Gated Design - Important
+//!
+//! **This crate uses mutually exclusive features by design.** The PASETO specification recommends choosing a single version per application. This architectural choice:
+//!
+//! - **Minimizes binary size** by only compiling required cryptographic dependencies
+//! - **Enforces compile-time safety** through intentionally conflicting trait implementations
+//! - **Prevents version mixing** that could introduce security vulnerabilities
+//!
+//! **Important:** Building with `--all-features` **will fail**. This is intentional, not a bug.
+//!
+//! #### Valid Feature Combinations
+//!
+//! ```toml
+//! # Single version + purpose ✅
+//! rusty_paseto = { version = "latest", features = ["v4_local"] }
+//! rusty_paseto = { version = "latest", features = ["v4_public"] }
+//!
+//! # Same version, both purposes ✅
+//! rusty_paseto = { version = "latest", features = ["v4_local", "v4_public"] }
+//!
+//! # Default (recommended) ✅
+//! # Enables: batteries_included + v4_local + v4_public
+//! rusty_paseto = "latest"
+//! ```
+//!
+//! #### Invalid Feature Combinations
+//!
+//! ```toml
+//! # Multiple public features ❌ (Trait conflict)
+//! rusty_paseto = { version = "latest", features = ["v1_public", "v2_public"] }
+//! rusty_paseto = { version = "latest", features = ["v3_public", "v4_public"] }
+//! ```
+//!
+//! See [Issue #48](https://github.com/rrrodzilla/rusty_paseto/issues/48) for technical details.
+//!
+//! ### Architecture Layers
 //!
 //! <img src="https://github.com/rrrodzilla/rusty_paseto/raw/main/assets/RustyPasetoPreludeArchitecture.png" width="150" />  <img src="https://github.com/rrrodzilla/rusty_paseto/raw/main/assets/RustyPasetoGenericArchitecture.png" width="150" /> <img src="https://github.com/rrrodzilla/rusty_paseto/raw/main/assets/RustyPasetoCoreArchitecture.png" width="150" />
 
@@ -151,7 +187,7 @@
 //!
 //! * Has no [footer](https://github.com/paseto-standard/paseto-spec/tree/master/docs)
 //! * Has no [implicit assertion](https://github.com/paseto-standard/paseto-spec/tree/master/docs)
-//! for V3 or V4 versioned tokens
+//!   for V3 or V4 versioned tokens
 //! * Expires in **1 hour** after creation (due to an included default ExpirationClaim)
 //! * Contains an IssuedAtClaim defaulting to the current utc time the token was created
 //! * Contains a NotBeforeClaim defaulting to the current utc time the token was created
@@ -181,7 +217,7 @@
 //!
 //! * Validates the token structure and decryptes the payload or verifies the signature of the content
 //! * Validates the [footer](https://github.com/paseto-standard/paseto-spec/tree/master/docs) if
-//! one was provided
+//!   one was provided
 //! * Validates the [implicit assertion](https://github.com/paseto-standard/paseto-spec/tree/master/docs) if one was provided (for V3 or V4 versioned tokens only)
 //!
 //! ## A token with a footer
@@ -301,7 +337,6 @@
 //! # }
 //! # Ok::<(),anyhow::Error>(())
 //! ```
-
 //!
 //! ## Tokens that never expire
 //!

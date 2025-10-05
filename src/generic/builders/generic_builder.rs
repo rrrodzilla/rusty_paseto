@@ -4,8 +4,7 @@ use std::collections::HashMap;
 use serde_json::{Map, Value};
 
 use crate::generic::*;
-
-///The GenericBuilder is created at compile time by specifying a PASETO version and purpose and
+ ///The GenericBuilder is created at compile time by specifying a PASETO version and purpose and
 ///providing a key of the same version and purpose. This structure allows setting [PASETO claims](https://github.com/paseto-standard/paseto-spec/blob/master/docs/02-Implementation-Guide/04-Claims.md),
 ///your own [custom claims](CustomClaim), an optional [footer](Footer) and in the case of V3/V4 tokens, an optional [implicit
 ///assertion](ImplicitAssertion).
@@ -21,12 +20,9 @@ use crate::generic::*;
 ///# #[cfg(all(feature = "generic", feature="v2_local"))]
 ///# {
 ///   use rusty_paseto::generic::*;
-
-///     let key = PasetoSymmetricKey::<V2, Local>::from(Key::<32>::from(*b"wubbalubbadubdubwubbalubbadubdub"));
-
-///     let footer = Footer::from("some footer");
-
-///     //create a builder, add some claims and then build the token with the key
+ ///     let key = PasetoSymmetricKey::<V2, Local>::from(Key::<32>::from(*b"wubbalubbadubdubwubbalubbadubdub"));
+ ///     let footer = Footer::from("some footer");
+ ///     //create a builder, add some claims and then build the token with the key
 ///     let token = GenericBuilder::<V2, Local>::default()
 ///       .set_claim(AudienceClaim::from("customers"))
 ///       .set_claim(SubjectClaim::from("loyal subjects"))
@@ -40,13 +36,11 @@ use crate::generic::*;
 ///       .set_claim(CustomClaim::try_from(("pi to 6 digits", 3.141526))?)
 ///       .set_footer(footer)
 ///       .try_encrypt(&key)?;
-
-///     //now let's decrypt the token and verify the values
+ ///     //now let's decrypt the token and verify the values
 ///     let json = GenericParser::<V2, Local>::default()
 ///       .set_footer(footer)
 ///       .parse(&token, &key)?;
-
-///     assert_eq!(json["aud"], "customers");
+ ///     assert_eq!(json["aud"], "customers");
 ///     assert_eq!(json["jti"], "me");
 ///     assert_eq!(json["iss"], "me");
 ///     assert_eq!(json["data"], "this is a secret message");
@@ -59,7 +53,6 @@ use crate::generic::*;
 ///  # }
 /// # Ok::<(),anyhow::Error>(())
 ///   ```
-
 pub struct GenericBuilder<'a, 'b, Version, Purpose> {
     version: PhantomData<Version>,
     purpose: PhantomData<Purpose>,
@@ -78,20 +71,17 @@ impl<'a, 'b, Version, Purpose> GenericBuilder<'a, 'b, Version, Purpose> {
             implicit_assertion: None,
         }
     }
-
-    ///Removes a [claim](PasetoClaim) from the internal list of claims by passed key
+ ///Removes a [claim](PasetoClaim) from the internal list of claims by passed key
     pub fn remove_claim(&mut self, claim_key: &str) -> &mut Self {
         self.claims.remove(claim_key);
         self
     }
-
-    ///Allows adding multiple [claims](PasetoClaim) at once by passing a Hashmap of claim keys and values
+ ///Allows adding multiple [claims](PasetoClaim) at once by passing a Hashmap of claim keys and values
     pub fn extend_claims(&mut self, value: HashMap<String, Box<dyn erased_serde::Serialize>>) -> &mut Self {
         self.claims.extend(value);
         self
     }
-
-    ///Adds a [claim](PasetoClaim) to the token builder
+ ///Adds a [claim](PasetoClaim) to the token builder
     pub fn set_claim<T: 'b + PasetoClaim + erased_serde::Serialize>(&mut self, value: T) -> &mut Self
         where
             'b: 'a,
@@ -125,14 +115,12 @@ impl<'a, 'b, Version, Purpose> GenericBuilder<'a, 'b, Version, Purpose> {
         self.claims.insert(key, Box::new(value));
         self
     }
-
-    ///Adds an optional [footer](Footer) to the token builder
+ ///Adds an optional [footer](Footer) to the token builder
     pub fn set_footer(&mut self, footer: Footer<'a>) -> &mut Self {
         self.footer = Some(footer);
         self
     }
-
-    /// Builds a JSON payload from the claims
+ /// Builds a JSON payload from the claims
     ///
     /// # Returns
     /// A `Result` containing the JSON payload as a `String` or a `serde_json::Error`
@@ -239,12 +227,9 @@ impl GenericBuilder<'_, '_, V1, Local> {
     ///# #[cfg(all(feature = "generic", feature="v1_local"))]
     ///# {
     ///   use rusty_paseto::generic::*;
-
-    ///     let key = PasetoSymmetricKey::<V1, Local>::from(Key::<32>::from(*b"wubbalubbadubdubwubbalubbadubdub"));
-
-    ///     let footer = Footer::from("some footer");
-
-    ///     //create a builder, add some claims and then build the token with the key
+ ///     let key = PasetoSymmetricKey::<V1, Local>::from(Key::<32>::from(*b"wubbalubbadubdubwubbalubbadubdub"));
+ ///     let footer = Footer::from("some footer");
+ ///     //create a builder, add some claims and then build the token with the key
     ///     let token = GenericBuilder::<V1, Local>::default()
     ///       .set_claim(AudienceClaim::from("customers"))
     ///       .set_claim(SubjectClaim::from("loyal subjects"))
@@ -258,13 +243,11 @@ impl GenericBuilder<'_, '_, V1, Local> {
     ///       .set_claim(CustomClaim::try_from(("pi to 6 digits", 3.141526))?)
     ///       .set_footer(footer)
     ///       .try_encrypt(&key)?;
-
-    ///     //now let's decrypt the token and verify the values
+ ///     //now let's decrypt the token and verify the values
     ///     let json = GenericParser::<V1, Local>::default()
     ///       .set_footer(footer)
     ///       .parse(&token, &key)?;
-
-    ///     assert_eq!(json["aud"], "customers");
+ ///     assert_eq!(json["aud"], "customers");
     ///     assert_eq!(json["jti"], "me");
     ///     assert_eq!(json["iss"], "me");
     ///     assert_eq!(json["data"], "this is a secret message");
@@ -277,7 +260,6 @@ impl GenericBuilder<'_, '_, V1, Local> {
     ///  # }
     /// # Ok::<(),anyhow::Error>(())
     ///   ```
-
     pub fn try_encrypt(&mut self, key: &PasetoSymmetricKey<V1, Local>) -> Result<String, GenericBuilderError> {
         let mut token_builder = Paseto::<V1, Local>::builder();
 
@@ -310,12 +292,9 @@ impl GenericBuilder<'_, '_, V2, Local> {
     ///# #[cfg(all(feature = "generic", feature="v2_local"))]
     ///# {
     ///   use rusty_paseto::generic::*;
-
-    ///     let key = PasetoSymmetricKey::<V2, Local>::from(Key::<32>::from(*b"wubbalubbadubdubwubbalubbadubdub"));
-
-    ///     let footer = Footer::from("some footer");
-
-    ///     //create a builder, add some claims and then build the token with the key
+ ///     let key = PasetoSymmetricKey::<V2, Local>::from(Key::<32>::from(*b"wubbalubbadubdubwubbalubbadubdub"));
+ ///     let footer = Footer::from("some footer");
+ ///     //create a builder, add some claims and then build the token with the key
     ///     let token = GenericBuilder::<V2, Local>::default()
     ///       .set_claim(AudienceClaim::from("customers"))
     ///       .set_claim(SubjectClaim::from("loyal subjects"))
@@ -329,13 +308,11 @@ impl GenericBuilder<'_, '_, V2, Local> {
     ///       .set_claim(CustomClaim::try_from(("pi to 6 digits", 3.141526))?)
     ///       .set_footer(footer)
     ///       .try_encrypt(&key)?;
-
-    ///     //now let's decrypt the token and verify the values
+ ///     //now let's decrypt the token and verify the values
     ///     let json = GenericParser::<V2, Local>::default()
     ///       .set_footer(footer)
     ///       .parse(&token, &key)?;
-
-    ///     assert_eq!(json["aud"], "customers");
+ ///     assert_eq!(json["aud"], "customers");
     ///     assert_eq!(json["jti"], "me");
     ///     assert_eq!(json["iss"], "me");
     ///     assert_eq!(json["data"], "this is a secret message");
@@ -348,7 +325,6 @@ impl GenericBuilder<'_, '_, V2, Local> {
     ///  # }
     /// # Ok::<(),anyhow::Error>(())
     ///   ```
-
     pub fn try_encrypt(&mut self, key: &PasetoSymmetricKey<V2, Local>) -> Result<String, GenericBuilderError> {
         let mut token_builder = Paseto::<V2, Local>::builder();
 
@@ -381,13 +357,10 @@ impl GenericBuilder<'_, '_, V3, Local> {
     ///# #[cfg(all(feature = "generic", feature="v3_local"))]
     ///# {
     ///   use rusty_paseto::generic::*;
-
-    ///     let key = PasetoSymmetricKey::<V3, Local>::from(Key::<32>::from(*b"wubbalubbadubdubwubbalubbadubdub"));
-
-    ///     let footer = Footer::from("some footer");
+ ///     let key = PasetoSymmetricKey::<V3, Local>::from(Key::<32>::from(*b"wubbalubbadubdubwubbalubbadubdub"));
+ ///     let footer = Footer::from("some footer");
     ///     let implicit_assertion = ImplicitAssertion::from("some assertion");
-
-    ///     //create a builder, add some claims and then build the token with the key
+ ///     //create a builder, add some claims and then build the token with the key
     ///     let token = GenericBuilder::<V3, Local>::default()
     ///       .set_claim(AudienceClaim::from("customers"))
     ///       .set_claim(SubjectClaim::from("loyal subjects"))
@@ -402,14 +375,12 @@ impl GenericBuilder<'_, '_, V3, Local> {
     ///       .set_footer(footer)
     ///       .set_implicit_assertion(implicit_assertion)
     ///       .try_encrypt(&key)?;
-
-    ///     //now let's decrypt the token and verify the values
+ ///     //now let's decrypt the token and verify the values
     ///     let json = GenericParser::<V3, Local>::default()
     ///       .set_footer(footer)
     ///       .set_implicit_assertion(implicit_assertion)
     ///       .parse(&token, &key)?;
-
-    ///     assert_eq!(json["aud"], "customers");
+ ///     assert_eq!(json["aud"], "customers");
     ///     assert_eq!(json["jti"], "me");
     ///     assert_eq!(json["iss"], "me");
     ///     assert_eq!(json["data"], "this is a secret message");
@@ -422,7 +393,6 @@ impl GenericBuilder<'_, '_, V3, Local> {
     ///  # }
     /// # Ok::<(),anyhow::Error>(())
     ///   ```
-
     pub fn try_encrypt(&mut self, key: &PasetoSymmetricKey<V3, Local>) -> Result<String, GenericBuilderError> {
         let mut token_builder = Paseto::<V3, Local>::builder();
 
@@ -459,13 +429,10 @@ impl GenericBuilder<'_, '_, V4, Local> {
     ///# #[cfg(all(feature = "generic", feature="v4_local"))]
     ///# {
     ///   use rusty_paseto::generic::*;
-
-    ///     let key = PasetoSymmetricKey::<V4, Local>::from(Key::<32>::from(*b"wubbalubbadubdubwubbalubbadubdub"));
-
-    ///     let footer = Footer::from("some footer");
+ ///     let key = PasetoSymmetricKey::<V4, Local>::from(Key::<32>::from(*b"wubbalubbadubdubwubbalubbadubdub"));
+ ///     let footer = Footer::from("some footer");
     ///     let implicit_assertion = ImplicitAssertion::from("some assertion");
-
-    ///     //create a builder, add some claims and then build the token with the key
+ ///     //create a builder, add some claims and then build the token with the key
     ///     let token = GenericBuilder::<V4, Local>::default()
     ///       .set_claim(AudienceClaim::from("customers"))
     ///       .set_claim(SubjectClaim::from("loyal subjects"))
@@ -480,14 +447,12 @@ impl GenericBuilder<'_, '_, V4, Local> {
     ///       .set_footer(footer)
     ///       .set_implicit_assertion(implicit_assertion)
     ///       .try_encrypt(&key)?;
-
-    ///     //now let's decrypt the token and verify the values
+ ///     //now let's decrypt the token and verify the values
     ///     let json = GenericParser::<V4, Local>::default()
     ///       .set_footer(footer)
     ///       .set_implicit_assertion(implicit_assertion)
     ///       .parse(&token, &key)?;
-
-    ///     assert_eq!(json["aud"], "customers");
+ ///     assert_eq!(json["aud"], "customers");
     ///     assert_eq!(json["jti"], "me");
     ///     assert_eq!(json["iss"], "me");
     ///     assert_eq!(json["data"], "this is a secret message");
@@ -500,7 +465,6 @@ impl GenericBuilder<'_, '_, V4, Local> {
     ///  # }
     /// # Ok::<(),anyhow::Error>(())
     ///   ```
-
     pub fn try_encrypt(&mut self, key: &PasetoSymmetricKey<V4, Local>) -> Result<String, GenericBuilderError> {
         let mut token_builder = Paseto::<V4, Local>::builder();
 
@@ -537,15 +501,12 @@ impl GenericBuilder<'_, '_, V1, Public> {
     ///# #[cfg(all(feature = "generic", feature="v1_public"))]
     ///# {
     ///   # use rusty_paseto::generic::*;
-
-    ///    //obtain a private key (pk)
+ ///    //obtain a private key (pk)
     ///   # let private_key = include_bytes!("../../../tests/v1_public_test_vectors_private_key.pk8");
     ///   # let pk: &[u8] = private_key;
     ///    let private_key = PasetoAsymmetricPrivateKey::<V1, Public>::from(pk);
-
-    ///     let footer = Footer::from("some footer");
-
-    ///     //sign a public V1 token
+ ///     let footer = Footer::from("some footer");
+ ///     //sign a public V1 token
     ///     let token = GenericBuilder::<V1, Public>::default()
     ///       .set_claim(AudienceClaim::from("customers"))
     ///       .set_claim(SubjectClaim::from("loyal subjects"))
@@ -559,8 +520,7 @@ impl GenericBuilder<'_, '_, V1, Public> {
     ///       .set_claim(CustomClaim::try_from(("pi to 6 digits", 3.141526))?)
     ///       .set_footer(footer)
     ///       .try_sign(&private_key)?;
-
-    /// //obtain a public key (pubk)
+ /// //obtain a public key (pubk)
     ///   #  let public_key = include_bytes!("../../../tests/v1_public_test_vectors_public_key.der");
     ///   #  let pubk: &[u8] = public_key;
     ///     let public_key = PasetoAsymmetricPublicKey::<V1, Public>::from(pubk);
@@ -622,17 +582,13 @@ impl GenericBuilder<'_, '_, V2, Public> {
     ///# #[cfg(all(feature = "generic", feature="v1_public"))]
     ///# {
     ///   # use rusty_paseto::generic::*;
-
-    ///    //obtain a key
+ ///    //obtain a key
     /// let private_key = Key::<64>::try_from("b4cbfb43df4ce210727d953e4a713307fa19bb7d9f85041438d9e11b942a37741eb9dbbbbc047c03fd70604e0071f0987e16b28b757225c11f00415d0e20b1a2")?;
     /// let private_key = PasetoAsymmetricPrivateKey::<V2, Public>::from(&private_key);
-
-    /// let public_key = Key::<32>::try_from("1eb9dbbbbc047c03fd70604e0071f0987e16b28b757225c11f00415d0e20b1a2")?;
+ /// let public_key = Key::<32>::try_from("1eb9dbbbbc047c03fd70604e0071f0987e16b28b757225c11f00415d0e20b1a2")?;
     /// let public_key = PasetoAsymmetricPublicKey::<V2, Public>::from(&public_key);
-
-    /// let footer = Footer::from("some footer");
-
-    /// //sign a public V2 token
+ /// let footer = Footer::from("some footer");
+ /// //sign a public V2 token
     /// let token = GenericBuilder::<V2, Public>::default()
     ///   .set_claim(AudienceClaim::from("customers"))
     ///   .set_claim(SubjectClaim::from("loyal subjects"))
@@ -646,8 +602,7 @@ impl GenericBuilder<'_, '_, V2, Public> {
     ///   .set_claim(CustomClaim::try_from(("pi to 6 digits", 3.141526))?)
     ///   .set_footer(footer)
     ///   .try_sign(&private_key)?;
-
-    /// //now let's try to verify it
+ /// //now let's try to verify it
     /// let json = GenericParser::<V2, Public>::default()
     ///   .set_footer(footer)
     ///   .check_claim(AudienceClaim::from("customers"))
@@ -706,21 +661,17 @@ impl GenericBuilder<'_, '_, V3, Public> {
     ///# #[cfg(all(feature = "generic", feature="v3_public"))]
     ///# {
     ///   # use rusty_paseto::generic::*;
-
-    ///    //obtain a key
+ ///    //obtain a key
     /// let private_key = Key::<48>::try_from(
     ///   "20347609607477aca8fbfbc5e6218455f3199669792ef8b466faa87bdc67798144c848dd03661eed5ac62461340cea96",
     /// )?;
     /// let private_key = PasetoAsymmetricPrivateKey::<V3, Public>::from(&private_key);
-
-    /// let public_key = Key::<49>::try_from(
+ /// let public_key = Key::<49>::try_from(
     ///   "02fbcb7c69ee1c60579be7a334134878d9c5c5bf35d552dab63c0140397ed14cef637d7720925c44699ea30e72874c72fb",
     /// )?;
     /// let public_key = PasetoAsymmetricPublicKey::<V3, Public>::try_from(&public_key)?;
-
-    /// let footer = Footer::from("some footer");
-
-    /// let implicit_assertion = ImplicitAssertion::from("some assertion");
+ /// let footer = Footer::from("some footer");
+ /// let implicit_assertion = ImplicitAssertion::from("some assertion");
     /// //sign a public V3 token
     /// let token = GenericBuilder::<V3, Public>::default()
     ///   .set_claim(AudienceClaim::from("customers"))
@@ -736,8 +687,7 @@ impl GenericBuilder<'_, '_, V3, Public> {
     ///   .set_footer(footer)
     ///   .set_implicit_assertion(implicit_assertion)
     ///   .try_sign(&private_key)?;
-
-    /// //now let's try to verify it
+ /// //now let's try to verify it
     /// let json = GenericParser::<V3, Public>::default()
     ///   .set_footer(footer)
     ///   .check_claim(AudienceClaim::from("customers"))
@@ -801,19 +751,15 @@ impl GenericBuilder<'_, '_, V4, Public> {
     ///# #[cfg(all(feature = "generic", feature="v4_public"))]
     ///# {
     ///   # use rusty_paseto::generic::*;
-
-    /// //create a key
+ /// //create a key
     /// let private_key = Key::<64>::try_from("b4cbfb43df4ce210727d953e4a713307fa19bb7d9f85041438d9e11b942a37741eb9dbbbbc047c03fd70604e0071f0987e16b28b757225c11f00415d0e20b1a2")?;
     /// let pk: &[u8] = private_key.as_slice();
     /// let private_key = PasetoAsymmetricPrivateKey::<V4, Public>::from(pk);
-
-    /// let public_key = Key::<32>::try_from("1eb9dbbbbc047c03fd70604e0071f0987e16b28b757225c11f00415d0e20b1a2")?;
+ /// let public_key = Key::<32>::try_from("1eb9dbbbbc047c03fd70604e0071f0987e16b28b757225c11f00415d0e20b1a2")?;
     /// let public_key = PasetoAsymmetricPublicKey::<V4, Public>::from(&public_key);
-
-    /// let footer = Footer::from("some footer");
+ /// let footer = Footer::from("some footer");
     /// let implicit_assertion = ImplicitAssertion::from("some assertion");
-
-    /// //sign a public V4 token
+ /// //sign a public V4 token
     /// let token = GenericBuilder::<V4, Public>::default()
     ///   .set_claim(AudienceClaim::from("customers"))
     ///   .set_claim(SubjectClaim::from("loyal subjects"))
@@ -828,8 +774,7 @@ impl GenericBuilder<'_, '_, V4, Public> {
     ///   .set_footer(footer)
     ///   .set_implicit_assertion(implicit_assertion)
     ///   .try_sign(&private_key)?;
-
-    /// //now let's try to verify it
+ /// //now let's try to verify it
     /// let json = GenericParser::<V4, Public>::default()
     ///   .set_footer(footer)
     ///   .set_implicit_assertion(implicit_assertion)
@@ -855,11 +800,9 @@ impl GenericBuilder<'_, '_, V4, Public> {
     /// assert_eq!(json["sub"], "loyal subjects");
     /// assert_eq!(json["pi to 6 digits"], 3.141526);
     /// assert_eq!(json["seats"], 4);
-
-    ///  # }
+ ///  # }
     /// # Ok::<(),anyhow::Error>(())
     ///```
-
     pub fn try_sign(&mut self, key: &PasetoAsymmetricPrivateKey<V4, Public>) -> Result<String, GenericBuilderError> {
         let mut token_builder = Paseto::<V4, Public>::builder();
 

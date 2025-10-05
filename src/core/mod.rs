@@ -43,7 +43,6 @@
 //! }
 //! # Ok::<(),anyhow::Error>(())
 //! ```
-
 mod error;
 mod footer;
 mod header;

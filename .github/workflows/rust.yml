@@ -39,6 +39,32 @@ jobs:
         with:
           command: test
           args: --no-default-features --features ${{ matrix.feature }}
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        feature:
+          - v1_local
+          - v1_public
+          - v2_local
+          - v2_public
+          - v3_local
+          - v3_public
+          - v4_local
+          - v4_public
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+          components: clippy
+      - uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --no-default-features --features ${{ matrix.feature }} -- -D warnings
   audit:
     name: Security Audit
     runs-on: ubuntu-latest

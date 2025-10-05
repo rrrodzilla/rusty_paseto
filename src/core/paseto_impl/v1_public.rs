@@ -9,7 +9,7 @@ impl<'a> Paseto<'a, V1, Public> {
     pub fn try_verify(
         signature: &'a str,
         public_key: &PasetoAsymmetricPublicKey<V1, Public>,
-        footer: (impl Into<Option<Footer<'a>>> + Copy),
+        footer: impl Into<Option<Footer<'a>>> + Copy,
     ) -> Result<String, PasetoError> {
         let decoded_payload = Self::parse_raw_token(signature, footer, &V1::default(), &Public::default())?;
 

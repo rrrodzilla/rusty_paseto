@@ -26,7 +26,7 @@ impl<'a> Paseto<'a, V1, Local> {
     pub fn try_decrypt(
         token: &'a str,
         key: &PasetoSymmetricKey<V1, Local>,
-        footer: (impl Into<Option<Footer<'a>>> + Copy),
+        footer: impl Into<Option<Footer<'a>>> + Copy,
     ) -> Result<String, PasetoError> {
         let decoded_payload = Self::parse_raw_token(token, footer, &V1::default(), &Local::default())?;
         let nonce = Key::from(&decoded_payload[..32]);

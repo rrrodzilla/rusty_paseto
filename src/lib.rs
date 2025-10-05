@@ -11,7 +11,7 @@
 //! This crate is a type-driven, ergonomic implementation of the [PASETO](https://github.com/paseto-standard/paseto-spec) protocol for secure stateless tokens.
 //!
 //! > "Paseto is everything you love about JOSE (JWT, JWE, JWS) without any of the
-//! [many design deficits that plague the JOSE standards](https://paragonie.com/blog/2017/03/jwt-json-web-tokens-is-bad-standard-that-everyone-should-avoid)."
+//!> [many design deficits that plague the JOSE standards](https://paragonie.com/blog/2017/03/jwt-json-web-tokens-is-bad-standard-that-everyone-should-avoid)."
 //! > -- [PASETO Specification](https://github.com/paseto-standard/paseto-spec)
 //!
 //!

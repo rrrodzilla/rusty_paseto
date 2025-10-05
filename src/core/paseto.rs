@@ -5,7 +5,6 @@ use crate::core::{Base64Encodable, Footer, Header, ImplicitAssertion, ImplicitAs
 
 
 /// Used to build and encrypt / decrypt core PASETO tokens
-
 ///
 /// Given a [Payload], optional [Footer] and optional [ImplicitAssertion] ([V3] or [V4] only)
 /// returns an encrypted token when [Local] is specified as the purpose or a signed token when
@@ -144,7 +143,7 @@ impl<'a, Version: VersionTrait, Purpose: PurposeTrait> Paseto<'a, Version, Purpo
 
     pub(crate) fn parse_raw_token(
         raw_token: &'a str,
-        footer: (impl Into<Option<Footer<'a>>> + Copy),
+        footer: impl Into<Option<Footer<'a>>> + Copy,
         v: &Version,
         p: &Purpose,
     ) -> Result<Vec<u8>, PasetoError> {

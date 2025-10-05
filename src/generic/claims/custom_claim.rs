@@ -154,7 +154,6 @@ use serde::ser::SerializeMap;
 /// # assert_eq!(json_value["Universe"], 136);
 /// # }
 /// # Ok::<(),anyhow::Error>(())
-/// ```
 
 #[derive(Clone, Debug)]
 pub struct CustomClaim<T>((String, T));

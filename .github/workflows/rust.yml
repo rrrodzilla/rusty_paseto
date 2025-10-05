@@ -12,6 +12,8 @@ on:
         required: true
         type: string
 name: Continuous integration
+permissions:
+  contents: read
 jobs:
   default-features:
     name: Default Features (batteries_included + v4)
@@ -103,6 +105,8 @@ jobs:
   release:
     name: Create Release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
     needs: [default-features, test, clippy, audit]
     steps:

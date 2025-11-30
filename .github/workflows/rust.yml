@@ -42,7 +42,7 @@ jobs:
       matrix:
         feature:
           - v1_local
-          - v1_public
+          - v1_public_insecure
           - v2_local
           - v2_public
           - v3_local
@@ -67,7 +67,7 @@ jobs:
       matrix:
         feature:
           - v1_local
-          - v1_public
+          - v1_public_insecure
           - v2_local
           - v2_public
           - v3_local

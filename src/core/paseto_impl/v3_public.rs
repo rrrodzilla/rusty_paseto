@@ -9,6 +9,8 @@ use p384::elliptic_curve::sec1::ToEncodedPoint;
 use p384::PublicKey;
 use sha2::Digest;
 
+const SIGNATURE_SIZE: usize = 96;
+
 impl<'a> Paseto<'a, V3, Public> {
     /// Verifies a signed V3 Public Paseto
     pub fn try_verify(
@@ -19,6 +21,11 @@ impl<'a> Paseto<'a, V3, Public> {
     ) -> Result<String, PasetoError> {
         let decoded_payload = Self::parse_raw_token(signature, footer, &V3::default(), &Public::default())?;
 
+        // Validate minimum payload size to prevent panic from underflow
+        if decoded_payload.len() < SIGNATURE_SIZE {
+            return Err(PasetoError::IncorrectSize);
+        }
+
         //compress the key
         let compressed_public_key = PublicKey::from_sec1_bytes(public_key.as_ref())
             .map_err(|_| PasetoError::InvalidKey)?
@@ -26,8 +33,11 @@ impl<'a> Paseto<'a, V3, Public> {
 
         let verifying_key =
             VerifyingKey::from_sec1_bytes(compressed_public_key.as_ref()).map_err(|_| PasetoError::InvalidKey)?;
-        let msg = decoded_payload[..(decoded_payload.len() - 96)].as_ref();
-        let sig = decoded_payload[msg.len()..msg.len() + 96].as_ref();
+
+        // Use safe .get() access with bounds already validated above
+        let msg_len = decoded_payload.len().saturating_sub(SIGNATURE_SIZE);
+        let msg = decoded_payload.get(..msg_len).ok_or(PasetoError::IncorrectSize)?;
+        let sig = decoded_payload.get(msg_len..msg_len.checked_add(SIGNATURE_SIZE).ok_or(PasetoError::IncorrectSize)?).ok_or(PasetoError::IncorrectSize)?;
 
         let signature = Signature::try_from(sig).map_err(|_| PasetoError::Signature)?;
         let m2 = PreAuthenticationEncoding::parse(&[

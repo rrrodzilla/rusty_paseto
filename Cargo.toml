@@ -80,6 +80,7 @@ digest = "0.10"
 paserk = { version = "0.1.0", path = "../paserk", optional = true }
 
 [lints.rust]
+unsafe_code = "forbid"
 warnings = "deny"
 
 [lints.clippy]

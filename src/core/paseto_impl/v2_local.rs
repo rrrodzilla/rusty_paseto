@@ -5,6 +5,9 @@ use chacha20poly1305::XNonce;
 use crate::core::{Footer, Header, Local, Paseto, PasetoError, PasetoNonce, PasetoSymmetricKey, V2};
 use crate::core::common::{CipherText, PreAuthenticationEncoding, RawPayload};
 use std::str;
+
+const NONCE_SIZE: usize = 24;
+
 impl<'a> Paseto<'a, V2, Local> {
     /// Attempts to decrypt a PASETO token
     /// ```
@@ -30,7 +33,13 @@ impl<'a> Paseto<'a, V2, Local> {
         //get footer
 
         let decoded_payload = Self::parse_raw_token(token, footer, &V2::default(), &Local::default())?;
-        let (nonce, ciphertext) = decoded_payload.split_at(24);
+
+        // Validate minimum payload size to prevent panic in split_at
+        if decoded_payload.len() < NONCE_SIZE {
+            return Err(PasetoError::IncorrectSize);
+        }
+
+        let (nonce, ciphertext) = decoded_payload.split_at(NONCE_SIZE);
 
         //pack preauth
         let pae = &PreAuthenticationEncoding::parse(&[

@@ -6,6 +6,12 @@ use crate::core::V3;
 use crate::core::{Public, V2orV4};
 use std::convert::{AsRef, From};
 use std::marker::PhantomData;
+#[cfg(any(
+  feature = "v1_public_insecure",
+  feature = "v2_public",
+  feature = "v3_public",
+  feature = "v4_public"
+))]
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
 /// A wrapper for the private half of an asymmetric key pair (borrowed reference).

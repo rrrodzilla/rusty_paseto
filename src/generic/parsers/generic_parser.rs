@@ -4,12 +4,12 @@ use crate::generic::*;
 use core::marker::PhantomData;
 use serde_json::Value;
 use std::collections::HashMap;
- ///The GenericParser is created at compile time by specifying a PASETO version and purpose and
+ ///The `GenericParser` is created at compile time by specifying a PASETO version and purpose and
 ///providing a key of the same version and purpose. This structure allows parsing an untrusted token string
 ///and either decrypting (Local) or verifying the signtature of (Public) PASETO tokens and then
 ///parsing and validating [PASETO claims](https://github.com/paseto-standard/paseto-spec/blob/master/docs/02-Implementation-Guide/04-Claims.md).
 ///
-///The intent of the GenericParser is to allow the user to wrap basic PASETO standard
+///The intent of the `GenericParser` is to allow the user to wrap basic PASETO standard
 ///functionality with their own custom business rules or ergonomic API. For most users, the batteries-included
 ///[paseto parser](crate::prelude::PasetoParser) will be all they need. More advanced cases can wrap this
 ///or the [core](Paseto) struct to accomplish custom functionality.
@@ -80,7 +80,7 @@ impl<'a, 'b, Version, Purpose> GenericParser<'a, 'b, Version, Purpose> {
     self.claims.extend(value);
     self
   }
- ///Allows adding multiple [validators](PasetoClaim) at once to be checked during parsing by passing a [ValidatorMap] of claim keys and values
+ ///Allows adding multiple [validators](PasetoClaim) at once to be checked during parsing by passing a [`ValidatorMap`] of claim keys and values
   pub fn extend_validation_claims(&mut self, value: ValidatorMap) -> &mut Self {
     self.claim_validators.extend(value);
     self
@@ -102,7 +102,7 @@ impl<'a, 'b, Version, Purpose> GenericParser<'a, 'b, Version, Purpose> {
     }
     self
   }
- ///Allows user to pass a [PasetoClaim] along with a [custom function](ValidatorFn) to enable
+ ///Allows user to pass a [`PasetoClaim`] along with a [custom function](ValidatorFn) to enable
   ///custom validation algorithms on the claim. The claim can be a reserved claim or a custom
   ///claim.
   #[cfg(feature = "serde")]
@@ -113,7 +113,7 @@ impl<'a, 'b, Version, Purpose> GenericParser<'a, 'b, Version, Purpose> {
   ) -> &mut Self {
     self.set_validation_claim(value, Some(validation_closure))
   }
- ///Verifies a passed [PasetoClaim] exists
+ ///Verifies a passed [`PasetoClaim`] exists
   #[cfg(feature = "serde")]
   pub fn check_claim<T: PasetoClaim + 'b + serde::Serialize>(&mut self, value: T) -> &mut Self {
     self.set_validation_claim(value, None)
@@ -130,12 +130,12 @@ impl<'a, 'b, Version, Purpose> GenericParser<'a, 'b, Version, Purpose> {
 }
 
 impl<'a, 'b, Version: ImplicitAssertionCapable, Purpose> GenericParser<'a, 'b, Version, Purpose> {
-  ///Sets an optional [ImplicitAssertion] to use during parsing ([V3], [V4] tokens only)
+  ///Sets an optional [`ImplicitAssertion`] to use during parsing ([V3], [V4] tokens only)
   pub fn set_implicit_assertion(&mut self, implicit_assertion: ImplicitAssertion<'a>) -> &mut Self {
     self.implicit_assertion = implicit_assertion;
     self
   }
- ///Gets an optional [ImplicitAssertion] to use during parsing ([V3], [V4] tokens only)
+ ///Gets an optional [`ImplicitAssertion`] to use during parsing ([V3], [V4] tokens only)
   pub fn get_implicit_assertion(&self) -> ImplicitAssertion<'_> {
     self.implicit_assertion
   }
@@ -383,10 +383,10 @@ impl<'a, 'b> GenericParser<'a, 'b, V3, Local> {
 
 #[cfg(feature = "v4_local")]
 impl<'a, 'b> GenericParser<'a, 'b, V4, Local> {
-  /// Given a [PasetoSymmetricKey], attempts to decrypt a (V4, Local) encrypted PASETO token string and then validate
-  /// claims provided to the GenericParser.
+  /// Given a [`PasetoSymmetricKey`], attempts to decrypt a (V4, Local) encrypted PASETO token string and then validate
+  /// claims provided to the `GenericParser`.
   ///
-  /// Returns a serde_json [Value] with the decrypted [claims](PasetoClaim) and payload on success.
+  /// Returns a `serde_json` [Value] with the decrypted [claims](PasetoClaim) and payload on success.
   ///
   /// # Errors
   ///
@@ -692,10 +692,10 @@ impl<'a, 'b> GenericParser<'a, 'b, V3, Public> {
 
 #[cfg(feature = "v4_public")]
 impl<'a, 'b> GenericParser<'a, 'b, V4, Public> {
-  /// Given a [PasetoAsymmetricPublicKey], attempts to verify a (V4, Public) signed PASETO token string and then validate
-  /// claims provided to the GenericParser.
+  /// Given a [`PasetoAsymmetricPublicKey`], attempts to verify a (V4, Public) signed PASETO token string and then validate
+  /// claims provided to the `GenericParser`.
   ///
-  /// Returns a serde_json [Value] with the verified [claims](PasetoClaim) and payload on success.
+  /// Returns a `serde_json` [Value] with the verified [claims](PasetoClaim) and payload on success.
   ///
   /// # Errors
   ///

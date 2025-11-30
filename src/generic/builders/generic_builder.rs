@@ -4,12 +4,12 @@ use std::collections::HashMap;
 use serde_json::{Map, Value};
 
 use crate::generic::*;
- ///The GenericBuilder is created at compile time by specifying a PASETO version and purpose and
+ ///The `GenericBuilder` is created at compile time by specifying a PASETO version and purpose and
 ///providing a key of the same version and purpose. This structure allows setting [PASETO claims](https://github.com/paseto-standard/paseto-spec/blob/master/docs/02-Implementation-Guide/04-Claims.md),
 ///your own [custom claims](CustomClaim), an optional [footer](Footer) and in the case of V3/V4 tokens, an optional [implicit
 ///assertion](ImplicitAssertion).
 ///
-///The intent of the GenericBuilder is to allow the user to wrap basic PASETO standard
+///The intent of the `GenericBuilder` is to allow the user to wrap basic PASETO standard
 ///functionality with their own custom business rules or ergonomic API. For most users, the batteries-included
 ///[paseto builder](crate::prelude::PasetoBuilder) will be all they need. More advanced cases can wrap this
 ///or the [core](Paseto) struct to accomplish custom functionality.
@@ -135,7 +135,7 @@ impl<'a, 'b, Version, Purpose> GenericBuilder<'a, 'b, Version, Purpose> {
     ///
     /// # Returns
     /// A `Result` containing the JSON payload as a `String` or a `serde_json::Error`
-    /// Fixes (issue #39)[https://github.com/rrrodzilla/rusty_paseto/issues/39] reported by @xbb
+    /// Fixes [issue #39](https://github.com/rrrodzilla/rusty_paseto/issues/39) reported by @xbb
     pub fn build_payload_from_claims(&mut self) -> Result<String, serde_json::Error> {
         // Take the claims from the builder, replacing it with an empty HashMap
         let claims = std::mem::take(&mut self.claims);
@@ -415,8 +415,8 @@ impl GenericBuilder<'_, '_, V3, Local> {
 
 #[cfg(feature = "v4_local")]
 impl GenericBuilder<'_, '_, V4, Local> {
-    /// Given a [PasetoSymmetricKey], attempts to encrypt a (V4, Local) PASETO token from the data and
-    /// claims provided to the GenericBuilder.
+    /// Given a [`PasetoSymmetricKey`], attempts to encrypt a (V4, Local) PASETO token from the data and
+    /// claims provided to the `GenericBuilder`.
     ///
     /// Returns `Ok(String)` on success, where the String is the encrypted PASETO token, otherwise returns an error.
     ///
@@ -737,9 +737,9 @@ impl GenericBuilder<'_, '_, V3, Public> {
 
 #[cfg(feature = "v4_public")]
 impl GenericBuilder<'_, '_, V4, Public> {
-    /// Given a [PasetoAsymmetricPrivateKey], attempts to sign a ([V4], [Public]) PASETO token from the data and
-    /// claims provided to the GenericBuilder with an optional [Footer] and an optional
-    /// [ImplicitAssertion].
+    /// Given a [`PasetoAsymmetricPrivateKey`], attempts to sign a ([V4], [Public]) PASETO token from the data and
+    /// claims provided to the `GenericBuilder` with an optional [Footer] and an optional
+    /// [`ImplicitAssertion`].
     ///
     /// Returns `Ok(String)` on success, where the String is the signed PASETO token, otherwise returns an error.
     ///

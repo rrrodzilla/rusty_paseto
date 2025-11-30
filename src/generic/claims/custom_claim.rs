@@ -5,9 +5,9 @@ use serde::ser::SerializeMap;
 ///A custom PASETO claim which can be created with a key and a value T
 /// ## Setting your own Custom Claims
 ///
-/// The CustomClaim struct takes a tuple in the form of `(key: String, value: T)` where T is any
+/// The `CustomClaim` struct takes a tuple in the form of `(key: String, value: T)` where T is any
 /// serializable type
-/// #### Note: *CustomClaims use the TryFrom trait and return a Result<(), PasetoClaimError> if you attempt to use one of the [reserved PASETO keys](https://github.com/paseto-standard/paseto-spec/blob/master/docs/02-Implementation-Guide/04-Claims.md) in your CustomClaim*
+/// #### Note: *`CustomClaim`s use the `TryFrom` trait and return a `Result<(), PasetoClaimError>` if you attempt to use one of the [reserved PASETO keys](https://github.com/paseto-standard/paseto-spec/blob/master/docs/02-Implementation-Guide/04-Claims.md) in your `CustomClaim`*
 ///
 /// ```rust
 /// # use rusty_paseto::prelude::*;
@@ -40,7 +40,7 @@ use serde::ser::SerializeMap;
 /// # Ok::<(),anyhow::Error>(())
 /// ```
 /// # Validating claims
-/// rusty_paseto allows for flexible claim validation at parse time
+/// `rusty_paseto` allows for flexible claim validation at parse time
 ///
 /// ## Checking claims
 ///

@@ -3,12 +3,12 @@ use core::marker::PhantomData;
 use std::collections::HashSet;
 use std::convert::TryFrom;
 use time::format_description::well_known::Rfc3339;
- ///The PasetoBuilder is created at compile time by specifying a PASETO version and purpose and
+ ///The `PasetoBuilder` is created at compile time by specifying a PASETO version and purpose and
 ///providing a key of the same version and purpose. This structure allows setting [PASETO claims](https://github.com/paseto-standard/paseto-spec/blob/master/docs/02-Implementation-Guide/04-Claims.md),
 ///your own [custom claims](CustomClaim), an optional [footer](Footer) and in the case of V3/V4 tokens, an optional [implicit
 ///assertion](ImplicitAssertion).
 ///
-///The PasetoBuilder wraps the [GenericBuilder] with JWT style claims and business rules which align
+///The `PasetoBuilder` wraps the [`GenericBuilder`] with JWT style claims and business rules which align
 ///with the PASETO standard.
 /// For most users, this batteries-included struct
 /// will be all they need.
@@ -72,9 +72,9 @@ impl<'a, Version, Purpose> PasetoBuilder<'a, Version, Purpose> {
       dup_top_level_found: (false, String::default()),
     }
   }
- /// Given a [PasetoClaim], attempts to add it to the builder for inclusion in the payload of the
+ /// Given a [`PasetoClaim`], attempts to add it to the builder for inclusion in the payload of the
   /// token.
-  /// claims provided to the GenericBuilder. Overwrites the default 'nbf' (not before) claim if
+  /// claims provided to the `GenericBuilder`. Overwrites the default 'nbf' (not before) claim if
   /// provided. Prevents duplicate claims from being added.
   ///
   /// Returns a mutable reference to the builder on success.
@@ -114,7 +114,7 @@ impl<'a, Version, Purpose> PasetoBuilder<'a, Version, Purpose> {
     self
   }
  /// Sets the token to have no expiration date.
-  /// A **1 hour** ExpirationClaim is set by default because the use case for non-expiring tokens in the world of security tokens is fairly limited.
+  /// A **1 hour** `ExpirationClaim` is set by default because the use case for non-expiring tokens in the world of security tokens is fairly limited.
   ///  Omitting an expiration claim or forgetting to require one when processing them
   ///  is almost certainly an oversight rather than a deliberate choice.  
   ///  When it is a deliberate choice, you have the opportunity to deliberately remove this claim from the Builder.
@@ -185,7 +185,7 @@ impl<'a, Version, Purpose> PasetoBuilder<'a, Version, Purpose>
 where
   Version: ImplicitAssertionCapable,
 {
-  /// Sets an optional [ImplicitAssertion] on the token. ([V3] or [V4] tokens only)
+  /// Sets an optional [`ImplicitAssertion`] on the token. ([V3] or [V4] tokens only)
   ///
   /// Returns a mutable reference to the builder on success.
   ///
@@ -243,7 +243,7 @@ impl PasetoBuilder<'_, V1, Local> {
   /// Returns Ok(String) where the string is the encrypted PASETO token.
   ///
   /// # Errors
-  /// [GenericBuilderError] if there are [claim](PasetoClaim) or encryption issues.
+  /// [`GenericBuilderError`] if there are [claim](PasetoClaim) or encryption issues.
   ///
   /// # Example
   ///```
@@ -296,7 +296,7 @@ impl PasetoBuilder<'_, V2, Local> {
   /// Returns Ok(String) where the string is the encrypted PASETO token.
   ///
   /// # Errors
-  /// [GenericBuilderError] if there are [claim](PasetoClaim) or encryption issues.
+  /// [`GenericBuilderError`] if there are [claim](PasetoClaim) or encryption issues.
   ///
   /// # Example
   ///
@@ -351,7 +351,7 @@ impl PasetoBuilder<'_, V3, Local> {
   /// Returns Ok(String) where the string is the encrypted PASETO token.
   ///
   /// # Errors
-  /// [GenericBuilderError] if there are [claim](PasetoClaim) or encryption issues.
+  /// [`GenericBuilderError`] if there are [claim](PasetoClaim) or encryption issues.
   ///
   /// # Example
   ///
@@ -408,7 +408,7 @@ impl PasetoBuilder<'_, V4, Local> {
   /// Returns Ok(String) where the string is the encrypted PASETO token.
   ///
   /// # Errors
-  /// [GenericBuilderError] if there are [claim](PasetoClaim) or encryption issues.
+  /// [`GenericBuilderError`] if there are [claim](PasetoClaim) or encryption issues.
   ///
   /// # Example
   ///
@@ -460,12 +460,12 @@ impl PasetoBuilder<'_, V4, Local> {
 
 #[cfg(feature = "v1_public")]
 impl PasetoBuilder<'_, V1, Public> {
-  /// Given a [PasetoAsymmetricPrivateKey], attempts to validate claims meet PASETO standard requirements and then sign the token.
+  /// Given a [`PasetoAsymmetricPrivateKey`], attempts to validate claims meet PASETO standard requirements and then sign the token.
   ///
   /// Returns Ok(String) where the string is the signed PASETO token.
   ///
   /// # Errors
-  /// [GenericBuilderError] if there are [claim](PasetoClaim) or signing issues.
+  /// [`GenericBuilderError`] if there are [claim](PasetoClaim) or signing issues.
   ///
   /// # Example
   ///
@@ -532,12 +532,12 @@ impl PasetoBuilder<'_, V1, Public> {
 
 #[cfg(feature = "v2_public")]
 impl PasetoBuilder<'_, V2, Public> {
-  /// Given a [PasetoAsymmetricPrivateKey], attempts to validate claims meet PASETO standard requirements and then sign the token.
+  /// Given a [`PasetoAsymmetricPrivateKey`], attempts to validate claims meet PASETO standard requirements and then sign the token.
   ///
   /// Returns Ok(String) where the string is the signed PASETO token.
   ///
   /// # Errors
-  /// [GenericBuilderError] if there are [claim](PasetoClaim) or signing issues.
+  /// [`GenericBuilderError`] if there are [claim](PasetoClaim) or signing issues.
   ///
   /// # Example
   ///```
@@ -600,12 +600,12 @@ impl PasetoBuilder<'_, V2, Public> {
 
 #[cfg(feature = "v3_public")]
 impl PasetoBuilder<'_, V3, Public> {
-  /// Given a [PasetoAsymmetricPrivateKey], attempts to validate claims meet PASETO standard requirements and then sign the token.
+  /// Given a [`PasetoAsymmetricPrivateKey`], attempts to validate claims meet PASETO standard requirements and then sign the token.
   ///
   /// Returns Ok(String) where the string is the signed PASETO token.
   ///
   /// # Errors
-  /// [GenericBuilderError] if there are [claim](PasetoClaim) or signing issues.
+  /// [`GenericBuilderError`] if there are [claim](PasetoClaim) or signing issues.
   ///
   /// # Example
   ///```
@@ -675,12 +675,12 @@ impl PasetoBuilder<'_, V3, Public> {
 
 #[cfg(feature = "v4_public")]
 impl PasetoBuilder<'_, V4, Public> {
-  /// Given a [PasetoAsymmetricPrivateKey], attempts to validate claims meet PASETO standard requirements and then sign the token.
+  /// Given a [`PasetoAsymmetricPrivateKey`], attempts to validate claims meet PASETO standard requirements and then sign the token.
   ///
   /// Returns Ok(String) where the string is the signed PASETO token.
   ///
   /// # Errors
-  /// [GenericBuilderError] if there are [claim](PasetoClaim) or signing issues.
+  /// [`GenericBuilderError`] if there are [claim](PasetoClaim) or signing issues.
   ///
   /// # Example
   ///```

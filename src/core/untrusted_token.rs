@@ -14,7 +14,7 @@ use std::str;
 /// The footer and all other token components have **NOT** been cryptographically verified.
 /// - **DO** use footer contents for key selection and lookup
 /// - **DO NOT** use footer contents for security decisions
-/// - **DO NOT** trust any data until the token has been verified via [Paseto::try_decrypt] or [Paseto::try_verify]
+/// - **DO NOT** trust any data until the token has been verified via [`Paseto::try_decrypt`] or [`Paseto::try_verify`]
 ///
 /// The footer is authenticated as part of the PASETO token but only validated during the
 /// verification process. An attacker could craft a token with any footer contents, so treat

@@ -1,7 +1,7 @@
 //! The **core** architectural layer and feature contains only paseto primitives for lightweight
 //! encrypting / decrypting or signing / verification
 //!
-//! ![paseto_core_small](https://user-images.githubusercontent.com/24578097/147881920-14c52256-1a0c-40be-9f18-759a8c9ad77d.png)
+//! ![paseto core](https://user-images.githubusercontent.com/24578097/147881920-14c52256-1a0c-40be-9f18-759a8c9ad77d.png)
 //!
 //! The **core** feature requires you to specify the version and purpose
 //! ```toml

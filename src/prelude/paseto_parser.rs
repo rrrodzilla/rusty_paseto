@@ -2,13 +2,13 @@ use crate::generic::*;
 use core::marker::PhantomData;
 use serde_json::Value;
 use time::format_description::well_known::Rfc3339;
-///The PasetoParser validates and parses PASETO tokens. Created at compile time by specifying a PASETO version and purpose.
+///The `PasetoParser` validates and parses PASETO tokens. Created at compile time by specifying a PASETO version and purpose.
 ///
 ///This structure validates [PASETO claims](https://github.com/paseto-standard/paseto-spec/blob/master/docs/02-Implementation-Guide/04-Claims.md),
 ///[custom claims](CustomClaim), an optional [footer](Footer) and in the case of V3/V4 tokens, an optional [implicit
 ///assertion](ImplicitAssertion).
 ///
-///The PasetoParser wraps the [GenericParser] with JWT style claims and business rules which align
+///The `PasetoParser` wraps the [`GenericParser`] with JWT style claims and business rules which align
 ///with the PASETO standard. For most users, this batteries-included struct will be all they need.
 ///
 ///**Default Behavior**: `PasetoParser::default()` automatically validates expiration (`exp`) and not-before (`nbf`) claims.
@@ -94,7 +94,7 @@ impl<'a, Version, Purpose> PasetoParser<'a, Version, Purpose> {
       parser: GenericParser::default(),
     }
   }
-  /// Takes a [PasetoClaim] and a [ValidatorFn] and uses the function to validate the claim during
+  /// Takes a [`PasetoClaim`] and a [`ValidatorFn`] and uses the function to validate the claim during
   /// parsing and after decryption or signature verification.
   ///
   /// Returns a mutable reference to the parser
@@ -140,7 +140,7 @@ impl<'a, Version, Purpose> PasetoParser<'a, Version, Purpose> {
     self.parser.validate_claim(value, validation_closure);
     self
   }
-  /// Takes a [PasetoClaim] to ensure existence of the claim and it's value during
+  /// Takes a [`PasetoClaim`] to ensure existence of the claim and it's value during
   /// parsing and after decryption or signature verification.
   ///
   /// Returns a mutable reference to the parser
@@ -181,7 +181,7 @@ impl<'a, Version, Purpose> PasetoParser<'a, Version, Purpose>
 where
   Version: ImplicitAssertionCapable,
 {
-  ///Sets an optional [ImplicitAssertion] to use during parsing ([V3], [V4] tokens only)
+  ///Sets an optional [`ImplicitAssertion`] to use during parsing ([V3], [V4] tokens only)
   pub fn set_implicit_assertion(&mut self, implicit_assertion: ImplicitAssertion<'a>) -> &mut Self {
     self.parser.set_implicit_assertion(implicit_assertion);
     self
@@ -418,10 +418,10 @@ impl<'a> PasetoParser<'a, V3, Local> {
 
 #[cfg(feature = "v4_local")]
 impl<'a> PasetoParser<'a, V4, Local> {
-  /// Given a [PasetoSymmetricKey], attempts to decrypt a (V4, Local) encrypted PASETO token string and then validate
-  /// claims provided when building the PasetoParser.
+  /// Given a [`PasetoSymmetricKey`], attempts to decrypt a (V4, Local) encrypted PASETO token string and then validate
+  /// claims provided when building the `PasetoParser`.
   ///
-  /// Returns a serde_json [Value] with the decrypted [claims](PasetoClaim).
+  /// Returns a `serde_json` [Value] with the decrypted [claims](PasetoClaim).
   ///
   /// # Errors
   ///
@@ -708,10 +708,10 @@ impl<'a> PasetoParser<'a, V3, Public> {
 
 #[cfg(feature = "v4_public")]
 impl<'a> PasetoParser<'a, V4, Public> {
-  /// Given a [PasetoAsymmetricPrivateKey], attempts to verify a signed (V4, Public) PASETO token string and then validate
-  /// claims provided when building the PasetoParser.
+  /// Given a [`PasetoAsymmetricPublicKey`], attempts to verify a signed (V4, Public) PASETO token string and then validate
+  /// claims provided when building the `PasetoParser`.
   ///
-  /// Returns a serde_json [Value] with the verified [claims](PasetoClaim).
+  /// Returns a `serde_json` [Value] with the verified [claims](PasetoClaim).
   ///
   /// # Errors
   ///

@@ -82,11 +82,11 @@ pub enum PasetoError {
   ///Occurs when a string fails parsing as Utf8
   #[error("A Utf8 parsing error occurred")]
   Utf8Error {
-    ///Surfaced from std::str::Utf8
+    ///Surfaced from `std::str::Utf8Error`
     #[from]
     source: std::str::Utf8Error,
   },
-  ///A cipher error from the ChaCha algorithm
+  ///A cipher error from the `ChaCha` algorithm
   #[error("An unspecified cipher error occurred")]
   ChaChaCipherError,
   ///An infallible error
@@ -99,7 +99,7 @@ pub enum PasetoError {
   ///Occurs when a string fails conversion from Utf8
   #[error("A Utf8 parsing error occurred")]
   FromUtf8Error {
-    ///Surfaced from std::string::FromUtf8Error
+    ///Surfaced from `std::string::FromUtf8Error`
     #[from]
     source: std::string::FromUtf8Error,
   },

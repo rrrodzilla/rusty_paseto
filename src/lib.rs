@@ -16,11 +16,11 @@
 //!
 //!
 //! # Usage
-//!rusty_paseto is meant to be flexible and configurable for your specific use case.  Whether you want to get started quickly with sensible defaults, create your own version of rusty_paseto in order to customize your own defaults and functionality or just want to use the core PASETO crypto features, the crate is heavily feature gated to allow for your needs.  
+//! `rusty_paseto` is meant to be flexible and configurable for your specific use case.  Whether you want to get started quickly with sensible defaults, create your own version of `rusty_paseto` in order to customize your own defaults and functionality or just want to use the core PASETO crypto features, the crate is heavily feature gated to allow for your needs.  
 
 //! ## Architecture
 
-//! The rusty_paseto crate architecture is composed of three layers (batteries_included, generic and core) which can be further refined by the PASETO version(s) and purpose(s) required for your needs.  All layers use a common crypto core which includes various cipher crates depending on the version and purpose you choose.  The crate is heavily featured gated to allow you to use only the versions and purposes you need for your app which minimizes download compile times for using rusty_paseto.  A description of each architectural layer, their uses and limitations and how to minimize your required dependencies based on your required PASETO version and purpose follows:
+//! The `rusty_paseto` crate architecture is composed of three layers (`batteries_included`, generic and core) which can be further refined by the PASETO version(s) and purpose(s) required for your needs.  All layers use a common crypto core which includes various cipher crates depending on the version and purpose you choose.  The crate is heavily featured gated to allow you to use only the versions and purposes you need for your app which minimizes download compile times for using `rusty_paseto`.  A description of each architectural layer, their uses and limitations and how to minimize your required dependencies based on your required PASETO version and purpose follows:
 //!
 //! ### ⚠️ Feature-Gated Design - Important
 //!
@@ -62,16 +62,16 @@
 //! <img src="https://github.com/rrrodzilla/rusty_paseto/raw/main/assets/RustyPasetoPreludeArchitecture.png" width="150" />  <img src="https://github.com/rrrodzilla/rusty_paseto/raw/main/assets/RustyPasetoGenericArchitecture.png" width="150" /> <img src="https://github.com/rrrodzilla/rusty_paseto/raw/main/assets/RustyPasetoCoreArchitecture.png" width="150" />
 
 //!
-//! batteries_included  --> generic --> core
+//! `batteries_included`  --> generic --> core
 //!
 //! ### default
-//! The default feature is the quickest way to get started using rusty_paseto.
+//! The default feature is the quickest way to get started using `rusty_paseto`.
 //!
 //!
 //! <img src="https://github.com/rrrodzilla/rusty_paseto/raw/main/assets/RustyPasetoPreludeArchitecture.png" width="150" />
 
 //!
-//! The default feature includes the outermost architectural layer called batteries_included (described below) as well as the two latest PASETO versions (V3 - NIST MODERN, V4 - SODIUM MODERN) and the Public (Asymmetric) and Local (Symmetric) purposed key types for each of these versions.  That should be four specific version and purpose combinations however at the time of this writing I have yet to implement the V3 - Public combination, so there are 3 in the default feature.  Additionally, this feature includes JWT style claims and business rules for your PASETO token (default, but customizable expiration, issued at, not-before times, etc as described in the usage documentation and examples further below).
+//! The default feature includes the outermost architectural layer called `batteries_included` (described below) as well as the two latest PASETO versions (V3 - NIST MODERN, V4 - SODIUM MODERN) and the Public (Asymmetric) and Local (Symmetric) purposed key types for each of these versions.  That should be four specific version and purpose combinations however at the time of this writing I have yet to implement the V3 - Public combination, so there are 3 in the default feature.  Additionally, this feature includes JWT style claims and business rules for your PASETO token (default, but customizable expiration, issued at, not-before times, etc as described in the usage documentation and examples further below).
 //!
 //! ```toml
 //! ## Includes V3 (local) and V4 (local, public) versions, purposes and ciphers.
@@ -86,13 +86,13 @@
 //! # }
 //! ```
 //!
-//! ### batteries_included
+//! ### `batteries_included`
 //!
-//! The outermost architectural layer is called batteries_included.  This is what most people will need.  This feature includes JWT style claims and business rules for your PASETO token (default, but customizable expiration, issued at, not-before times, etc as described in the usage documentation and examples below).
+//! The outermost architectural layer is called `batteries_included`.  This is what most people will need.  This feature includes JWT style claims and business rules for your PASETO token (default, but customizable expiration, issued at, not-before times, etc as described in the usage documentation and examples below).
 //!
 //! <img src="https://github.com/rrrodzilla/rusty_paseto/raw/main/assets/RustyPasetoBatteriesIncludedArchitecture.png" width="150" />
 //!
-//! You must specify a version and purpose with this feature in order to reduce the size of your dependencies like in the following Cargo.toml entry which only includes the V4 - Local types with batteries_included functionality:
+//! You must specify a version and purpose with this feature in order to reduce the size of your dependencies like in the following Cargo.toml entry which only includes the V4 - Local types with `batteries_included` functionality:
 //!
 //! ```toml
 //! ## Includes only v4 modern sodium cipher crypto core and local (symmetric)
@@ -104,14 +104,14 @@
 //!
 //! #### Feature gates
 //! Valid version/purpose feature combinations are as follows:
-//! - "v1_local" (NIST Original Symmetric Encryption)
-//! - "v2_local" (Sodium Original Symmetric Encryption)
-//! - "v3_local" (NIST Modern Symmetric Encryption)
-//! - "v4_local" (Sodium Modern Symmetric Encryption)
-//! - "v1_public" (NIST Original Asymmetric Authentication)
-//! - "v2_public" (Sodium Original Asymmetric Authentication)
-//! - "v3_public" (NIST Modern Asymmetric Authentication)
-//! - "v4_public" (Sodium Modern Asymmetric Authentication)
+//! - `v1_local` (NIST Original Symmetric Encryption)
+//! - `v2_local` (Sodium Original Symmetric Encryption)
+//! - `v3_local` (NIST Modern Symmetric Encryption)
+//! - `v4_local` (Sodium Modern Symmetric Encryption)
+//! - `v1_public` (NIST Original Asymmetric Authentication)
+//! - `v2_public` (Sodium Original Asymmetric Authentication)
+//! - `v3_public` (NIST Modern Asymmetric Authentication)
+//! - `v4_public` (Sodium Modern Asymmetric Authentication)
 //!
 //! ```
 //! # #[cfg(feature = "default")]
@@ -122,11 +122,11 @@
 //! ```
 //! ### generic
 //!
-//! The generic architectural and feature layer allows you to create your own custom version of the batteries_included layer by following the same pattern I've used in the source code to create your own custom builder and parser.  This is probably not what you need as it is for advanced usage.  The feature includes a generic builder and parser along with claims for you to extend.
+//! The generic architectural and feature layer allows you to create your own custom version of the `batteries_included` layer by following the same pattern I've used in the source code to create your own custom builder and parser.  This is probably not what you need as it is for advanced usage.  The feature includes a generic builder and parser along with claims for you to extend.
 //!
 //! <img src="https://github.com/rrrodzilla/rusty_paseto/raw/main/assets/RustyPasetoGenericArchitecture.png" width="150" />
 //!
-//! It includes all the PASETO and custom claims but allows you to create different default claims in your custom builder and parser or use a different time crate or make up your own default business rules.  As with the batteries_included layer, parsed tokens get returned as a serder_json Value. Again, specify the version and purpose to include in the crypto core:
+//! It includes all the PASETO and custom claims but allows you to create different default claims in your custom builder and parser or use a different time crate or make up your own default business rules.  As with the `batteries_included` layer, parsed tokens get returned as a `serde_json` Value. Again, specify the version and purpose to include in the crypto core:
 //!
 //!
 //! ```toml
@@ -165,7 +165,7 @@
 //! ```
 //! # Examples
 //!
-//! ## Building and parsing tokens with batteries_included
+//! ## Building and parsing tokens with `batteries_included`
 //!
 //! Here's a basic, default token:
 //! ```
@@ -188,9 +188,9 @@
 //! * Has no [footer](https://github.com/paseto-standard/paseto-spec/tree/master/docs)
 //! * Has no [implicit assertion](https://github.com/paseto-standard/paseto-spec/tree/master/docs)
 //!   for V3 or V4 versioned tokens
-//! * Expires in **1 hour** after creation (due to an included default ExpirationClaim)
-//! * Contains an IssuedAtClaim defaulting to the current utc time the token was created
-//! * Contains a NotBeforeClaim defaulting to the current utc time the token was created
+//! * Expires in **1 hour** after creation (due to an included default `ExpirationClaim`)
+//! * Contains an `IssuedAtClaim` defaulting to the current utc time the token was created
+//! * Contains a `NotBeforeClaim` defaulting to the current utc time the token was created
 //!
 //!
 //! You can parse and validate an existing token with the following:
@@ -226,7 +226,7 @@
 //!
 //! ## A token with a footer
 //!
-//! PASETO tokens can have an [optional footer](https://github.com/paseto-standard/paseto-spec/tree/master/docs).  In rusty_paseto we have strict types for most things.  
+//! PASETO tokens can have an [optional footer](https://github.com/paseto-standard/paseto-spec/tree/master/docs).  In `rusty_paseto` we have strict types for most things.  
 //! So we can extend the previous example to add a footer to the token by using code like the
 //! following:
 //! ```rust
@@ -317,8 +317,8 @@
 //! ## Setting a different expiration time
 //!
 //! As mentioned, default tokens expire **1 hour** from creation time.  You can set your own
-//! expiration time by adding an ExpirationClaim which takes an ISO 8601 compliant datetime string.
-//! #### Note: *claims taking an ISO 8601 string use the TryFrom trait and return a Result<(),PasetoClaimError>*
+//! expiration time by adding an `ExpirationClaim` which takes an ISO 8601 compliant datetime string.
+//! #### Note: *claims taking an ISO 8601 string use the `TryFrom` trait and return a `Result<(),PasetoClaimError>`*
 //! ```rust
 //! # #[cfg(feature = "default")]
 //! # {
@@ -344,7 +344,7 @@
 //!
 //! ## Tokens that never expire
 //!
-//! A **1 hour** ExpirationClaim is set by default because the use case for non-expiring tokens in the world of security tokens is fairly limited.
+//! A **1 hour** `ExpirationClaim` is set by default because the use case for non-expiring tokens in the world of security tokens is fairly limited.
 //! Omitting an expiration claim or forgetting to require one when processing them
 //! is almost certainly an oversight rather than a deliberate choice.  
 //!
@@ -410,9 +410,9 @@
 //!
 //! ## Setting your own Custom Claims
 //!
-//! The CustomClaim struct takes a tuple in the form of `(key: String, value: T)` where T is any
+//! The `CustomClaim` struct takes a tuple in the form of `(key: String, value: T)` where T is any
 //! serializable type
-//! #### Note: *CustomClaims use the TryFrom trait and return a Result<(), PasetoClaimError> if you attempt to use one of the [reserved PASETO keys](https://github.com/paseto-standard/paseto-spec/blob/master/docs/02-Implementation-Guide/04-Claims.md) in your CustomClaim*
+//! #### Note: *`CustomClaim`s use the `TryFrom` trait and return a `Result<(), PasetoClaimError>` if you attempt to use one of the [reserved PASETO keys](https://github.com/paseto-standard/paseto-spec/blob/master/docs/02-Implementation-Guide/04-Claims.md) in your `CustomClaim`*
 //!
 //! ```rust
 //! # #[cfg(all(test, feature = "v4_local"))]
@@ -448,7 +448,7 @@
 //! # Ok::<(),anyhow::Error>(())
 //! ```
 //! # Validating claims
-//! rusty_paseto allows for flexible claim validation at parse time
+//! `rusty_paseto` allows for flexible claim validation at parse time
 //!
 //! ## Checking claims
 //!
@@ -567,7 +567,7 @@
 //! # Acknowledgments
 //!
 //! If the API of this crate doesn't suit your tastes, check out the other PASETO implementations
-//! in the Rust ecosystem which inspired rusty_paseto:
+//! in the Rust ecosystem which inspired `rusty_paseto`:
 //!
 //! - [paseto](https://crates.io/crates/paseto) - by [Cynthia Coan](https://crates.io/users/Mythra)
 //! - [pasetors](https://crates.io/crates/pasetors) - by [Johannes](https://crates.io/users/brycx)

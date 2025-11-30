@@ -7,7 +7,7 @@ use crate::core::{Base64Encodable, Footer, Header, ImplicitAssertion, ImplicitAs
 
 /// Used to build and encrypt / decrypt core PASETO tokens
 ///
-/// Given a [Payload], optional [Footer] and optional [ImplicitAssertion] ([V3] or [V4] only)
+/// Given a [Payload], optional [Footer] and optional [`ImplicitAssertion`] ([V3] or [V4] only)
 /// returns an encrypted token when [Local] is specified as the purpose or a signed token when
 /// [Public] is specified
 /// # Example usage
@@ -193,7 +193,7 @@ impl<'a, Version, Purpose> Paseto<'a, Version, Purpose>
         Purpose: PurposeTrait,
         Version: ImplicitAssertionCapable,
 {
-    /// Sets an optional [ImplicitAssertion] for the token
+    /// Sets an optional [`ImplicitAssertion`] for the token
     ///
     /// *NOTE:* Only for [V3] or [V4] tokens
     ///

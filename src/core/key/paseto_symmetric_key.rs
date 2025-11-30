@@ -8,7 +8,7 @@ use zeroize::{Zeroize, ZeroizeOnDrop};
 ///
 /// Keys are created from [Key] of size 32
 ///
-/// This type implements [Zeroize] and [ZeroizeOnDrop] to ensure the key material
+/// This type implements [Zeroize] and [`ZeroizeOnDrop`] to ensure the key material
 /// is securely cleared from memory when dropped.
 #[derive(Zeroize, ZeroizeOnDrop)]
 pub struct PasetoSymmetricKey<Version, Purpose> {

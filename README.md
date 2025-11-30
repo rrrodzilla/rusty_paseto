@@ -3,7 +3,7 @@
 
 <center><img align="center" style="display:block; margin-left:auto;margin-right:auto;" width="150" src="https://github.com/rrrodzilla/rusty_paseto/raw/main/assets/RustyPasetoLogo.png" /></center>
 
-<p align="center"> A type-driven, ergonomic implementation of the <a href="https://github.com/paseto-standard/paseto-spec">PASETO</a> protocol<br /> for secure stateless tokens.</p>
+<p align="center"> A type-driven, ergonomic implementation of the <a href="https://github.com/paseto-standard/paseto-spec">PASETO</a> protocol <br /> for secure stateless tokens.</p>
 
 
 ![unit tests](https://github.com/rrrodzilla/rusty_paseto/actions/workflows/rust.yml/badge.svg)
@@ -31,6 +31,12 @@
     - [Validating claims](#user-content-validating-claims)
         - [Checking claims](#user-content-checking-claims)
         - [Custom validation](#user-content-custom-validation)
+    - [PASERK (Platform-Agnostic Serialized Keys)](#user-content-paserk-platform-agnostic-serialized-keys)
+        - [Basic key serialization](#user-content-basic-key-serialization)
+        - [Key identification](#user-content-key-identification)
+        - [Key wrapping with PIE](#user-content-key-wrapping-with-pie)
+        - [Password-based key wrapping](#user-content-password-based-key-wrapping)
+        - [Sealing keys](#user-content-sealing-keys)
 3) [Architecture](#user-content-architecture)
     - [Feature gates](#user-content-feature-gates)
         - [default](#user-content-default)
@@ -371,6 +377,146 @@ use rusty_paseto::prelude::*;
 
 <h6 align="right"><a href="#user-content-table-of-contents">back to toc</a></h6>
 
+### PASERK (Platform-Agnostic Serialized Keys)
+
+[PASERK](https://github.com/paseto-standard/paserk) is an extension to PASETO that provides key serialization, identification, and wrapping capabilities. rusty_paseto provides comprehensive PASERK support for V2 and V4 keys.
+
+Enable PASERK support by adding the `paserk` feature:
+```toml
+rusty_paseto = { version = "latest", features = ["paserk", "v4_local"] }
+```
+
+#### Basic key serialization
+
+Serialize PASETO keys to portable PASERK strings and parse them back:
+```rust
+use rusty_paseto::prelude::*;
+
+let key = PasetoSymmetricKey::<V4, Local>::from(Key::from(b"wubbalubbadubdubwubbalubbadubdub"));
+
+// Serialize to PASERK format
+let paserk_string = key.to_paserk_string();  // "k4.local...."
+
+// Parse from PASERK string
+let parsed = PasetoSymmetricKey::<V4, Local>::try_from_paserk_str(&paserk_string)?;
+```
+
+Asymmetric keys work similarly:
+```rust
+use rusty_paseto::prelude::*;
+
+// Public and secret keys
+let public_key: PasetoAsymmetricPublicKey<V4, Public> = /* your key */;
+let secret_key: PasetoAsymmetricPrivateKey<V4, Public> = /* your key */;
+
+let public_paserk = public_key.to_paserk_string();  // "k4.public...."
+let secret_paserk = secret_key.to_paserk_string();  // "k4.secret...."
+```
+
+<h6 align="right"><a href="#user-content-table-of-contents">back to toc</a></h6>
+
+#### Key identification
+
+Generate deterministic key identifiers suitable for use in token footers:
+```rust
+use rusty_paseto::prelude::*;
+
+let key = PasetoSymmetricKey::<V4, Local>::from(Key::from(b"wubbalubbadubdubwubbalubbadubdub"));
+
+// Get the key identifier
+let key_id = key.paserk_id();  // "k4.lid...."
+
+// Asymmetric key IDs
+let public_id = public_key.paserk_id();  // "k4.pid...."
+let secret_id = secret_key.paserk_id();  // "k4.sid...."
+```
+
+Key identifiers are deterministic - the same key always produces the same ID.
+
+<h6 align="right"><a href="#user-content-table-of-contents">back to toc</a></h6>
+
+#### Key wrapping with PIE
+
+Wrap keys for secure storage using the PIE (Platform-Interoperable Encryption) protocol:
+```rust
+use rusty_paseto::prelude::*;
+use rusty_paseto::paserk::{PaserkLocal, PaserkLocalWrap, Pie, K4};
+
+let key = PasetoSymmetricKey::<V4, Local>::from(Key::from(b"wubbalubbadubdubwubbalubbadubdub"));
+let wrapping_key = PaserkLocal::<K4>::from([0x42u8; 32]);
+let paserk = key.to_paserk();
+
+// Wrap the key
+let wrapped = PaserkLocalWrap::<K4, Pie>::try_wrap(&paserk, &wrapping_key)?;
+let wrapped_string = wrapped.to_string();  // "k4.local-wrap.pie...."
+
+// Unwrap the key
+let parsed = PaserkLocalWrap::<K4, Pie>::try_from(wrapped_string.as_str())?;
+let unwrapped = parsed.try_unwrap(&wrapping_key)?;
+```
+
+Secret keys can also be wrapped:
+```rust
+use rusty_paseto::paserk::{PaserkSecretWrap};
+
+// Wrap a secret key
+let wrapped = PaserkSecretWrap::<K4, Pie>::try_wrap(&secret_paserk, &wrapping_key)?;
+// "k4.secret-wrap.pie...."
+```
+
+<h6 align="right"><a href="#user-content-table-of-contents">back to toc</a></h6>
+
+#### Password-based key wrapping
+
+Protect keys with a password using Argon2id key derivation:
+```rust
+use rusty_paseto::prelude::*;
+use rusty_paseto::paserk::{PaserkLocalPw, Argon2Params, K4};
+
+let key = PasetoSymmetricKey::<V4, Local>::from(Key::from(b"wubbalubbadubdubwubbalubbadubdub"));
+let password = b"super-secret-password";
+let params = Argon2Params {
+    memory_kib: 1024,
+    iterations: 1,
+    parallelism: 1,
+};
+let paserk = key.to_paserk();
+
+// Wrap with password
+let wrapped = PaserkLocalPw::<K4>::try_wrap(&paserk, password, params)?;
+let wrapped_string = wrapped.to_string();  // "k4.local-pw...."
+
+// Unwrap with password
+let parsed = PaserkLocalPw::<K4>::try_from(wrapped_string.as_str())?;
+let unwrapped = parsed.try_unwrap(password, params)?;
+```
+
+<h6 align="right"><a href="#user-content-table-of-contents">back to toc</a></h6>
+
+#### Sealing keys
+
+Encrypt symmetric keys using asymmetric cryptography for secure key distribution:
+```rust
+use rusty_paseto::prelude::*;
+use rusty_paseto::paserk::{PaserkSeal, PaserkSecret, K4};
+
+let key = PasetoSymmetricKey::<V4, Local>::from(Key::from(b"wubbalubbadubdubwubbalubbadubdub"));
+let secret = PaserkSecret::<K4>::from(keypair_bytes);
+let paserk = key.to_paserk();
+
+// Seal (encrypt with the public key derived from the secret)
+let sealed = PaserkSeal::<K4>::try_seal(&paserk, &secret)?;
+let sealed_string = sealed.to_string();  // "k4.seal...."
+
+// Unseal (decrypt with the secret key)
+let parsed = PaserkSeal::<K4>::try_from(sealed_string.as_str())?;
+let unsealed = parsed.try_unseal(&secret)?;
+```
+
+Note: Seal operations are non-deterministic - each seal produces a different output due to ephemeral key generation.
+
+<h6 align="right"><a href="#user-content-table-of-contents">back to toc</a></h6>
+
 ---
 
 ## Architecture
@@ -433,6 +579,9 @@ See [Issue #48](https://github.com/rrrodzilla/rusty_paseto/issues/48) for techni
  - "v2_public" (Sodium Original Asymmetric Authentication)
  - "v3_public" (NIST Modern Asymmetric Authentication)
  - "v4_public" (Sodium Modern Asymmetric Authentication)
+
+ Additional features:
+ - "paserk" (PASERK key serialization, identification, and wrapping - requires v2 or v4 version features)
 
 <h6 align="right"><a href="#user-content-table-of-contents">back to toc</a></h6>
 
@@ -548,10 +697,21 @@ See [Issue #48](https://github.com/rrrodzilla/rusty_paseto/issues/48) for techni
 
  ### [PASERK](https://github.com/paseto-standard/paserk) specification
 
-|lid|local|seal|local-wrap|local-pw|sid|public|pid|secret|secret-wrap|secret-pw|
-|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-|⚫|⚫|⚫|⚫|⚫|⚫|⚫|⚫|⚫|⚫|⚫|
- <div align="center"><p>🟢 - completed&nbsp;⚫ - planned</p></div>
+| Feature |V2.L|V2.P|V4.L|V4.P|
+| ------: |:---:|:---:|:---:|:---:|
+| local (k*.local.*) |🟢|N/A|🟢|N/A|
+| lid (k*.lid.*) |🟢|N/A|🟢|N/A|
+| public (k*.public.*) |N/A|🟢|N/A|🟢|
+| pid (k*.pid.*) |N/A|🟢|N/A|🟢|
+| secret (k*.secret.*) |N/A|🟢|N/A|🟢|
+| sid (k*.sid.*) |N/A|🟢|N/A|🟢|
+| local-wrap.pie (k*.local-wrap.pie.*) |⚫|N/A|🟢|N/A|
+| local-pw (k*.local-pw.*) |⚫|N/A|🟢|N/A|
+| secret-wrap.pie (k*.secret-wrap.pie.*) |N/A|⚫|N/A|🟢|
+| secret-pw (k*.secret-pw.*) |N/A|⚫|N/A|🟢|
+| seal (k*.seal.*) |N/A|⚫|N/A|🟢|
+
+ <div align="center"><p>🟢 - completed&nbsp;⚫ - planned&nbsp;N/A - not applicable</p></div>
 
 
 <h6 align="right"><a href="#user-content-table-of-contents">back to toc</a></h6>
@@ -587,5 +747,3 @@ File an [issue](https://github.com/rrrodzilla/rusty_paseto/issues/new/choose) or
 ---
 
 <h5 align="center">readme created with <a href="https://crates.io/crates/cargo-markdown">cargo-markdown</a></h5>
-
-

@@ -1,4 +1,4 @@
-use crate::core::traits::*;
+use crate::core::traits::PurposeTrait;
 use std::fmt;
 use std::fmt::Display;
 

@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
 #[derive(Default)]
-pub(crate) struct EncryptionKey<Version, Purpose> {
+pub struct EncryptionKey<Version, Purpose> {
     pub(crate) version: PhantomData<Version>,
     pub(crate) purpose: PhantomData<Purpose>,
     pub(crate) key: Vec<u8>,

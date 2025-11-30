@@ -13,7 +13,7 @@ impl CipherText<V4, Local> {
         let mut cipher = chacha20::XChaCha20::new(encryption_key.as_ref(), n2);
         cipher.apply_keystream(&mut ciphertext);
 
-        CipherText {
+        Self {
             ciphertext,
             version: PhantomData,
             purpose: PhantomData,

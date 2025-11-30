@@ -448,7 +448,7 @@ impl<'a, 'b> GenericParser<'a, 'b, V4, Local> {
   }
 }
 
-#[cfg(feature = "v1_public")]
+#[cfg(feature = "v1_public_insecure")]
 impl<'a, 'b> GenericParser<'a, 'b, V1, Public> {
   /// Given a [PasetoAsymmetricPublicKey], attempts to verify a (V1, Public) signed PASETO token string and then validate
   /// claims provided to the GenericParser.
@@ -459,18 +459,24 @@ impl<'a, 'b> GenericParser<'a, 'b, V1, Public> {
   ///
   /// Returns [`GenericParserError`] for any errors when decrypting the encrypted payload or when validating claims.
   ///
+  /// # Deprecated
+  ///
+  /// V1 public tokens use RSA which is vulnerable to RUSTSEC-2023-0071 (Marvin Attack). Use V4 instead.
+  ///
   /// # Example
   ///
   ///```
-  ///# #[cfg(all(feature = "generic", feature="v1_public"))]
+  ///# #[cfg(all(feature = "generic", feature="v1_public_insecure"))]
   ///# {
   ///   # use rusty_paseto::generic::*;
   ///    //obtain a private key (pk)
   ///   # let private_key = include_bytes!("../../../tests/v1_public_test_vectors_private_key.pk8");
   ///   # let pk: &[u8] = private_key;
+  ///    #[allow(deprecated)]
   ///    let private_key = PasetoAsymmetricPrivateKey::<V1, Public>::from(pk);
   ///     let footer = Footer::from("some footer");
  ///     //sign a public V1 token
+  ///     #[allow(deprecated)]
   ///     let token = GenericBuilder::<V1, Public>::default()
   ///       .set_claim(AudienceClaim::from("customers"))
   ///       .set_claim(SubjectClaim::from("loyal subjects"))
@@ -487,8 +493,10 @@ impl<'a, 'b> GenericParser<'a, 'b, V1, Public> {
   /// //obtain a public key (pubk)
   ///   #  let public_key = include_bytes!("../../../tests/v1_public_test_vectors_public_key.der");
   ///   #  let pubk: &[u8] = public_key;
+  ///     #[allow(deprecated)]
   ///     let public_key = PasetoAsymmetricPublicKey::<V1, Public>::from(pubk);
   ///     //now let's try to verify it
+  ///     #[allow(deprecated)]
   ///     let json = GenericParser::<V1, Public>::default()
   ///       .set_footer(footer)
   ///       .check_claim(AudienceClaim::from("customers"))
@@ -516,6 +524,11 @@ impl<'a, 'b> GenericParser<'a, 'b, V1, Public> {
   ///  # }
   /// # Ok::<(),anyhow::Error>(())
   ///```
+  #[deprecated(
+      since = "0.8.1",
+      note = "V1 public tokens use RSA which is vulnerable to RUSTSEC-2023-0071 (Marvin Attack). Use V4 instead."
+  )]
+  #[allow(deprecated)]
   pub fn parse(
     &mut self,
     potential_token: &'a str,
@@ -542,7 +555,7 @@ impl<'a, 'b> GenericParser<'a, 'b, V2, Public> {
   /// # Example
   ///
   ///```
-  ///# #[cfg(all(feature = "generic", feature="v1_public"))]
+  ///# #[cfg(all(feature = "generic", feature="v2_public"))]
   ///# {
   ///   # use rusty_paseto::generic::*;
   ///    //obtain a key

@@ -15,7 +15,7 @@ impl<'a> Deref for Payload<'a> {
   }
 }
 
-impl<'a> AsRef<str> for Payload<'a> {
+impl AsRef<str> for Payload<'_> {
   fn as_ref(&self) -> &str {
     self.0
   }
@@ -27,7 +27,7 @@ impl<'a> From<&'a str> for Payload<'a> {
   }
 }
 
-impl<'a, R> PartialEq<R> for Payload<'a>
+impl<R> PartialEq<R> for Payload<'_>
 where
   R: AsRef<str>,
 {
@@ -36,7 +36,7 @@ where
   }
 }
 
-impl<'a> fmt::Display for Payload<'a> {
+impl fmt::Display for Payload<'_> {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "{}", self.0)
   }

@@ -1,8 +1,8 @@
 use ring::hkdf;
 use crate::core::PasetoError;
 
-#[derive(Debug, PartialEq)]
-pub(crate) struct HkdfKey<T: core::fmt::Debug + PartialEq>(pub T);
+#[derive(Debug, PartialEq, Eq)]
+pub struct HkdfKey<T: core::fmt::Debug + PartialEq>(pub T);
 
 impl hkdf::KeyType for HkdfKey<usize> {
     fn len(&self) -> usize {

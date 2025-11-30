@@ -10,6 +10,20 @@
 //!
 //! This crate is a type-driven, ergonomic implementation of the [PASETO](https://github.com/paseto-standard/paseto-spec) protocol for secure stateless tokens.
 //!
+//! # ⚠️ Security Advisory
+//!
+//! **V1 Public Tokens (`v1_public_insecure` feature)**: The V1 PASETO version uses RSA-PSS which is
+//! affected by [RUSTSEC-2023-0071](https://rustsec.org/advisories/RUSTSEC-2023-0071) (Marvin Attack).
+//! This timing side-channel vulnerability allows potential key recovery in RSA decryption operations.
+//!
+//! **Recommendation**: Use **V4** (`v4_public`) for all new public-key PASETO implementations.
+//! V4 uses Ed25519 signatures which are not affected by this vulnerability.
+//!
+//! The `v1_public_insecure` feature has been renamed to clearly indicate its security status and all
+//! V1 public types are marked as `#[deprecated]`. If you must use V1 public tokens for legacy
+//! compatibility, explicitly enable the `v1_public_insecure` feature and use `#[allow(deprecated)]`
+//! to acknowledge the security risk.
+//!
 //! > "Paseto is everything you love about JOSE (JWT, JWE, JWS) without any of the
 //!> [many design deficits that plague the JOSE standards](https://paragonie.com/blog/2017/03/jwt-json-web-tokens-is-bad-standard-that-everyone-should-avoid)."
 //! > -- [PASETO Specification](https://github.com/paseto-standard/paseto-spec)
@@ -51,7 +65,7 @@
 //!
 //! ```toml
 //! # Multiple public features ❌ (Trait conflict)
-//! rusty_paseto = { version = "latest", features = ["v1_public", "v2_public"] }
+//! rusty_paseto = { version = "latest", features = ["v1_public_insecure", "v2_public"] }
 //! rusty_paseto = { version = "latest", features = ["v3_public", "v4_public"] }
 //! ```
 //!
@@ -108,7 +122,7 @@
 //! - `v2_local` (Sodium Original Symmetric Encryption)
 //! - `v3_local` (NIST Modern Symmetric Encryption)
 //! - `v4_local` (Sodium Modern Symmetric Encryption)
-//! - `v1_public` (NIST Original Asymmetric Authentication)
+//! - `v1_public_insecure` (NIST Original Asymmetric Authentication - **INSECURE**: Vulnerable to RUSTSEC-2023-0071)
 //! - `v2_public` (Sodium Original Asymmetric Authentication)
 //! - `v3_public` (NIST Modern Asymmetric Authentication)
 //! - `v4_public` (Sodium Modern Asymmetric Authentication)
@@ -226,7 +240,7 @@
 //!
 //! ## A token with a footer
 //!
-//! PASETO tokens can have an [optional footer](https://github.com/paseto-standard/paseto-spec/tree/master/docs).  In `rusty_paseto` we have strict types for most things.  
+//! PASETO tokens can have an [optional footer](https://github.com/paseto-standard/paseto-spec/tree/master/docs). In `rusty_paseto` we have strict types for most things.
 //! So we can extend the previous example to add a footer to the token by using code like the
 //! following:
 //! ```rust
@@ -578,19 +592,19 @@
 // Multiple public features cause conflicting trait implementations for PasetoError
 #[cfg(all(
   feature = "v3_public",
-  any(feature = "v1_public", feature = "v2_public", feature = "v4_public")
+  any(feature = "v1_public_insecure", feature = "v2_public", feature = "v4_public")
 ))]
 compile_error!(
   "Cannot enable v3_public with other public features due to conflicting trait implementations. \n\
-     Choose only ONE public feature: v1_public, v2_public, v3_public, or v4_public. \n\
+     Choose only ONE public feature: v1_public_insecure, v2_public, v3_public, or v4_public. \n\
      The PASETO specification recommends using a single version throughout your application. \n\
      See: https://github.com/rrrodzilla/rusty_paseto/issues/48"
 );
 
-#[cfg(all(feature = "v1_public", any(feature = "v2_public", feature = "v4_public")))]
+#[cfg(all(feature = "v1_public_insecure", any(feature = "v2_public", feature = "v4_public")))]
 compile_error!(
-    "Cannot enable multiple public features (v1_public with v2_public or v4_public) due to conflicting trait implementations. \n\
-     Choose only ONE public feature: v1_public, v2_public, v3_public, or v4_public. \n\
+    "Cannot enable multiple public features (v1_public_insecure with v2_public or v4_public) due to conflicting trait implementations. \n\
+     Choose only ONE public feature: v1_public_insecure, v2_public, v3_public, or v4_public. \n\
      The PASETO specification recommends using a single version throughout your application. \n\
      See: https://github.com/rrrodzilla/rusty_paseto/issues/48"
 );
@@ -598,7 +612,7 @@ compile_error!(
 #[cfg(all(feature = "v2_public", feature = "v4_public"))]
 compile_error!(
   "Cannot enable both v2_public and v4_public due to conflicting trait implementations. \n\
-     Choose only ONE public feature: v1_public, v2_public, v3_public, or v4_public. \n\
+     Choose only ONE public feature: v1_public_insecure, v2_public, v3_public, or v4_public. \n\
      The PASETO specification recommends using a single version throughout your application. \n\
      See: https://github.com/rrrodzilla/rusty_paseto/issues/48"
 );

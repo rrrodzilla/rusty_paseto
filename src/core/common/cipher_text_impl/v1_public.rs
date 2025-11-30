@@ -1,4 +1,4 @@
-#![cfg(feature = "v1_public")]
+#![cfg(feature = "v1_public_insecure")]
 use std::marker::PhantomData;
 use ring::signature::{RSA_PSS_2048_8192_SHA384, UnparsedPublicKey};
 use crate::core::common::{CipherText, PreAuthenticationEncoding};

@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 use std::ops::Deref;
 
-pub(crate) struct AuthenticationKey<Version, Purpose> {
+pub struct AuthenticationKey<Version, Purpose> {
     pub(crate) version: PhantomData<Version>,
     pub(crate) purpose: PhantomData<Purpose>,
     pub(crate) key: Vec<u8>,

@@ -1,5 +1,5 @@
 #![allow(unused)]
-pub(crate) mod cipher_text;
+pub mod cipher_text;
 mod encryption_key;
 mod encryption_nonce;
 mod tag;
@@ -15,12 +15,12 @@ mod raw_payload_impl;
 mod authentication_key_impl;
 mod cipher_text_impl;
 
-pub(crate) use encryption_key::EncryptionKey;
-pub(crate) use raw_payload::RawPayload;
-pub(crate) use pre_authentication_encoding::PreAuthenticationEncoding;
-pub(crate) use cipher_text::CipherText;
-pub(crate) use authentication_key::AuthenticationKey;
-pub(crate) use authentication_key_separator::AuthenticationKeySeparator;
-pub(crate) use encryption_key_separator::EncryptionKeySeparator;
-pub(crate) use tag::Tag;
-pub(crate) use hkdf_key::HkdfKey;
+pub use encryption_key::EncryptionKey;
+pub use raw_payload::RawPayload;
+pub use pre_authentication_encoding::PreAuthenticationEncoding;
+pub use cipher_text::CipherText;
+pub use authentication_key::AuthenticationKey;
+pub use authentication_key_separator::AuthenticationKeySeparator;
+pub use encryption_key_separator::EncryptionKeySeparator;
+pub use tag::Tag;
+pub use hkdf_key::HkdfKey;

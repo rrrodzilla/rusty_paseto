@@ -280,8 +280,9 @@ mod v1_test_vectors {
     Ok(())
   }
 
-  #[cfg(feature = "v1_public")]
+  #[cfg(feature = "v1_public_insecure")]
   #[test]
+  #[allow(deprecated)]
   fn test_1_s_1() -> Result<()> {
     let private_key = include_bytes!("v1_public_test_vectors_private_key.pk8");
     let pk: &[u8] = private_key;
@@ -306,8 +307,9 @@ mod v1_test_vectors {
     Ok(())
   }
 
-  #[cfg(feature = "v1_public")]
+  #[cfg(feature = "v1_public_insecure")]
   #[test]
+  #[allow(deprecated)]
   fn test_1_s_2() -> Result<()> {
     //setup
     let private_key = include_bytes!("v1_public_test_vectors_private_key.pk8");
@@ -341,8 +343,9 @@ mod v1_test_vectors {
     Ok(())
   }
 
-  #[cfg(feature = "v1_public")]
+  #[cfg(feature = "v1_public_insecure")]
   #[test]
+  #[allow(deprecated)]
   fn test_1_s_3() -> Result<()> {
     //setup
     let private_key = include_bytes!("v1_public_test_vectors_private_key.pk8");
@@ -375,7 +378,7 @@ mod v1_test_vectors {
     Ok(())
   }
 
-  #[cfg(feature = "v1_public")]
+  #[cfg(feature = "v1_public_insecure")]
   #[test]
   #[should_panic]
   fn test_1_f_1() {
@@ -383,7 +386,7 @@ mod v1_test_vectors {
     panic!("non-compileable test")
   }
 
-  #[cfg(feature = "v1_public")]
+  #[cfg(feature = "v1_public_insecure")]
   #[test]
   #[should_panic]
   fn test_1_f_2() {

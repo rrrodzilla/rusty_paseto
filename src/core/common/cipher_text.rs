@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-pub(crate) struct CipherText<Version, Purpose> {
+pub struct CipherText<Version, Purpose> {
     pub(crate) ciphertext: Vec<u8>,
     pub(crate) version: PhantomData<Version>,
     pub(crate) purpose: PhantomData<Purpose>,

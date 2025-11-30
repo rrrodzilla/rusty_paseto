@@ -4,7 +4,7 @@ use std::ops::{Add, Deref};
 use crate::core::{Key, Local, PasetoNonce};
 
 #[derive(Debug)]
-pub (crate) struct AuthenticationKeySeparator(&'static str);
+pub struct AuthenticationKeySeparator(&'static str);
 
 impl Display for AuthenticationKeySeparator {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -32,7 +32,7 @@ impl AsRef<str> for AuthenticationKeySeparator {
     }
 }
 
-impl<'a, Version> Add<&PasetoNonce<'a, Version, Local>> for AuthenticationKeySeparator {
+impl<Version> Add<&PasetoNonce<'_, Version, Local>> for AuthenticationKeySeparator {
     type Output = Key<56>;
 
     fn add(self, rhs: &PasetoNonce<Version, Local>) -> Self::Output {

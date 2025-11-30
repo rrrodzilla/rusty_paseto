@@ -16,7 +16,7 @@ pub trait V2orV4: VersionTrait {}
 
 /// Enable a type to encode/decode to/from base64 and compare itself to another implementer using
 /// constant time comparision
-pub(crate) trait Base64Encodable<T: ?Sized + AsRef<[u8]>>: Display + AsRef<T> {
+pub trait Base64Encodable<T: ?Sized + AsRef<[u8]>>: Display + AsRef<T> {
   fn encode(&self) -> String {
     BASE64_URL_SAFE_NO_PAD.encode(self.as_ref())
   }

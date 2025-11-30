@@ -1,9 +1,9 @@
-use super::*;
+use super::{Base64Encodable, PasetoError, UntrustedToken};
 use std::fmt;
 use std::ops::Deref;
 
 /// Unencrypted text, potentially JSON or some other structured format, typically used for key rotation schemes, packed into the
-/// payload as part of the cipher scheme.  
+/// payload as part of the cipher scheme.
 ///
 /// # Usage
 /// ```
@@ -26,7 +26,7 @@ use std::ops::Deref;
 #[derive(Default, Debug, Clone, Copy)]
 pub struct Footer<'a>(&'a str);
 
-impl<'a> Base64Encodable<str> for Footer<'a> {}
+impl Base64Encodable<str> for Footer<'_> {}
 
 impl<'a> Deref for Footer<'a> {
   type Target = [u8];
@@ -36,7 +36,7 @@ impl<'a> Deref for Footer<'a> {
   }
 }
 
-impl<'a> AsRef<str> for Footer<'a> {
+impl AsRef<str> for Footer<'_> {
   fn as_ref(&self) -> &str {
     self.0
   }
@@ -46,19 +46,19 @@ impl<'a> From<&'a str> for Footer<'a> {
     Self(s)
   }
 }
-impl<'a> fmt::Display for Footer<'a> {
+impl fmt::Display for Footer<'_> {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "{}", self.0)
   }
 }
-impl<'a> PartialEq for Footer<'a> {
+impl PartialEq for Footer<'_> {
   fn eq(&self, other: &Self) -> bool {
     self.0 == other.0
   }
 }
-impl<'a> Eq for Footer<'a> {}
+impl Eq for Footer<'_> {}
 
-impl<'a> Footer<'a> {
+impl Footer<'_> {
   /// Extracts the footer from an untrusted PASETO token without cryptographic verification.
   ///
   /// This is a convenience method that parses the token structure and returns the decoded footer

@@ -18,7 +18,7 @@ impl<Version> crate::core::common::tag::Tag<Version, Local>
         let out = mac.finalize();
 
         Ok(Self {
-            tag: out.into_bytes().to_vec(),
+            value: out.into_bytes().to_vec(),
             version: PhantomData,
             purpose: PhantomData,
         })

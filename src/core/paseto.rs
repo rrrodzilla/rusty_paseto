@@ -87,8 +87,9 @@ impl<'a, Version: VersionTrait, Purpose: PurposeTrait> Paseto<'a, Version, Purpo
     /// }
     /// # Ok::<(),anyhow::Error>(())
     /// ```
-    pub fn builder() -> Paseto<'a, Version, Purpose> {
-        Self { ..Default::default() }
+    #[must_use]
+    pub fn builder() -> Self {
+        Self::default()
     }
 
     /// Sets the payload for the token
@@ -135,11 +136,11 @@ impl<'a, Version: VersionTrait, Purpose: PurposeTrait> Paseto<'a, Version, Purpo
 
     /* BEGIN PRIVATE FUNCTIONS */
     pub(crate) fn format_token(&self, encrypted_payload: &str) -> String {
-        let footer = self.footer.map(|f| f.encode());
-        match footer {
-            Some(f) => format!("{}{}.{}", self.header, encrypted_payload, f),
-            None => format!("{}{}", self.header, encrypted_payload),
-        }
+        let header = &self.header;
+        self.footer.map(|f| f.encode()).map_or_else(
+            || format!("{header}{encrypted_payload}"),
+            |f| format!("{header}{encrypted_payload}.{f}"),
+        )
     }
 
     pub(crate) fn parse_raw_token(
@@ -173,14 +174,14 @@ impl<'a, Version: VersionTrait, Purpose: PurposeTrait> Paseto<'a, Version, Purpo
         }
 
         //grab the header
-        let potential_header = format!("{}.{}.", version_part, purpose_part);
+        let potential_header = format!("{version_part}.{purpose_part}.");
         //we should be able to verify the header using the passed in Version and Purpose
-        let expected_header = format!("{}.{}.", v, p);
+        let expected_header = format!("{v}.{p}.");
 
         //verify the header using constant-time comparison to prevent timing attacks
         if !bool::from(potential_header.as_bytes().ct_eq(expected_header.as_bytes())) {
             return Err(PasetoError::WrongHeader);
-        };
+        }
 
         let encrypted_payload = Payload::from(*payload_part);
         Ok(encrypted_payload.decode()?)

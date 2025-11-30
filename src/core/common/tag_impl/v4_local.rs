@@ -13,9 +13,9 @@ impl crate::core::common::tag::Tag<V4, Local> {
         let mut tag_context = Blake2bMac::<U32>::new_from_slice(authentication_key.as_ref())?;
         tag_context.update(pae.as_ref());
         let binding = tag_context.finalize_fixed();
-        let tag = binding.to_vec();
+        let value = binding.to_vec();
         Ok(Self {
-            tag,
+            value,
             version: PhantomData,
             purpose: PhantomData,
         })

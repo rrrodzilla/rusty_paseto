@@ -36,14 +36,14 @@ pub struct PasetoNonce<'a, Version, Purpose> {
   pub(crate) key: &'a [u8],
 }
 
-impl<'a, Version, Purpose> Deref for PasetoNonce<'a, Version, Purpose> {
+impl<Version, Purpose> Deref for PasetoNonce<'_, Version, Purpose> {
   type Target = [u8];
   fn deref(&self) -> &Self::Target {
     self.key
   }
 }
 
-impl<'a, Version, Purpose> AsRef<[u8]> for PasetoNonce<'a, Version, Purpose> {
+impl<Version, Purpose> AsRef<[u8]> for PasetoNonce<'_, Version, Purpose> {
   fn as_ref(&self) -> &[u8] {
     self.key
   }

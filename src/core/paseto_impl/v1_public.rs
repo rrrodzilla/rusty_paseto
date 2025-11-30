@@ -1,4 +1,4 @@
-#![cfg(feature = "v1_public")]
+#![cfg(feature = "v1_public_insecure")]
 use ring::rand::SystemRandom;
 use ring::signature::{RSA_PSS_SHA384, RsaKeyPair};
 use crate::core::{Footer, Paseto, PasetoAsymmetricPrivateKey, PasetoAsymmetricPublicKey, PasetoError, Public, V1};

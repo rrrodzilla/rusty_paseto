@@ -1,4 +1,4 @@
-use super::*;
+use super::{Base64Encodable, Footer, PasetoError};
 use std::str;
 
 /// Represents a PASETO token that has been structurally parsed but **NOT** cryptographically verified.
@@ -130,7 +130,8 @@ impl<'a> UntrustedToken<'a> {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn version(&self) -> &str {
+    #[must_use]
+    pub const fn version(&self) -> &str {
         self.version
     }
 
@@ -149,7 +150,8 @@ impl<'a> UntrustedToken<'a> {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn purpose(&self) -> &str {
+    #[must_use]
+    pub const fn purpose(&self) -> &str {
         self.purpose
     }
 
@@ -177,7 +179,8 @@ impl<'a> UntrustedToken<'a> {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn footer_base64(&self) -> Option<&str> {
+    #[must_use]
+    pub const fn footer_base64(&self) -> Option<&str> {
         self.footer
     }
 

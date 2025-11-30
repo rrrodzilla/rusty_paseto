@@ -10,10 +10,10 @@ impl PreAuthenticationEncoding {
     ///   Refactored from original code found at
     ///   <https://github.com/instructure/paseto/blob/trunk/src/pae.rs>
     pub fn parse<'a>(pieces: &'a [&'a [u8]]) -> Self {
-        let the_vec = PreAuthenticationEncoding::le64(pieces.len() as u64);
+        let the_vec = Self::le64(pieces.len() as u64);
 
         Self(pieces.iter().fold(the_vec, |mut acc, piece| {
-            acc.extend(PreAuthenticationEncoding::le64(piece.len() as u64));
+            acc.extend(Self::le64(piece.len() as u64));
             acc.extend(piece.iter());
             acc
         }))
@@ -38,7 +38,7 @@ impl Deref for PreAuthenticationEncoding {
     type Target = [u8];
 
     fn deref(&self) -> &Self::Target {
-        self.0.deref()
+        &self.0
     }
 }
 

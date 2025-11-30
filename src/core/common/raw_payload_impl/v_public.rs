@@ -1,4 +1,4 @@
-#![cfg(any(feature = "v1_public", feature = "v2_public", feature = "v3_public", feature = "v4_public"))]
+#![cfg(any(feature = "v1_public_insecure", feature = "v2_public", feature = "v3_public", feature = "v4_public"))]
 use base64::prelude::*;
 use crate::core::common::RawPayload;
 use crate::core::Public;

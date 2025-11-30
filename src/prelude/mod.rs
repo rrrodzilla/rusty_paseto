@@ -19,7 +19,7 @@
 //! - `v2_local` (Sodium Original Symmetric Encryption)
 //! - `v3_local` (NIST Modern Symmetric Encryption)
 //! - `v4_local` (Sodium Modern Symmetric Encryption)
-//! - `v1_public` (NIST Original Asymmetric Authentication)
+//! - `v1_public_insecure` (NIST Original Asymmetric Authentication - **INSECURE**: Vulnerable to RUSTSEC-2023-0071)
 //! - `v2_public` (Sodium Original Asymmetric Authentication)
 //! - `v3_public` (NIST Modern Asymmetric Authentication)
 //! - `v4_public` (Sodium Modern Asymmetric Authentication)

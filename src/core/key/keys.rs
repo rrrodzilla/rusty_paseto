@@ -32,7 +32,7 @@ impl<const KEYSIZE: usize> Deref for Key<KEYSIZE> {
 
 impl<const KEYSIZE: usize> From<&[u8]> for Key<KEYSIZE> {
   fn from(key: &[u8]) -> Self {
-    let mut me = Key::<KEYSIZE>::default();
+    let mut me = Self::default();
     me.0.copy_from_slice(key);
     me
   }
@@ -57,14 +57,18 @@ impl<const KEYSIZE: usize> TryFrom<&str> for Key<KEYSIZE> {
     if key.len() != KEYSIZE {
       return Err(PasetoError::InvalidKey);
     }
-    let mut me = Key::<KEYSIZE>::default();
+    let mut me = Self::default();
     me.0.copy_from_slice(&key);
     Ok(me)
   }
 }
 
 impl<const KEYSIZE: usize> Key<KEYSIZE> {
-  /// Uses the system's RNG to create a random slice of bytes of a specific size
+  /// Uses the system's RNG to create a random slice of bytes of a specific size.
+  ///
+  /// # Errors
+  ///
+  /// Returns [`PasetoError::Cipher`] if the system's random number generator fails to fill the buffer.
   pub fn try_new_random() -> Result<Self, PasetoError> {
     let rng = SystemRandom::new();
     let mut buf = [0u8; KEYSIZE];

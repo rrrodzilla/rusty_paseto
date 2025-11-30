@@ -1,5 +1,5 @@
 #![cfg(any(feature = "v4", doc))]
-use crate::core::traits::*;
+use crate::core::traits::{ImplicitAssertionCapable, V2orV4, VersionTrait};
 use std::fmt;
 use std::fmt::Display;
 

@@ -1,4 +1,4 @@
-use super::*;
+use super::{PurposeTrait, VersionTrait};
 use std::fmt;
 use std::fmt::Display;
 use std::marker::PhantomData;
@@ -8,22 +8,22 @@ use std::ops::Deref;
 ///
 /// [at least one code example that users can copy/paste to try it]
 ///
-#[derive(PartialEq, Debug, Copy, Clone)]
-pub(crate) struct Header<Version, Purpose>
+#[derive(PartialEq, Eq, Debug, Copy, Clone)]
+pub struct Header<Version, Purpose>
 where
   Version: VersionTrait,
   Purpose: PurposeTrait,
 {
   version: PhantomData<Version>,
   purpose: PhantomData<Purpose>,
-  header: &'static str,
+  value: &'static str,
 }
 
 impl<Version: VersionTrait, Purpose: PurposeTrait> Deref for Header<Version, Purpose> {
   type Target = [u8];
 
   fn deref(&self) -> &Self::Target {
-    self.header.as_bytes()
+    self.value.as_bytes()
   }
 }
 
@@ -33,7 +33,7 @@ where
   Purpose: PurposeTrait,
 {
   fn as_ref(&self) -> &str {
-    self.header
+    self.value
   }
 }
 //note: ugly workaround to minimize heap allocations and allow the full struct to implement Copy
@@ -52,7 +52,7 @@ where
   Purpose: PurposeTrait,
 {
   fn default() -> Self {
-    let header = match (Version::default().as_ref(), Purpose::default().as_ref()) {
+    let value = match (Version::default().as_ref(), Purpose::default().as_ref()) {
       ("v1", "local") => V1_LOCAL,
       ("v1", "public") => V1_PUBLIC,
       ("v2", "local") => V2_LOCAL,
@@ -66,7 +66,7 @@ where
     Self {
       version: PhantomData,
       purpose: PhantomData,
-      header,
+      value,
     }
   }
 }
@@ -77,7 +77,7 @@ where
   Purpose: PurposeTrait,
 {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "{}", self.header)
+    write!(f, "{}", self.value)
   }
 }
 
@@ -85,6 +85,15 @@ where
 mod unit_tests {
 
   use super::*;
+
+  #[cfg(feature = "v4")]
+  use crate::core::V4;
+  #[cfg(feature = "v2")]
+  use crate::core::V2;
+  #[cfg(feature = "local")]
+  use crate::core::Local;
+  #[cfg(feature = "public")]
+  use crate::core::Public;
 
   fn test_header_equality<S, H>(valid_value: H, header: S)
   where

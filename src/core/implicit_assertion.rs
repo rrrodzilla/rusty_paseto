@@ -2,6 +2,7 @@ use std::fmt;
 use std::ops::Deref;
 
 /// Unencrypted but authenticated data (like the optional footer), but is NOT stored in the PASETO token (thus, implicit) and MUST be asserted when verifying a token.
+///
 /// The main purpose for Implicit Assertions is to bind the token to some value that, due to business reasons, shouldn't ever be revealed publicly (i.e., a primary key or foreign key from a relational database table).
 /// Implicit Assertions allow you to build systems that are impervious to Confused Deputy attacks without ever having to disclose these internal values.
 ///
@@ -34,7 +35,7 @@ impl<'a> Deref for ImplicitAssertion<'a> {
   }
 }
 
-impl<'a> AsRef<str> for ImplicitAssertion<'a> {
+impl AsRef<str> for ImplicitAssertion<'_> {
   fn as_ref(&self) -> &str {
     self.0
   }
@@ -44,14 +45,14 @@ impl<'a> From<&'a str> for ImplicitAssertion<'a> {
     Self(s)
   }
 }
-impl<'a> fmt::Display for ImplicitAssertion<'a> {
+impl fmt::Display for ImplicitAssertion<'_> {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "{}", self.0)
   }
 }
-impl<'a> PartialEq for ImplicitAssertion<'a> {
+impl PartialEq for ImplicitAssertion<'_> {
   fn eq(&self, other: &Self) -> bool {
     self.0 == other.0
   }
 }
-impl<'a> Eq for ImplicitAssertion<'a> {}
+impl Eq for ImplicitAssertion<'_> {}

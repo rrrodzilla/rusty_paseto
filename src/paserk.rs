@@ -37,6 +37,9 @@ pub use paserk::core::types::{
     PaserkLocal, PaserkLocalId, PaserkLocalPw, PaserkLocalWrap, PaserkPublic, PaserkPublicId,
     PaserkSeal, PaserkSecret, PaserkSecretId, PaserkSecretPw, PaserkSecretWrap,
 };
+// K1 is deprecated due to RUSTSEC-2023-0071 (Marvin Attack on RSA) but re-exported
+// for users who need backward compatibility with v1_public_insecure tokens.
+#[allow(deprecated)]
 pub use paserk::core::version::{K1, K2, K3, K4, PaserkVersion};
 
 // Re-export Argon2 params when using V2 or V4 (which support Argon2)

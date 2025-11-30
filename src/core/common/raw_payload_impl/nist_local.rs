@@ -28,13 +28,19 @@ impl<Version> RawPayload<Version, Local>
             .ok_or(PasetoError::IncorrectSize)?
             .copy_from_slice(nonce.as_ref());
 
+        let ciphertext_end = nonce_len
+            .checked_add(ciphertext_len)
+            .ok_or(PasetoError::IncorrectSize)?;
         raw_token
-            .get_mut(nonce_len..nonce_len + ciphertext_len)
+            .get_mut(nonce_len..ciphertext_end)
             .ok_or(PasetoError::IncorrectSize)?
             .copy_from_slice(ciphertext.as_ref());
 
+        let tag_start = concat_len
+            .checked_sub(tag_len)
+            .ok_or(PasetoError::IncorrectSize)?;
         raw_token
-            .get_mut(concat_len - tag_len..)
+            .get_mut(tag_start..)
             .ok_or(PasetoError::IncorrectSize)?
             .copy_from_slice(tag.as_ref());
 

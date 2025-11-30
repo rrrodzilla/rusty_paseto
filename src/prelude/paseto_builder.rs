@@ -214,13 +214,15 @@ impl<'a, Version, Purpose> Default for PasetoBuilder<'a, Version, Purpose> {
   fn default() -> Self {
     let mut new_builder = Self::new();
     let now = time::OffsetDateTime::now_utc();
-    let in_one_hour = now + time::Duration::hours(1);
 
+    // Use checked_add to handle potential overflow (though unlikely with 1 hour duration)
     // RFC3339 formatting of valid OffsetDateTime values should be infallible
     // but we handle potential failures gracefully by skipping claim creation
-    if let Ok(expiration_time) = in_one_hour.format(&Rfc3339) {
-      if let Ok(exp_claim) = ExpirationClaim::try_from(expiration_time) {
-        new_builder.builder.set_claim(exp_claim);
+    if let Some(in_one_hour) = now.checked_add(time::Duration::hours(1)) {
+      if let Ok(expiration_time) = in_one_hour.format(&Rfc3339) {
+        if let Ok(exp_claim) = ExpirationClaim::try_from(expiration_time) {
+          new_builder.builder.set_claim(exp_claim);
+        }
       }
     }
     if let Ok(current_time) = now.format(&Rfc3339) {

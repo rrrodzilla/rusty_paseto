@@ -25,7 +25,10 @@ impl<'a> Paseto<'a, V4, Public> {
         // Safe slicing with bounds-checked access
         let msg_len = decoded_payload.len().saturating_sub(sig_len);
         let msg = decoded_payload.get(..msg_len).ok_or(PasetoError::IncorrectSize)?;
-        let sig = decoded_payload.get(msg_len..msg_len + sig_len).ok_or(PasetoError::IncorrectSize)?;
+        let sig_end = msg_len
+            .checked_add(sig_len)
+            .ok_or(PasetoError::IncorrectSize)?;
+        let sig = decoded_payload.get(msg_len..sig_end).ok_or(PasetoError::IncorrectSize)?;
 
         let signature = Signature::try_from(sig)?;
         let pae = PreAuthenticationEncoding::parse(&[

@@ -65,7 +65,9 @@ impl<'a> Paseto<'a, V4, Local> {
         ]);
 
         //generate tags - tag is the last TAG_SIZE bytes
-        let tag_start = NONCE_SIZE + ciphertext.len();
+        let tag_start = NONCE_SIZE
+            .checked_add(ciphertext.len())
+            .ok_or(PasetoError::IncorrectSize)?;
         let tag = decoded_payload.get(tag_start..).ok_or(PasetoError::IncorrectSize)?;
         let tag2 = Tag::<V4, Local>::try_from(authentication_key, &pae)?;
         //compare tags

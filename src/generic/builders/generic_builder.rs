@@ -146,50 +146,15 @@ impl<'a, 'b, Version, Purpose> GenericBuilder<'a, 'b, Version, Purpose> {
             .map(|(k, v)| (k, serde_json::to_value(v).unwrap_or(Value::Null)))
             .collect();
 
-        // Wrap the serialized claims to ensure proper nesting
-        let wrapped_claims = wrap_claims(serialized_claims);
-
-        // Convert the wrapped claims to a JSON string
-        serde_json::to_string(&wrapped_claims)
+        // Convert claims to JSON object and serialize
+        let json_claims = claims_to_json(serialized_claims);
+        serde_json::to_string(&json_claims)
     }
 }
 
-// Wrap claims in an outer JSON object to ensure proper nesting
-//
-// # Parameters
-// - `claims`: A `HashMap` containing the claims as `serde_json::Value`
-//
-// # Returns
-// A `serde_json::Value` representing the wrapped claims
-fn wrap_claims(claims: HashMap<String, Value>) -> Value {
-    // Recursively wrap each claim value
-    let wrapped: HashMap<String, Value> = claims
-        .into_iter()
-        .map(|(k, v)| (k, wrap_value(v)))
-        .collect();
-
-    // Return the wrapped claims as a JSON object
-    Value::Object(Map::from_iter(wrapped))
-}
-
-// Recursively wrap values to ensure all values are valid JSON objects
-//
-// # Parameters
-// - `value`: A `serde_json::Value` to be wrapped
-//
-// # Returns
-// A `serde_json::Value` representing the wrapped value
-fn wrap_value(value: Value) -> Value {
-    match value {
-        // Recursively wrap each key-value pair in the map
-        Value::Object(map) => {
-            Value::Object(map.into_iter().map(|(k, v)| (k, wrap_value(v))).collect())
-        }
-        // Recursively wrap each element in the array
-        Value::Array(arr) => Value::Array(arr.into_iter().map(wrap_value).collect()),
-        // For null and primitive values, return them as is
-        other => other,
-    }
+// Convert claims HashMap into a JSON object Value
+fn claims_to_json(claims: HashMap<String, Value>) -> Value {
+    Value::Object(Map::from_iter(claims))
 }
 
 

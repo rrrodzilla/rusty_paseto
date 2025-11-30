@@ -1,6 +1,11 @@
-/.idea
+# Hidden files and directories
+.*
+!.gitignore
+
+# Markdown files except README
+*.md
+!README.md
+
 /target
 Cargo.lock
-**/.envrc
-/.direnv
 tests/generated_tests.rs

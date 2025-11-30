@@ -6,19 +6,19 @@ use blake2::{Blake2bMac, digest::Update};
 use blake2::digest::FixedOutput;
 use digest::KeyInit;
 use crate::core::common::PreAuthenticationEncoding;
-use crate::core::{Local, V4};
+use crate::core::{Local, PasetoError, V4};
 
 impl crate::core::common::tag::Tag<V4, Local> {
-    pub(crate) fn from(authentication_key: impl AsRef<[u8]>, pae: &PreAuthenticationEncoding) -> Self {
-        let mut tag_context = Blake2bMac::<U32>::new_from_slice(authentication_key.as_ref()).unwrap();
+    pub(crate) fn try_from(authentication_key: impl AsRef<[u8]>, pae: &PreAuthenticationEncoding) -> Result<Self, PasetoError> {
+        let mut tag_context = Blake2bMac::<U32>::new_from_slice(authentication_key.as_ref())?;
         tag_context.update(pae.as_ref());
         let binding = tag_context.finalize_fixed();
         let tag = binding.to_vec();
-        Self {
+        Ok(Self {
             tag,
             version: PhantomData,
             purpose: PhantomData,
-        }
+        })
     }
 }
 

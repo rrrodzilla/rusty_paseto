@@ -1,6 +1,7 @@
 use std::{
     str,
 };
+use subtle::ConstantTimeEq;
 use crate::core::{Base64Encodable, Footer, Header, ImplicitAssertion, ImplicitAssertionCapable, PasetoError, Payload, PurposeTrait, VersionTrait};
 
 
@@ -149,33 +150,39 @@ impl<'a, Version: VersionTrait, Purpose: PurposeTrait> Paseto<'a, Version, Purpo
     ) -> Result<Vec<u8>, PasetoError> {
         //split the raw token into parts
         let potential_parts = raw_token.split('.').collect::<Vec<_>>();
-        //inspect the parts
-        match potential_parts.len() {
-            length if !(3..=4).contains(&length) => {
-                return Err(PasetoError::IncorrectSize);
+
+        //validate we have 3 or 4 parts
+        let parts_len = potential_parts.len();
+        if !(3..=4).contains(&parts_len) {
+            return Err(PasetoError::IncorrectSize);
+        }
+
+        //safely extract parts using .get() - these are guaranteed to exist after length check
+        let version_part = potential_parts.first().ok_or(PasetoError::IncorrectSize)?;
+        let purpose_part = potential_parts.get(1).ok_or(PasetoError::IncorrectSize)?;
+        let payload_part = potential_parts.get(2).ok_or(PasetoError::IncorrectSize)?;
+
+        //verify footer if present (4 parts)
+        if parts_len == 4 {
+            let footer_part = potential_parts.get(3).ok_or(PasetoError::IncorrectSize)?;
+            let footer = footer.into().unwrap_or_default();
+            let found_footer = Footer::from(*footer_part);
+            if !footer.constant_time_equals(found_footer) {
+                return Err(PasetoError::FooterInvalid);
             }
-            4 => {
-                //verify expected footer
-                let footer = footer.into().unwrap_or_default();
-                let found_footer = Footer::from(potential_parts[3]);
-                if !footer.constant_time_equals(found_footer) {
-                    return Err(PasetoError::FooterInvalid);
-                }
-            }
-            _ => {}
         }
 
         //grab the header
-        let potential_header = format!("{}.{}.", potential_parts[0], potential_parts[1]);
+        let potential_header = format!("{}.{}.", version_part, purpose_part);
         //we should be able to verify the header using the passed in Version and Purpose
         let expected_header = format!("{}.{}.", v, p);
 
-        //verify the header
-        if potential_header.ne(&expected_header) {
+        //verify the header using constant-time comparison to prevent timing attacks
+        if !bool::from(potential_header.as_bytes().ct_eq(expected_header.as_bytes())) {
             return Err(PasetoError::WrongHeader);
         };
 
-        let encrypted_payload = Payload::from(potential_parts[2]);
+        let encrypted_payload = Payload::from(*payload_part);
         Ok(encrypted_payload.decode()?)
     }
     /* END PRIVATE FUNCTIONS */

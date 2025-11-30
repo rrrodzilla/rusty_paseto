@@ -317,6 +317,10 @@ mod v2_public_impl {
 mod tests {
     use super::*;
 
+    // ========================================================================
+    // V4 Local Key Tests
+    // ========================================================================
+
     #[cfg(feature = "v4_local")]
     mod v4_local_tests {
         use super::*;
@@ -375,12 +379,58 @@ mod tests {
             );
             assert!(result.is_err());
         }
+
+        #[test]
+        fn test_from_trait_conversion() {
+            let key = PasetoSymmetricKey::<V4, Local>::from(Key::from(
+                b"wubbalubbadubdubwubbalubbadubdub",
+            ));
+            let paserk: PaserkLocal<K4> = (&key).into();
+            assert!(paserk.to_string().starts_with("k4.local."));
+        }
+
+        #[test]
+        fn test_into_trait_conversion() {
+            let paserk_string = "k4.local.d3ViYmFsdWJiYWR1YmR1Ynd1YmJhbHViYmFkdWJkdWI";
+            let paserk = PaserkLocal::<K4>::try_from(paserk_string).unwrap();
+            let key: PasetoSymmetricKey<V4, Local> = paserk.into();
+            assert_eq!(key.as_ref().len(), 32);
+        }
+
+        #[test]
+        fn test_paserk_id_deterministic() {
+            let key = PasetoSymmetricKey::<V4, Local>::from(Key::from(
+                b"wubbalubbadubdubwubbalubbadubdub",
+            ));
+            let id1 = key.paserk_id();
+            let id2 = key.paserk_id();
+            assert_eq!(id1, id2, "Key IDs should be deterministic");
+        }
+
+        #[test]
+        fn test_different_keys_different_ids() {
+            let key1 = PasetoSymmetricKey::<V4, Local>::from(Key::from(
+                b"wubbalubbadubdubwubbalubbadubdub",
+            ));
+            let key2 = PasetoSymmetricKey::<V4, Local>::from(Key::from(
+                b"different-key-different-keyXXXXZ",
+            ));
+            assert_ne!(
+                key1.paserk_id(),
+                key2.paserk_id(),
+                "Different keys should have different IDs"
+            );
+        }
     }
+
+    // ========================================================================
+    // V4 Public Key Tests
+    // ========================================================================
 
     #[cfg(feature = "v4_public")]
     mod v4_public_tests {
         use super::*;
-        use crate::core::{PasetoAsymmetricPublicKey, V4};
+        use crate::core::{PasetoAsymmetricPrivateKey, PasetoAsymmetricPublicKey, V4};
 
         #[test]
         fn test_public_key_to_paserk_string() {
@@ -396,6 +446,585 @@ mod tests {
             let key = PasetoAsymmetricPublicKey::<V4, Public>::from(&key_bytes);
             let key_id = key.paserk_id();
             assert!(key_id.starts_with("k4.pid."));
+        }
+
+        #[test]
+        fn test_public_key_roundtrip() {
+            let key_bytes = Key::<32>::from([0x42u8; 32]);
+            let original = PasetoAsymmetricPublicKey::<V4, Public>::from(&key_bytes);
+            let paserk_string = original.to_paserk_string();
+
+            // Verify the PASERK string can be parsed back
+            let parsed = PaserkPublic::<K4>::try_from(paserk_string.as_str()).unwrap();
+            assert_eq!(original.as_ref(), parsed.as_bytes());
+        }
+
+        #[test]
+        fn test_secret_key_to_paserk_string() {
+            let key_bytes = Key::<64>::from([0x42u8; 64]);
+            let key = PasetoAsymmetricPrivateKey::<V4, Public>::from(&key_bytes);
+            let paserk_string = key.to_paserk_string();
+            assert!(paserk_string.starts_with("k4.secret."));
+        }
+
+        #[test]
+        fn test_secret_key_paserk_id() {
+            let key_bytes = Key::<64>::from([0x42u8; 64]);
+            let key = PasetoAsymmetricPrivateKey::<V4, Public>::from(&key_bytes);
+            let key_id = key.paserk_id();
+            assert!(key_id.starts_with("k4.sid."));
+        }
+
+        #[test]
+        fn test_secret_key_roundtrip() {
+            let key_bytes = Key::<64>::from([0x42u8; 64]);
+            let original = PasetoAsymmetricPrivateKey::<V4, Public>::from(&key_bytes);
+            let paserk_string = original.to_paserk_string();
+
+            // Verify the PASERK string can be parsed back
+            let parsed = PaserkSecret::<K4>::try_from(paserk_string.as_str()).unwrap();
+            assert_eq!(original.as_ref(), parsed.as_bytes());
+        }
+
+        #[test]
+        fn test_public_key_id_deterministic() {
+            let key_bytes = Key::<32>::from([0x42u8; 32]);
+            let key = PasetoAsymmetricPublicKey::<V4, Public>::from(&key_bytes);
+            let id1 = key.paserk_id();
+            let id2 = key.paserk_id();
+            assert_eq!(id1, id2);
+        }
+
+        #[test]
+        fn test_secret_key_id_deterministic() {
+            let key_bytes = Key::<64>::from([0x42u8; 64]);
+            let key = PasetoAsymmetricPrivateKey::<V4, Public>::from(&key_bytes);
+            let id1 = key.paserk_id();
+            let id2 = key.paserk_id();
+            assert_eq!(id1, id2);
+        }
+
+        #[test]
+        fn test_different_public_keys_different_ids() {
+            let key1_bytes = Key::<32>::from([0x42u8; 32]);
+            let key1 = PasetoAsymmetricPublicKey::<V4, Public>::from(&key1_bytes);
+
+            let key2_bytes = Key::<32>::from([0x43u8; 32]);
+            let key2 = PasetoAsymmetricPublicKey::<V4, Public>::from(&key2_bytes);
+
+            assert_ne!(key1.paserk_id(), key2.paserk_id());
+        }
+    }
+
+    // ========================================================================
+    // V2 Local Key Tests
+    // ========================================================================
+
+    #[cfg(feature = "v2_local")]
+    mod v2_local_tests {
+        use super::*;
+        use crate::core::{PasetoSymmetricKey, V2};
+
+        #[test]
+        fn test_to_paserk_string() {
+            let key = PasetoSymmetricKey::<V2, Local>::from(Key::from(
+                b"wubbalubbadubdubwubbalubbadubdub",
+            ));
+            let paserk_string = key.to_paserk_string();
+            assert!(paserk_string.starts_with("k2.local."));
+        }
+
+        #[test]
+        fn test_paserk_id() {
+            let key = PasetoSymmetricKey::<V2, Local>::from(Key::from(
+                b"wubbalubbadubdubwubbalubbadubdub",
+            ));
+            let key_id = key.paserk_id();
+            assert!(key_id.starts_with("k2.lid."));
+        }
+
+        #[test]
+        fn test_roundtrip() {
+            let original = PasetoSymmetricKey::<V2, Local>::from(Key::from(
+                b"wubbalubbadubdubwubbalubbadubdub",
+            ));
+            let paserk_string = original.to_paserk_string();
+
+            let parsed =
+                PasetoSymmetricKey::<V2, Local>::try_from_paserk_str(&paserk_string).unwrap();
+
+            assert_eq!(original.as_ref(), parsed.as_ref());
+        }
+
+        #[test]
+        fn test_from_paserk() {
+            let paserk_string = "k2.local.d3ViYmFsdWJiYWR1YmR1Ynd1YmJhbHViYmFkdWJkdWI";
+            let result = PasetoSymmetricKey::<V2, Local>::try_from_paserk_str(paserk_string);
+            assert!(result.is_ok());
+        }
+
+        #[test]
+        fn test_invalid_paserk_string() {
+            let result = PasetoSymmetricKey::<V2, Local>::try_from_paserk_str("k2.local.invalid");
+            assert!(result.is_err());
+        }
+
+        #[test]
+        fn test_wrong_version_paserk_string() {
+            // K4 string should not work for V2 key
+            let result = PasetoSymmetricKey::<V2, Local>::try_from_paserk_str(
+                "k4.local.d3ViYmFsdWJiYWR1YmR1Ynd1YmJhbHViYmFkdWJkdWI",
+            );
+            assert!(result.is_err());
+        }
+
+        #[test]
+        fn test_from_trait_conversion() {
+            let key = PasetoSymmetricKey::<V2, Local>::from(Key::from(
+                b"wubbalubbadubdubwubbalubbadubdub",
+            ));
+            let paserk: PaserkLocal<K2> = (&key).into();
+            assert!(paserk.to_string().starts_with("k2.local."));
+        }
+
+        #[test]
+        fn test_into_trait_conversion() {
+            let paserk_string = "k2.local.d3ViYmFsdWJiYWR1YmR1Ynd1YmJhbHViYmFkdWJkdWI";
+            let paserk = PaserkLocal::<K2>::try_from(paserk_string).unwrap();
+            let key: PasetoSymmetricKey<V2, Local> = paserk.into();
+            assert_eq!(key.as_ref().len(), 32);
+        }
+
+        #[test]
+        fn test_paserk_id_deterministic() {
+            let key = PasetoSymmetricKey::<V2, Local>::from(Key::from(
+                b"wubbalubbadubdubwubbalubbadubdub",
+            ));
+            let id1 = key.paserk_id();
+            let id2 = key.paserk_id();
+            assert_eq!(id1, id2);
+        }
+    }
+
+    // ========================================================================
+    // V2 Public Key Tests
+    // ========================================================================
+
+    #[cfg(feature = "v2_public")]
+    mod v2_public_tests {
+        use super::*;
+        use crate::core::{PasetoAsymmetricPrivateKey, PasetoAsymmetricPublicKey, V2};
+
+        #[test]
+        fn test_public_key_to_paserk_string() {
+            let key_bytes = Key::<32>::from([0x42u8; 32]);
+            let key = PasetoAsymmetricPublicKey::<V2, Public>::from(&key_bytes);
+            let paserk_string = key.to_paserk_string();
+            assert!(paserk_string.starts_with("k2.public."));
+        }
+
+        #[test]
+        fn test_public_key_paserk_id() {
+            let key_bytes = Key::<32>::from([0x42u8; 32]);
+            let key = PasetoAsymmetricPublicKey::<V2, Public>::from(&key_bytes);
+            let key_id = key.paserk_id();
+            assert!(key_id.starts_with("k2.pid."));
+        }
+
+        #[test]
+        fn test_public_key_roundtrip() {
+            let key_bytes = Key::<32>::from([0x42u8; 32]);
+            let original = PasetoAsymmetricPublicKey::<V2, Public>::from(&key_bytes);
+            let paserk_string = original.to_paserk_string();
+
+            let parsed = PaserkPublic::<K2>::try_from(paserk_string.as_str()).unwrap();
+            assert_eq!(original.as_ref(), parsed.as_bytes());
+        }
+
+        #[test]
+        fn test_secret_key_to_paserk_string() {
+            let key_bytes = Key::<64>::from([0x42u8; 64]);
+            let key = PasetoAsymmetricPrivateKey::<V2, Public>::from(&key_bytes);
+            let paserk_string = key.to_paserk_string();
+            assert!(paserk_string.starts_with("k2.secret."));
+        }
+
+        #[test]
+        fn test_secret_key_paserk_id() {
+            let key_bytes = Key::<64>::from([0x42u8; 64]);
+            let key = PasetoAsymmetricPrivateKey::<V2, Public>::from(&key_bytes);
+            let key_id = key.paserk_id();
+            assert!(key_id.starts_with("k2.sid."));
+        }
+
+        #[test]
+        fn test_secret_key_roundtrip() {
+            let key_bytes = Key::<64>::from([0x42u8; 64]);
+            let original = PasetoAsymmetricPrivateKey::<V2, Public>::from(&key_bytes);
+            let paserk_string = original.to_paserk_string();
+
+            let parsed = PaserkSecret::<K2>::try_from(paserk_string.as_str()).unwrap();
+            assert_eq!(original.as_ref(), parsed.as_bytes());
+        }
+    }
+
+    // ========================================================================
+    // Advanced Operations Tests - PIE Key Wrapping
+    // ========================================================================
+
+    #[cfg(feature = "v4_local")]
+    mod v4_pie_wrap_tests {
+        use super::*;
+        use crate::core::{PasetoSymmetricKey, V4};
+
+        #[test]
+        fn test_local_key_wrap_roundtrip() {
+            let key = PasetoSymmetricKey::<V4, Local>::from(Key::from(
+                b"wubbalubbadubdubwubbalubbadubdub",
+            ));
+            let wrapping_key = PaserkLocal::<K4>::from([0x42u8; 32]);
+
+            // Convert to PASERK and wrap
+            let paserk = key.to_paserk();
+            let wrapped = PaserkLocalWrap::<K4, Pie>::try_wrap(&paserk, &wrapping_key).unwrap();
+            let wrapped_string = wrapped.to_string();
+
+            assert!(wrapped_string.starts_with("k4.local-wrap.pie."));
+
+            // Unwrap and verify
+            let parsed_wrapped =
+                PaserkLocalWrap::<K4, Pie>::try_from(wrapped_string.as_str()).unwrap();
+            let unwrapped = parsed_wrapped.try_unwrap(&wrapping_key).unwrap();
+
+            assert_eq!(paserk.as_bytes(), unwrapped.as_bytes());
+        }
+
+        #[test]
+        fn test_wrap_wrong_key_fails() {
+            let key = PasetoSymmetricKey::<V4, Local>::from(Key::from(
+                b"wubbalubbadubdubwubbalubbadubdub",
+            ));
+            let wrapping_key = PaserkLocal::<K4>::from([0x42u8; 32]);
+            let wrong_key = PaserkLocal::<K4>::from([0x43u8; 32]);
+
+            let paserk = key.to_paserk();
+            let wrapped = PaserkLocalWrap::<K4, Pie>::try_wrap(&paserk, &wrapping_key).unwrap();
+
+            // Unwrapping with wrong key should fail
+            let result = wrapped.try_unwrap(&wrong_key);
+            assert!(result.is_err());
+        }
+    }
+
+    #[cfg(feature = "v4_public")]
+    mod v4_secret_wrap_tests {
+        use super::*;
+        use crate::core::{PasetoAsymmetricPrivateKey, V4};
+
+        #[test]
+        fn test_secret_key_wrap_roundtrip() {
+            let key_bytes = Key::<64>::from([0x42u8; 64]);
+            let key = PasetoAsymmetricPrivateKey::<V4, Public>::from(&key_bytes);
+            let wrapping_key = PaserkLocal::<K4>::from([0x55u8; 32]);
+
+            // Convert to PASERK and wrap
+            let paserk = key.to_paserk();
+            let wrapped = PaserkSecretWrap::<K4, Pie>::try_wrap(&paserk, &wrapping_key).unwrap();
+            let wrapped_string = wrapped.to_string();
+
+            assert!(wrapped_string.starts_with("k4.secret-wrap.pie."));
+
+            // Unwrap and verify
+            let parsed_wrapped =
+                PaserkSecretWrap::<K4, Pie>::try_from(wrapped_string.as_str()).unwrap();
+            let unwrapped = parsed_wrapped.try_unwrap(&wrapping_key).unwrap();
+
+            assert_eq!(paserk.as_bytes(), unwrapped.as_bytes());
+        }
+    }
+
+    // ========================================================================
+    // Advanced Operations Tests - Password-Based Key Wrapping
+    // ========================================================================
+
+    #[cfg(feature = "v4_local")]
+    mod v4_password_wrap_tests {
+        use super::*;
+        use crate::core::{PasetoSymmetricKey, V4};
+
+        #[test]
+        fn test_local_key_password_wrap_roundtrip() {
+            let key = PasetoSymmetricKey::<V4, Local>::from(Key::from(
+                b"wubbalubbadubdubwubbalubbadubdub",
+            ));
+            let password = b"super-secret-password";
+
+            // Use low-cost params for testing
+            let params = Argon2Params {
+                memory_kib: 1024,
+                iterations: 1,
+                parallelism: 1,
+            };
+
+            let paserk = key.to_paserk();
+            let wrapped = PaserkLocalPw::<K4>::try_wrap(&paserk, password, params).unwrap();
+            let wrapped_string = wrapped.to_string();
+
+            assert!(wrapped_string.starts_with("k4.local-pw."));
+
+            // Unwrap and verify
+            let parsed = PaserkLocalPw::<K4>::try_from(wrapped_string.as_str()).unwrap();
+            // Parameters are extracted from the serialized data, but we pass dummy params
+            let unwrapped = parsed.try_unwrap(password, params).unwrap();
+
+            assert_eq!(paserk.as_bytes(), unwrapped.as_bytes());
+        }
+
+        #[test]
+        fn test_password_wrap_wrong_password_fails() {
+            let key = PasetoSymmetricKey::<V4, Local>::from(Key::from(
+                b"wubbalubbadubdubwubbalubbadubdub",
+            ));
+            let password = b"correct-password";
+            let wrong_password = b"wrong-password";
+
+            let params = Argon2Params {
+                memory_kib: 1024,
+                iterations: 1,
+                parallelism: 1,
+            };
+
+            let paserk = key.to_paserk();
+            let wrapped = PaserkLocalPw::<K4>::try_wrap(&paserk, password, params).unwrap();
+
+            let result = wrapped.try_unwrap(wrong_password, params);
+            assert!(result.is_err());
+        }
+    }
+
+    #[cfg(feature = "v4_public")]
+    mod v4_secret_password_wrap_tests {
+        use super::*;
+        use crate::core::{PasetoAsymmetricPrivateKey, V4};
+
+        #[test]
+        fn test_secret_key_password_wrap_roundtrip() {
+            let key_bytes = Key::<64>::from([0x42u8; 64]);
+            let key = PasetoAsymmetricPrivateKey::<V4, Public>::from(&key_bytes);
+            let password = b"my-secret-password";
+
+            let params = Argon2Params {
+                memory_kib: 1024,
+                iterations: 1,
+                parallelism: 1,
+            };
+
+            let paserk = key.to_paserk();
+            let wrapped = PaserkSecretPw::<K4>::try_wrap(&paserk, password, params).unwrap();
+            let wrapped_string = wrapped.to_string();
+
+            assert!(wrapped_string.starts_with("k4.secret-pw."));
+
+            // Unwrap and verify
+            let parsed = PaserkSecretPw::<K4>::try_from(wrapped_string.as_str()).unwrap();
+            let unwrapped = parsed.try_unwrap(password, params).unwrap();
+
+            assert_eq!(paserk.as_bytes(), unwrapped.as_bytes());
+        }
+    }
+
+    // ========================================================================
+    // Advanced Operations Tests - Public Key Encryption (Seal)
+    // ========================================================================
+
+    #[cfg(all(feature = "v4_local", feature = "v4_public"))]
+    mod v4_seal_tests {
+        use super::*;
+        use crate::core::{PasetoSymmetricKey, V4};
+
+        /// Creates a valid Ed25519 keypair for testing.
+        /// Returns (secret_key_bytes, PaserkSecret)
+        fn create_test_keypair() -> (PaserkSecret<K4>, PaserkSecret<K4>) {
+            // Use a fixed seed for reproducibility
+            let seed = [0x42u8; 32];
+
+            // Create Ed25519 signing key from seed using ed25519-dalek
+            // The keypair format is: seed (32 bytes) || public_key (32 bytes)
+            use ed25519_dalek::SigningKey;
+            let signing_key = SigningKey::from_bytes(&seed);
+            let keypair_bytes = signing_key.to_keypair_bytes();
+
+            let secret = PaserkSecret::<K4>::from(keypair_bytes);
+            (secret.clone(), secret)
+        }
+
+        /// Creates a different Ed25519 keypair for testing wrong key scenarios.
+        fn create_different_keypair() -> PaserkSecret<K4> {
+            let seed = [0x55u8; 32];
+            use ed25519_dalek::SigningKey;
+            let signing_key = SigningKey::from_bytes(&seed);
+            PaserkSecret::<K4>::from(signing_key.to_keypair_bytes())
+        }
+
+        #[test]
+        fn test_seal_unseal_roundtrip() {
+            let key = PasetoSymmetricKey::<V4, Local>::from(Key::from(
+                b"wubbalubbadubdubwubbalubbadubdub",
+            ));
+
+            let (secret, _) = create_test_keypair();
+            let paserk = key.to_paserk();
+
+            // Seal with secret key (derives public key internally)
+            let sealed = PaserkSeal::<K4>::try_seal(&paserk, &secret).unwrap();
+            let sealed_string = sealed.to_string();
+
+            assert!(sealed_string.starts_with("k4.seal."));
+
+            // Unseal with secret key
+            let parsed_sealed = PaserkSeal::<K4>::try_from(sealed_string.as_str()).unwrap();
+            let unsealed = parsed_sealed.try_unseal(&secret).unwrap();
+
+            assert_eq!(paserk.as_bytes(), unsealed.as_bytes());
+        }
+
+        #[test]
+        fn test_seal_produces_different_output_each_time() {
+            let key = PasetoSymmetricKey::<V4, Local>::from(Key::from(
+                b"wubbalubbadubdubwubbalubbadubdub",
+            ));
+
+            let (secret, _) = create_test_keypair();
+            let paserk = key.to_paserk();
+
+            let sealed1 = PaserkSeal::<K4>::try_seal(&paserk, &secret)
+                .unwrap()
+                .to_string();
+            let sealed2 = PaserkSeal::<K4>::try_seal(&paserk, &secret)
+                .unwrap()
+                .to_string();
+
+            // Each seal operation uses a random ephemeral key, so outputs should differ
+            assert_ne!(sealed1, sealed2);
+        }
+
+        #[test]
+        fn test_unseal_wrong_key_fails() {
+            let key = PasetoSymmetricKey::<V4, Local>::from(Key::from(
+                b"wubbalubbadubdubwubbalubbadubdub",
+            ));
+
+            let (secret, _) = create_test_keypair();
+            let wrong_secret = create_different_keypair();
+
+            let paserk = key.to_paserk();
+            let sealed = PaserkSeal::<K4>::try_seal(&paserk, &secret).unwrap();
+
+            let result = sealed.try_unseal(&wrong_secret);
+            assert!(result.is_err());
+        }
+    }
+
+    // ========================================================================
+    // PASERK Type Parsing Tests
+    // ========================================================================
+
+    #[cfg(feature = "v4_local")]
+    mod paserk_parsing_tests {
+        use super::*;
+
+        #[test]
+        fn test_parse_local_wrong_type() {
+            // Try to parse a public key as local
+            let result = PaserkLocal::<K4>::try_from("k4.public.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+            assert!(result.is_err());
+        }
+
+        #[test]
+        fn test_parse_empty_string() {
+            let result = PaserkLocal::<K4>::try_from("");
+            assert!(result.is_err());
+        }
+
+        #[test]
+        fn test_parse_malformed_header() {
+            let result = PaserkLocal::<K4>::try_from("k4local.AAAA");
+            assert!(result.is_err());
+        }
+    }
+
+    // ========================================================================
+    // Cross-Version Compatibility Tests
+    // ========================================================================
+
+    #[cfg(all(feature = "v4_local", feature = "v2_local"))]
+    mod cross_version_tests {
+        use super::*;
+        use crate::core::{PasetoSymmetricKey, V2, V4};
+
+        #[test]
+        fn test_same_key_different_versions_different_paserk() {
+            let key_bytes = b"wubbalubbadubdubwubbalubbadubdub";
+
+            let v4_key = PasetoSymmetricKey::<V4, Local>::from(Key::from(key_bytes));
+            let v2_key = PasetoSymmetricKey::<V2, Local>::from(Key::from(key_bytes));
+
+            let v4_paserk = v4_key.to_paserk_string();
+            let v2_paserk = v2_key.to_paserk_string();
+
+            // Same key bytes should produce different PASERK strings (different version prefix)
+            assert!(v4_paserk.starts_with("k4.local."));
+            assert!(v2_paserk.starts_with("k2.local."));
+
+            // The encoded data part should be the same
+            let v4_data = v4_paserk.strip_prefix("k4.local.").unwrap();
+            let v2_data = v2_paserk.strip_prefix("k2.local.").unwrap();
+            assert_eq!(v4_data, v2_data);
+        }
+
+        #[test]
+        fn test_key_ids_different_across_versions() {
+            let key_bytes = b"wubbalubbadubdubwubbalubbadubdub";
+
+            let v4_key = PasetoSymmetricKey::<V4, Local>::from(Key::from(key_bytes));
+            let v2_key = PasetoSymmetricKey::<V2, Local>::from(Key::from(key_bytes));
+
+            let v4_id = v4_key.paserk_id();
+            let v2_id = v2_key.paserk_id();
+
+            // Different versions should produce different key IDs
+            assert!(v4_id.starts_with("k4.lid."));
+            assert!(v2_id.starts_with("k2.lid."));
+            assert_ne!(v4_id, v2_id);
+        }
+    }
+
+    // ========================================================================
+    // Prelude Re-exports Tests
+    // ========================================================================
+
+    #[cfg(all(feature = "v4_local", feature = "batteries_included"))]
+    mod prelude_tests {
+        use crate::prelude::*;
+
+        #[test]
+        fn test_prelude_topaserk_reexport() {
+            use crate::paserk::ToPaserk;
+
+            let key = PasetoSymmetricKey::<V4, Local>::from(Key::from(
+                b"wubbalubbadubdubwubbalubbadubdub",
+            ));
+            let paserk_string = key.to_paserk_string();
+            assert!(paserk_string.starts_with("k4.local."));
+        }
+
+        #[test]
+        fn test_prelude_frompaserk_reexport() {
+            use crate::paserk::FromPaserk;
+
+            let paserk_string = "k4.local.d3ViYmFsdWJiYWR1YmR1Ynd1YmJhbHViYmFkdWJkdWI";
+            let result = PasetoSymmetricKey::<V4, Local>::try_from_paserk_str(paserk_string);
+            assert!(result.is_ok());
         }
     }
 }

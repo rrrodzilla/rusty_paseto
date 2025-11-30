@@ -30,17 +30,30 @@ impl<'a> Paseto<'a, V4, Local> {
         footer: impl Into<Option<Footer<'a>>> + Copy,
         implicit_assertion: impl Into<Option<ImplicitAssertion<'a>>> + Copy,
     ) -> Result<String, PasetoError> {
-        //get footer
+        // V4 local token structure: nonce (32 bytes) + ciphertext (variable) + tag (32 bytes)
+        const NONCE_SIZE: usize = 32;
+        const TAG_SIZE: usize = 32;
+        const MIN_PAYLOAD_SIZE: usize = NONCE_SIZE + TAG_SIZE;
 
         let decoded_payload = Self::parse_raw_token(token, footer, &V4::default(), &Local::default())?;
-        let nonce = Key::from(&decoded_payload[..32]);
+
+        // Validate minimum payload size before slicing
+        if decoded_payload.len() < MIN_PAYLOAD_SIZE {
+            return Err(PasetoError::IncorrectSize);
+        }
+
+        // Safe slicing with bounds-checked access
+        let nonce_bytes = decoded_payload.get(..NONCE_SIZE).ok_or(PasetoError::IncorrectSize)?;
+        let nonce = Key::from(nonce_bytes);
         let nonce = PasetoNonce::<V4, Local>::from(&nonce);
 
         let authentication_key =
-            AuthenticationKey::<V4, Local>::from(&(AuthenticationKeySeparator::default() + &nonce), key);
-        let encryption_key = EncryptionKey::<V4, Local>::from(&(EncryptionKeySeparator::default() + &nonce), key);
+            AuthenticationKey::<V4, Local>::try_from(&(AuthenticationKeySeparator::default() + &nonce), key)?;
+        let encryption_key = EncryptionKey::<V4, Local>::try_from(&(EncryptionKeySeparator::default() + &nonce), key)?;
 
-        let ciphertext = &decoded_payload[32..(decoded_payload.len() - 32)];
+        // Ciphertext is between nonce and tag
+        let ciphertext_end = decoded_payload.len().saturating_sub(TAG_SIZE);
+        let ciphertext = decoded_payload.get(NONCE_SIZE..ciphertext_end).ok_or(PasetoError::IncorrectSize)?;
 
         //pack preauth
         let pae = PreAuthenticationEncoding::parse(&[
@@ -51,9 +64,10 @@ impl<'a> Paseto<'a, V4, Local> {
             &implicit_assertion.into().unwrap_or_default(),
         ]);
 
-        //generate tags
-        let tag = &decoded_payload[(nonce.len() + ciphertext.len())..];
-        let tag2 = &Tag::<V4, Local>::from(authentication_key, &pae);
+        //generate tags - tag is the last TAG_SIZE bytes
+        let tag_start = NONCE_SIZE + ciphertext.len();
+        let tag = decoded_payload.get(tag_start..).ok_or(PasetoError::IncorrectSize)?;
+        let tag2 = Tag::<V4, Local>::try_from(authentication_key, &pae)?;
         //compare tags
         if !bool::from(tag.ct_eq(tag2.as_ref())) {
             return Err(PasetoError::Cryption);
@@ -97,8 +111,8 @@ impl<'a> Paseto<'a, V4, Local> {
 
         //split key
         let authentication_key =
-            AuthenticationKey::<V4, Local>::from(&(AuthenticationKeySeparator::default() + nonce), key);
-        let encryption_key = EncryptionKey::<V4, Local>::from(&(EncryptionKeySeparator::default() + nonce), key);
+            AuthenticationKey::<V4, Local>::try_from(&(AuthenticationKeySeparator::default() + nonce), key)?;
+        let encryption_key = EncryptionKey::<V4, Local>::try_from(&(EncryptionKeySeparator::default() + nonce), key)?;
 
         //encrypt payload
         let ciphertext = CipherText::<V4, Local>::from(&self.payload, &encryption_key);
@@ -108,7 +122,7 @@ impl<'a> Paseto<'a, V4, Local> {
             PreAuthenticationEncoding::parse(&[&self.header, nonce.as_ref(), &ciphertext, &footer, &implicit_assertion]);
 
         //generate tag
-        let tag = Tag::<V4, Local>::from(authentication_key, &pae);
+        let tag = Tag::<V4, Local>::try_from(authentication_key, &pae)?;
 
         //generate appended and base64 encoded payload
         let raw_payload = RawPayload::<V4, Local>::try_from(nonce, &ciphertext, &tag)?;

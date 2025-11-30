@@ -12,17 +12,31 @@ impl<Version> RawPayload<Version, Local>
         ciphertext: &impl AsRef<Vec<u8>>,
         tag: &impl AsRef<[u8]>,
     ) -> Result<String, PasetoError> {
+        let nonce_len = nonce.as_ref().len();
+        let ciphertext_len = ciphertext.as_ref().len();
         let tag_len = tag.as_ref().len();
-        let concat_len: usize = match (nonce.len() + tag_len).checked_add(ciphertext.as_ref().len()) {
-            Some(len) => len,
-            None => return Err(PasetoError::Signature),
-        };
+        let concat_len: usize = nonce_len
+            .checked_add(tag_len)
+            .and_then(|n| n.checked_add(ciphertext_len))
+            .ok_or(PasetoError::Signature)?;
 
         let mut raw_token = vec![0u8; concat_len];
-        raw_token[..nonce.as_ref().len()].copy_from_slice(nonce.as_ref());
-        raw_token[nonce.as_ref().len()..nonce.as_ref().len() + ciphertext.as_ref().len()]
+
+        // Safe slicing using get_mut with bounds validation
+        raw_token
+            .get_mut(..nonce_len)
+            .ok_or(PasetoError::IncorrectSize)?
+            .copy_from_slice(nonce.as_ref());
+
+        raw_token
+            .get_mut(nonce_len..nonce_len + ciphertext_len)
+            .ok_or(PasetoError::IncorrectSize)?
             .copy_from_slice(ciphertext.as_ref());
-        raw_token[concat_len - tag_len..].copy_from_slice(tag.as_ref());
+
+        raw_token
+            .get_mut(concat_len - tag_len..)
+            .ok_or(PasetoError::IncorrectSize)?
+            .copy_from_slice(tag.as_ref());
 
         Ok(BASE64_URL_SAFE_NO_PAD.encode(&raw_token))
     }

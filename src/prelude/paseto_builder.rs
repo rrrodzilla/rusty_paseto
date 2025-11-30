@@ -212,19 +212,25 @@ where
 
 impl<'a, Version, Purpose> Default for PasetoBuilder<'a, Version, Purpose> {
   fn default() -> Self {
-    //the unwraps in this function should be Infallible
     let mut new_builder = Self::new();
     let now = time::OffsetDateTime::now_utc();
     let in_one_hour = now + time::Duration::hours(1);
 
-    let expiration_time = in_one_hour.format(&Rfc3339).unwrap();
-    let current_time = now.format(&Rfc3339).unwrap();
-    //set some defaults
-    new_builder
-      .builder
-      .set_claim(ExpirationClaim::try_from(expiration_time).unwrap())
-      .set_claim(IssuedAtClaim::try_from(current_time.clone()).unwrap())
-      .set_claim(NotBeforeClaim::try_from(current_time).unwrap());
+    // RFC3339 formatting of valid OffsetDateTime values should be infallible
+    // but we handle potential failures gracefully by skipping claim creation
+    if let Ok(expiration_time) = in_one_hour.format(&Rfc3339) {
+      if let Ok(exp_claim) = ExpirationClaim::try_from(expiration_time) {
+        new_builder.builder.set_claim(exp_claim);
+      }
+    }
+    if let Ok(current_time) = now.format(&Rfc3339) {
+      if let Ok(iat_claim) = IssuedAtClaim::try_from(current_time.clone()) {
+        new_builder.builder.set_claim(iat_claim);
+      }
+      if let Ok(nbf_claim) = NotBeforeClaim::try_from(current_time) {
+        new_builder.builder.set_claim(nbf_claim);
+      }
+    }
 
     new_builder
   }

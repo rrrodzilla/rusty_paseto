@@ -94,14 +94,24 @@ impl<'a> UntrustedToken<'a> {
         let parts: Vec<&str> = token.split('.').collect();
 
         // PASETO tokens must have exactly 3 parts (no footer) or 4 parts (with footer)
-        if parts.len() < 3 || parts.len() > 4 {
+        let parts_len = parts.len();
+        if !(3..=4).contains(&parts_len) {
             return Err(PasetoError::IncorrectSize);
         }
 
+        // Use safe .get() access - these are guaranteed to exist after length validation
+        let version = parts.first().ok_or(PasetoError::IncorrectSize)?;
+        let purpose = parts.get(1).ok_or(PasetoError::IncorrectSize)?;
+        let footer = if parts_len == 4 {
+            Some(*parts.get(3).ok_or(PasetoError::IncorrectSize)?)
+        } else {
+            None
+        };
+
         Ok(Self {
-            version: parts[0],
-            purpose: parts[1],
-            footer: if parts.len() == 4 { Some(parts[3]) } else { None },
+            version,
+            purpose,
+            footer,
         })
     }
 

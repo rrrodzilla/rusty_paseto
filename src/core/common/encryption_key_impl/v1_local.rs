@@ -11,14 +11,16 @@ impl EncryptionKey<V1, Local> {
         nonce: &PasetoNonce<V1, Local>,
     ) -> Result<Self, PasetoError> {
         let info = message.as_ref();
-        let salt = hkdf::Salt::new(hkdf::HKDF_SHA384, &nonce[..16]);
+        let nonce_salt = nonce.as_ref().get(..16).ok_or(PasetoError::IncorrectSize)?;
+        let salt = hkdf::Salt::new(hkdf::HKDF_SHA384, nonce_salt);
         let HkdfKey(out) = salt.extract(key.as_ref()).expand(&[info], HkdfKey(32))?.try_into()?;
 
+        let counter_nonce = nonce.as_ref().get(16..).ok_or(PasetoError::IncorrectSize)?;
         Ok(Self {
             version: PhantomData,
             purpose: PhantomData,
             key: out.to_vec(),
-            nonce: nonce[16..].to_vec(),
+            nonce: counter_nonce.to_vec(),
         })
     }
 

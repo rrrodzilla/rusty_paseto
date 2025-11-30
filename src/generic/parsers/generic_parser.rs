@@ -152,25 +152,28 @@ impl<'a, 'b, Version, Purpose> GenericParser<'a, 'b, Version, Purpose> {
       let raw = serde_json::to_value(box_val)?;
 
       //now let's run any custom validation if there is any
-      if self.claim_validators.contains_key(key) {
-        let box_validator = &self.claim_validators[key];
+      if let Some(box_validator) = self.claim_validators.get(key) {
         let validator = box_validator.as_ref();
-        validator(key, &json[&key])?;
+        // Use .get() for safe JSON access - returns None for missing keys
+        let json_value = json.get(key).unwrap_or(&Value::Null);
+        validator(key, json_value)?;
       } else {
         //otherwise, simply verify the claim exists and matches the value passed in
-        if json[&key] == Value::Null {
+        let json_value = json.get(key).unwrap_or(&Value::Null);
+        if *json_value == Value::Null {
           return Err(PasetoClaimError::Missing(key.to_string()).into());
         }
 
-        if raw[&key] != json[&key] {
+        let raw_value = raw.get(key).unwrap_or(&Value::Null);
+        if raw_value != json_value {
           return Err(
             PasetoClaimError::Invalid(
               key.to_string(),
-              json[&key]
+              json_value
                 .as_str()
                 .ok_or_else(|| PasetoClaimError::Unexpected(key.to_string()))?
                 .into(),
-              raw[&key]
+              raw_value
                 .as_str()
                 .ok_or_else(|| PasetoClaimError::Unexpected(key.to_string()))?
                 .into(),

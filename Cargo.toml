@@ -79,6 +79,13 @@ rand_core = "0.9"
 digest = "0.10"
 paserk = { version = "0.1.0", path = "../paserk", optional = true }
 
+[lints.rust]
+warnings = "deny"
+
+[lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"
+
 [dev-dependencies]
 anyhow = "1.0"
 serde_json = { version = "1.0" }

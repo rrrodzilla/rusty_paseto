@@ -10,11 +10,13 @@ impl EncryptionKey<V3, Local> {
 
         let HkdfKey(out) = salt.extract(key.as_ref()).expand(&[info], HkdfKey(48))?.try_into()?;
 
+        let key_bytes = out.get(..32).ok_or(PasetoError::IncorrectSize)?;
+        let nonce_bytes = out.get(32..).ok_or(PasetoError::IncorrectSize)?;
         Ok(Self {
             version: PhantomData,
             purpose: PhantomData,
-            key: out[..32].to_vec(),
-            nonce: out[32..].to_vec(),
+            key: key_bytes.to_vec(),
+            nonce: nonce_bytes.to_vec(),
         })
     }
 

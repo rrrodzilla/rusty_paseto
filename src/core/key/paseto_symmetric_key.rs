@@ -2,12 +2,19 @@ use super::Key;
 use crate::core::Local;
 use std::convert::{AsRef, From};
 use std::marker::PhantomData;
+use zeroize::{Zeroize, ZeroizeOnDrop};
 
 /// A wrapper for a symmetric key
 ///
 /// Keys are created from [Key] of size 32
+///
+/// This type implements [Zeroize] and [ZeroizeOnDrop] to ensure the key material
+/// is securely cleared from memory when dropped.
+#[derive(Zeroize, ZeroizeOnDrop)]
 pub struct PasetoSymmetricKey<Version, Purpose> {
+  #[zeroize(skip)]
   version: PhantomData<Version>,
+  #[zeroize(skip)]
   purpose: PhantomData<Purpose>,
   key: Key<32>,
 }

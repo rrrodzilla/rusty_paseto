@@ -7,26 +7,25 @@ use blake2::digest::FixedOutput;
 use digest::KeyInit;
 use chacha20::{XNonce, Key};
 use crate::core::common::EncryptionKey;
-use crate::core::{Local, PasetoSymmetricKey, V4};
+use crate::core::{Local, PasetoError, PasetoSymmetricKey, V4};
 
 impl EncryptionKey<V4, Local> {
-    pub(crate) fn from(message: &crate::core::Key<53>, key: &PasetoSymmetricKey<V4, Local>) -> Self {
-        let mut context = Blake2bMac::<U56>::new_from_slice(key.as_ref()).unwrap();
+    pub(crate) fn try_from(message: &crate::core::Key<53>, key: &PasetoSymmetricKey<V4, Local>) -> Result<Self, PasetoError> {
+        let mut context = Blake2bMac::<U56>::new_from_slice(key.as_ref())?;
         context.update(message.as_ref());
         let binding = context.finalize_fixed();
         let context = binding.to_vec();
-        let key = context[..32].to_vec();
-        let nonce = context[32..56].to_vec();
 
-        assert_eq!(key.len(), 32);
-        assert_eq!(nonce.len(), 24);
-        Self {
-            key,
+        // Use safe slicing with bounds checking
+        let key_bytes = context.get(..32).ok_or(PasetoError::IncorrectSize)?.to_vec();
+        let nonce = context.get(32..56).ok_or(PasetoError::IncorrectSize)?.to_vec();
+
+        Ok(Self {
+            key: key_bytes,
             nonce,
             version: PhantomData,
             purpose: PhantomData,
-        }
-
+        })
     }
     pub(crate) fn counter_nonce(&self) -> &XNonce {
         XNonce::from_slice(&self.nonce)

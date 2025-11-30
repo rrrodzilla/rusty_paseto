@@ -94,16 +94,27 @@ impl<'a, 'b, Version, Purpose> GenericBuilder<'a, 'b, Version, Purpose> {
         }
 
         // Serialize the claim value to serde_json::Value
+        // These operations are safe because:
+        // 1. The value implements erased_serde::Serialize (enforced by trait bound)
+        // 2. We're serializing to JSON which can represent any Serialize type
+        // 3. We're then parsing the JSON we just created
         let mut serialized_value = Vec::new();
         let mut serializer = serde_json::Serializer::new(&mut serialized_value);
-        erased_serde::serialize(&value, &mut serializer).unwrap();
-        let value_json: serde_json::Value = serde_json::from_slice(&serialized_value).unwrap();
+        let Ok(()) = erased_serde::serialize(&value, &mut serializer) else {
+            // Serialization failed for a type that implements Serialize - skip this claim
+            return self;
+        };
+        let Ok(value_json) = serde_json::from_slice::<serde_json::Value>(&serialized_value) else {
+            // JSON parsing failed for JSON we just created - skip this claim
+            return self;
+        };
 
         // Handle the special case for Null values
         let value = match value_json {
             serde_json::Value::Object(mut obj) => {
                 if obj.len() == 1 && obj.contains_key(&key) {
-                    obj.remove(&key).unwrap()
+                    // Safe: we verified the key exists above
+                    obj.remove(&key).unwrap_or(serde_json::Value::Null)
                 } else {
                     serde_json::Value::Object(obj)
                 }

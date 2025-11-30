@@ -12,15 +12,27 @@ impl<'a> Paseto<'a, V2, Public> {
         public_key: &PasetoAsymmetricPublicKey<V2, Public>,
         footer: impl Into<Option<Footer<'a>>> + Copy,
     ) -> Result<String, PasetoError> {
+        // V2 public token structure: message (variable) + signature (64 bytes)
+        let sig_len = ed25519_dalek::SIGNATURE_LENGTH;
+
         let decoded_payload = Self::parse_raw_token(signature, footer, &V2::default(), &Public::default())?;
+
+        // Validate minimum payload size (at least signature length)
+        if decoded_payload.len() < sig_len {
+            return Err(PasetoError::IncorrectSize);
+        }
 
         let verifying_key: VerifyingKey = VerifyingKey::from_bytes(<&[u8; 32]>::try_from(public_key.as_ref())?)?;
 
-        // let public_key = PublicKey::from_bytes(public_key.as_ref()).map_err(|_| PasetoError::InvalidSignature)?;
-        let msg = decoded_payload[..(decoded_payload.len() - ed25519_dalek::SIGNATURE_LENGTH)].as_ref();
-        let sig = decoded_payload[msg.len()..msg.len() + ed25519_dalek::SIGNATURE_LENGTH].as_ref();
+        // Safe slicing with bounds-checked access
+        let msg_len = decoded_payload.len().saturating_sub(sig_len);
+        let msg = decoded_payload.get(..msg_len).ok_or(PasetoError::IncorrectSize)?;
+        let sig_end = msg_len
+            .checked_add(sig_len)
+            .ok_or(PasetoError::IncorrectSize)?;
+        let sig = decoded_payload.get(msg_len..sig_end).ok_or(PasetoError::IncorrectSize)?;
 
-        let signature = Signature::try_from(sig).map_err(|_| PasetoError::InvalidSignature)?;
+        let signature = Signature::try_from(sig)?;
         let pae = PreAuthenticationEncoding::parse(&[
             &Header::<V2, Public>::default(),
             msg,
@@ -28,9 +40,6 @@ impl<'a> Paseto<'a, V2, Public> {
         ]);
 
         verifying_key.verify(&pae, &signature)?;
-        // public_key
-        //     .verify(&pae, &signature)
-        //     .map_err(|_| PasetoError::InvalidSignature)?;
 
         Ok(String::from_utf8(Vec::from(msg))?)
     }

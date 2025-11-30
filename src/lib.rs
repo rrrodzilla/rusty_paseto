@@ -610,3 +610,12 @@ pub mod core;
 pub mod generic;
 #[cfg(feature = "batteries_included")]
 pub mod prelude;
+
+/// PASERK (Platform-Agnostic Serialized Keys) integration.
+///
+/// This module provides conversion traits and types for working with
+/// PASERK key serialization format alongside PASETO tokens.
+///
+/// Enable with the `paserk` feature flag.
+#[cfg(feature = "paserk")]
+pub mod paserk;

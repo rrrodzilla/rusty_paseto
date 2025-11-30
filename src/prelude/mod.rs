@@ -32,3 +32,7 @@ pub use crate::generic::*;
 pub use error::GeneralPasetoError;
 pub use paseto_builder::PasetoBuilder;
 pub use paseto_parser::PasetoParser;
+
+// PASERK re-exports when the paserk feature is enabled
+#[cfg(feature = "paserk")]
+pub use crate::paserk::{FromPaserk, ToPaserk};

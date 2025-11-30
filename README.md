@@ -575,13 +575,15 @@ See [Issue #48](https://github.com/rrrodzilla/rusty_paseto/issues/48) for techni
  - "v2_local" (Sodium Original Symmetric Encryption)
  - "v3_local" (NIST Modern Symmetric Encryption)
  - "v4_local" (Sodium Modern Symmetric Encryption)
- - "v1_public" (NIST Original Asymmetric Authentication)
+ - "v1_public_insecure" (NIST Original Asymmetric Authentication - **deprecated**, see note below)
  - "v2_public" (Sodium Original Asymmetric Authentication)
  - "v3_public" (NIST Modern Asymmetric Authentication)
  - "v4_public" (Sodium Modern Asymmetric Authentication)
 
  Additional features:
  - "paserk" (PASERK key serialization, identification, and wrapping - requires v2 or v4 version features)
+
+ > **⚠️ V1 Public Deprecation Notice**: The `v1_public` feature has been renamed to `v1_public_insecure` to clearly indicate its security status. V1 public tokens use RSA-PSS with SHA-384, which has known weaknesses compared to modern alternatives. All V1 public types are marked as `#[deprecated]`. If you must use V1 public tokens for legacy compatibility, explicitly enable the `v1_public_insecure` feature and use `#[allow(deprecated)]` to acknowledge the security risk. **New applications should use V4 (recommended) or V2.**
 
 <h6 align="right"><a href="#user-content-table-of-contents">back to toc</a></h6>
 
@@ -674,24 +676,24 @@ See [Issue #48](https://github.com/rrrodzilla/rusty_paseto/issues/48) for techni
 
  ### [PASETO](https://github.com/paseto-standard/paseto-spec) specification
 
-| APIs, Tests & Documentation |v1.L|v1.P|v2.L|v2.P|v3.L|v3.P|v4.L|v4.P|
+| APIs, Tests & Documentation |v1.L|v1.P ⚠️|v2.L|v2.P|v3.L|v3.P|v4.L|v4.P|
 | ------------: |:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| PASETO Token Builder		|🟢|🟢|🟢|🟢|🟢|🟢|🟢|🟢|
-| PASETO Token Parser		|🟢|🟢|🟢|🟢|🟢|🟢|🟢|🟢|
-| Flexible Claim Validation	|🟢|🟢|🟢|🟢|🟢|🟢|🟢|🟢|
-| Generic Token Builder		|🟢|🟢|🟢|🟢|🟢|🟢|🟢|🟢|
-| Generic Token Parser		|🟢|🟢|🟢|🟢|🟢|🟢|🟢|🟢|
-| Encryption/Signing		|🟢|🟢|🟢|🟢|🟢|🟢|🟢|🟢|
-| Decryption/Verification	|🟢|🟢|🟢|🟢|🟢|🟢|🟢|🟢|
-| [PASETO Test vectors](https://github.com/paseto-standard/test-vectors)  |🟢|🟢|🟢|🟢|🟢|🟢|🟢|🟢|
-| Feature - core	|🟢|🟢|🟢|🟢|🟢|🟢|🟢|🟢|
-| Feature - generic	|🟢|🟢|🟢|🟢|🟢|🟢|🟢|🟢|
-| Feature - batteries_included	|🟢|🟢|🟢|🟢|🟢|🟢|🟢|🟢|
-| Docs - [core](#user-content-core)			|🟢|🟢|🟢|🟢|🟢|🟢|🟢|🟢|
-| Docs - [generic](#user-content-generic)			|🟢|🟢|🟢|🟢|🟢|🟢|🟢|🟢|
-| Docs - [batteries_included](#user-content-batteries_included)			|🟢|🟢|🟢|🟢|🟢|🟢|🟢|🟢|
+| PASETO Token Builder		|🟢|🟡|🟢|🟢|🟢|🟢|🟢|🟢|
+| PASETO Token Parser		|🟢|🟡|🟢|🟢|🟢|🟢|🟢|🟢|
+| Flexible Claim Validation	|🟢|🟡|🟢|🟢|🟢|🟢|🟢|🟢|
+| Generic Token Builder		|🟢|🟡|🟢|🟢|🟢|🟢|🟢|🟢|
+| Generic Token Parser		|🟢|🟡|🟢|🟢|🟢|🟢|🟢|🟢|
+| Encryption/Signing		|🟢|🟡|🟢|🟢|🟢|🟢|🟢|🟢|
+| Decryption/Verification	|🟢|🟡|🟢|🟢|🟢|🟢|🟢|🟢|
+| [PASETO Test vectors](https://github.com/paseto-standard/test-vectors)  |🟢|🟡|🟢|🟢|🟢|🟢|🟢|🟢|
+| Feature - core	|🟢|🟡|🟢|🟢|🟢|🟢|🟢|🟢|
+| Feature - generic	|🟢|🟡|🟢|🟢|🟢|🟢|🟢|🟢|
+| Feature - batteries_included	|🟢|🟡|🟢|🟢|🟢|🟢|🟢|🟢|
+| Docs - [core](#user-content-core)			|🟢|🟡|🟢|🟢|🟢|🟢|🟢|🟢|
+| Docs - [generic](#user-content-generic)			|🟢|🟡|🟢|🟢|🟢|🟢|🟢|🟢|
+| Docs - [batteries_included](#user-content-batteries_included)			|🟢|🟡|🟢|🟢|🟢|🟢|🟢|🟢|
 
- <div align="center"><p>🟢 - completed&nbsp;⚫ - planned</p></div>
+ <div align="center"><p>🟢 - completed&nbsp;🟡 - deprecated&nbsp;⚫ - planned</p></div>
 
 <h6 align="right"><a href="#user-content-table-of-contents">back to toc</a></h6>
 

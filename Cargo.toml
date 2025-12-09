@@ -2,7 +2,7 @@
 name = "rusty_paseto"
 version = "0.8.0"
 edition = "2021"
-readme = "readme.md"
+readme = "README.md"
 authors = ["Roland Rodriguez <rolandrodriguez@gmail.com>"]
 description = "A type-driven, ergonomic alternative to JWT for secure stateless PASETO tokens."
 repository = "https://github.com/rrrodzilla/rusty_paseto"

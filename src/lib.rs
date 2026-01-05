@@ -620,10 +620,13 @@ compile_error!(
 //public interface
 #[cfg(feature = "core")]
 pub mod core;
+mod error;
 #[cfg(feature = "generic")]
 pub mod generic;
 #[cfg(feature = "batteries_included")]
 pub mod prelude;
+
+pub use error::{Error, Result};
 
 /// PASERK (Platform-Agnostic Serialized Keys) integration.
 ///

@@ -1,6 +1,16 @@
 use crate::generic::PasetoClaimError;
 use thiserror::Error;
+
 /// Errors raised by the generic builder when adding claims or encrypting or signing PASETO tokens.
+///
+/// # Deprecated
+///
+/// This error type is deprecated. Use [`crate::Error`] instead for new code.
+/// It will be removed in a future major version.
+#[deprecated(
+    since = "0.10.0",
+    note = "Use rusty_paseto::Error instead. This type will be removed in a future major version."
+)]
 #[derive(Debug, Error)]
 pub enum GenericBuilderError {
   /// A generic claim error

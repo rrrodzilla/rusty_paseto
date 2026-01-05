@@ -2,6 +2,15 @@ use std::array::TryFromSliceError;
 use thiserror::Error;
 
 /// Potential errors from attempting to build a token claim
+///
+/// # Deprecated
+///
+/// This error type is deprecated. Use [`crate::Error`] instead for new code.
+/// It will be removed in a future major version.
+#[deprecated(
+    since = "0.10.0",
+    note = "Use rusty_paseto::Error instead. This type will be removed in a future major version."
+)]
 #[derive(Debug, Error)]
 pub enum PasetoError {
   ///A general, unspecified (for security reasons) cipher error
@@ -89,10 +98,10 @@ pub enum PasetoError {
   ///A cipher error from the `ChaCha` algorithm
   #[error("An unspecified cipher error occurred")]
   ChaChaCipherError,
-  ///An infallible error
-  #[error("A Utf8 parsing error occurred")]
-  Infallibale {
-    ///An infallible error
+  /// An infallible error (included for From implementation completeness)
+  #[error("An infallible error occurred")]
+  Infallible {
+    /// An infallible error
     #[from]
     source: std::convert::Infallible,
   },

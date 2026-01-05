@@ -169,6 +169,193 @@ impl<'a, Version, Purpose> PasetoBuilder<'a, Version, Purpose> {
     self
   }
 
+  /// Sets the audience claim (aud) using a fluent API.
+  ///
+  /// This is a convenience method equivalent to `.set_claim(AudienceClaim::from(value))`.
+  ///
+  /// # Example
+  /// ```
+  /// # #[cfg(all(feature = "prelude", feature="v4_local"))]
+  /// # {
+  /// use rusty_paseto::prelude::*;
+  /// let key = PasetoSymmetricKey::<V4, Local>::from(Key::<32>::from(*b"wubbalubbadubdubwubbalubbadubdub"));
+  /// let token = PasetoBuilder::<V4, Local>::default()
+  ///     .audience("customers")
+  ///     .build(&key)?;
+  /// # }
+  /// # Ok::<(),anyhow::Error>(())
+  /// ```
+  pub fn audience(mut self, value: &'a str) -> Self {
+    self.set_claim(AudienceClaim::from(value));
+    self
+  }
+
+  /// Sets the subject claim (sub) using a fluent API.
+  ///
+  /// This is a convenience method equivalent to `.set_claim(SubjectClaim::from(value))`.
+  ///
+  /// # Example
+  /// ```
+  /// # #[cfg(all(feature = "prelude", feature="v4_local"))]
+  /// # {
+  /// use rusty_paseto::prelude::*;
+  /// let key = PasetoSymmetricKey::<V4, Local>::from(Key::<32>::from(*b"wubbalubbadubdubwubbalubbadubdub"));
+  /// let token = PasetoBuilder::<V4, Local>::default()
+  ///     .subject("user-123")
+  ///     .build(&key)?;
+  /// # }
+  /// # Ok::<(),anyhow::Error>(())
+  /// ```
+  pub fn subject(mut self, value: &'a str) -> Self {
+    self.set_claim(SubjectClaim::from(value));
+    self
+  }
+
+  /// Sets the issuer claim (iss) using a fluent API.
+  ///
+  /// This is a convenience method equivalent to `.set_claim(IssuerClaim::from(value))`.
+  ///
+  /// # Example
+  /// ```
+  /// # #[cfg(all(feature = "prelude", feature="v4_local"))]
+  /// # {
+  /// use rusty_paseto::prelude::*;
+  /// let key = PasetoSymmetricKey::<V4, Local>::from(Key::<32>::from(*b"wubbalubbadubdubwubbalubbadubdub"));
+  /// let token = PasetoBuilder::<V4, Local>::default()
+  ///     .issuer("my-service")
+  ///     .build(&key)?;
+  /// # }
+  /// # Ok::<(),anyhow::Error>(())
+  /// ```
+  pub fn issuer(mut self, value: &'a str) -> Self {
+    self.set_claim(IssuerClaim::from(value));
+    self
+  }
+
+  /// Sets the token identifier claim (jti) using a fluent API.
+  ///
+  /// This is a convenience method equivalent to `.set_claim(TokenIdentifierClaim::from(value))`.
+  ///
+  /// # Example
+  /// ```
+  /// # #[cfg(all(feature = "prelude", feature="v4_local"))]
+  /// # {
+  /// use rusty_paseto::prelude::*;
+  /// let key = PasetoSymmetricKey::<V4, Local>::from(Key::<32>::from(*b"wubbalubbadubdubwubbalubbadubdub"));
+  /// let token = PasetoBuilder::<V4, Local>::default()
+  ///     .token_identifier("unique-token-id")
+  ///     .build(&key)?;
+  /// # }
+  /// # Ok::<(),anyhow::Error>(())
+  /// ```
+  pub fn token_identifier(mut self, value: &'a str) -> Self {
+    self.set_claim(TokenIdentifierClaim::from(value));
+    self
+  }
+
+  /// Sets a custom claim with the given key and serializable value.
+  ///
+  /// This is a convenience method that creates a [`CustomClaim`] internally.
+  ///
+  /// # Errors
+  ///
+  /// Returns [`GenericBuilderError`] if the key is a reserved PASETO claim key
+  /// (iss, sub, aud, exp, nbf, iat, jti).
+  ///
+  /// # Example
+  /// ```
+  /// # #[cfg(all(feature = "prelude", feature="v4_local"))]
+  /// # {
+  /// use rusty_paseto::prelude::*;
+  /// let key = PasetoSymmetricKey::<V4, Local>::from(Key::<32>::from(*b"wubbalubbadubdubwubbalubbadubdub"));
+  /// let token = PasetoBuilder::<V4, Local>::default()
+  ///     .claim("user_id", 42)?
+  ///     .claim("roles", vec!["admin", "user"])?
+  ///     .build(&key)?;
+  /// # }
+  /// # Ok::<(),anyhow::Error>(())
+  /// ```
+  pub fn claim<T: serde::Serialize + erased_serde::Serialize + Clone + 'a>(
+    mut self,
+    key: &'a str,
+    value: T,
+  ) -> Result<Self, GenericBuilderError> {
+    let custom_claim = CustomClaim::try_from((key, value))?;
+    self.set_claim(custom_claim);
+    Ok(self)
+  }
+
+  /// Sets the expiration claim to a specific duration from now.
+  ///
+  /// This replaces any existing expiration claim (including the default 1-hour expiration).
+  ///
+  /// # Example
+  /// ```
+  /// # #[cfg(all(feature = "prelude", feature="v4_local"))]
+  /// # {
+  /// use rusty_paseto::prelude::*;
+  /// use std::time::Duration;
+  ///
+  /// let key = PasetoSymmetricKey::<V4, Local>::from(Key::<32>::from(*b"wubbalubbadubdubwubbalubbadubdub"));
+  /// let token = PasetoBuilder::<V4, Local>::default()
+  ///     .expires_in(Duration::from_secs(3600)) // 1 hour from now
+  ///     .build(&key)?;
+  /// # }
+  /// # Ok::<(),anyhow::Error>(())
+  /// ```
+  pub fn expires_in(mut self, duration: std::time::Duration) -> Self {
+    let now = time::OffsetDateTime::now_utc();
+    // Convert std::time::Duration to time::Duration
+    let time_duration = time::Duration::try_from(duration).unwrap_or(time::Duration::hours(1));
+
+    if let Some(expiration) = now.checked_add(time_duration) {
+      if let Ok(formatted) = expiration.format(&Rfc3339) {
+        if let Ok(exp_claim) = ExpirationClaim::try_from(formatted) {
+          // Remove existing expiration claim and add new one
+          self.builder.remove_claim("exp");
+          self.top_level_claims.remove("exp");
+          self.set_claim(exp_claim);
+        }
+      }
+    }
+    self
+  }
+
+  /// Sets the not-before claim to a specific duration from now.
+  ///
+  /// This replaces any existing not-before claim (including the default).
+  ///
+  /// # Example
+  /// ```
+  /// # #[cfg(all(feature = "prelude", feature="v4_local"))]
+  /// # {
+  /// use rusty_paseto::prelude::*;
+  /// use std::time::Duration;
+  ///
+  /// let key = PasetoSymmetricKey::<V4, Local>::from(Key::<32>::from(*b"wubbalubbadubdubwubbalubbadubdub"));
+  /// let token = PasetoBuilder::<V4, Local>::default()
+  ///     .not_before_in(Duration::from_secs(60)) // Valid 1 minute from now
+  ///     .build(&key)?;
+  /// # }
+  /// # Ok::<(),anyhow::Error>(())
+  /// ```
+  pub fn not_before_in(mut self, duration: std::time::Duration) -> Self {
+    let now = time::OffsetDateTime::now_utc();
+    // Convert std::time::Duration to time::Duration
+    let time_duration = time::Duration::try_from(duration).unwrap_or(time::Duration::ZERO);
+
+    if let Some(not_before) = now.checked_add(time_duration) {
+      if let Ok(formatted) = not_before.format(&Rfc3339) {
+        if let Ok(nbf_claim) = NotBeforeClaim::try_from(formatted) {
+          // Remove existing nbf claim and add new one
+          self.builder.remove_claim("nbf");
+          self.set_claim(nbf_claim);
+        }
+      }
+    }
+    self
+  }
+
   fn verify_ready_to_build(&mut self) -> Result<(), GenericBuilderError> {
     if self.non_expiring_token {
       self.builder.remove_claim("exp");

@@ -1,3 +1,7 @@
+// Allow deprecated error types within this module - these are used internally
+// but deprecated for external users who should migrate to `crate::Error`.
+#![allow(deprecated)]
+
 //! The **core** architectural layer and feature contains only paseto primitives for lightweight
 //! encrypting / decrypting or signing / verification
 //!

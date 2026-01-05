@@ -163,6 +163,31 @@ impl<T> CustomClaim<T> {
   //implementations
   pub(self) const RESERVED_CLAIMS: [&'static str; 7] = ["iss", "sub", "aud", "exp", "nbf", "iat", "jti"];
 
+  /// Creates a new custom claim with the given key and value.
+  ///
+  /// This is a convenience method that provides a cleaner API than `try_from`.
+  ///
+  /// # Errors
+  ///
+  /// Returns [`PasetoClaimError::Reserved`] if the key is a reserved PASETO claim key
+  /// (iss, sub, aud, exp, nbf, iat, jti).
+  ///
+  /// # Example
+  /// ```
+  /// # use rusty_paseto::prelude::*;
+  /// # #[cfg(feature = "default")]
+  /// # {
+  /// let claim = CustomClaim::new("user_id", 42)?;
+  /// let claim = CustomClaim::new("roles", vec!["admin", "user"])?;
+  /// # }
+  /// # Ok::<(),PasetoClaimError>(())
+  /// ```
+  pub fn new(key: impl Into<String>, value: T) -> Result<Self, PasetoClaimError> {
+    let key = key.into();
+    Self::check_if_reserved_claim_key(&key)?;
+    Ok(Self((key, value)))
+  }
+
   fn check_if_reserved_claim_key(key: &str) -> Result<(), PasetoClaimError> {
     match key {
       key if Self::RESERVED_CLAIMS.contains(&key) => Err(PasetoClaimError::Reserved(key.into())),

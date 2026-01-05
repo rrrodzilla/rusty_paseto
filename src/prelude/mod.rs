@@ -1,3 +1,7 @@
+// Allow deprecated error types within this module - these are used internally
+// but deprecated for external users who should migrate to `crate::Error`.
+#![allow(deprecated)]
+
 //! The outermost architectural layer is called `batteries_included`. This layer is implemented in the [prelude](self) module.  This is what most people will need.
 //! This feature includes JWT style claims and business rules for your PASETO token (default, but customizable expiration, issued at, not-before times, etc as described in the usage documentation and examples).
 //!

@@ -1,5 +1,6 @@
 #[cfg(all(test, feature = "v4_local"))]
 mod key_rotation_tests {
+    #![allow(deprecated)]
     use rusty_paseto::core::*;
     use serde_json::json;
     use std::collections::HashMap;

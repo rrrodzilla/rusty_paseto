@@ -1,6 +1,15 @@
 use thiserror::Error;
 
 /// Errors from validating claims in a parsed token
+///
+/// # Deprecated
+///
+/// This error type is deprecated. Use [`crate::Error`] instead for new code.
+/// It will be removed in a future major version.
+#[deprecated(
+    since = "0.10.0",
+    note = "Use rusty_paseto::Error instead. This type will be removed in a future major version."
+)]
 #[derive(Debug, Error)]
 pub enum PasetoClaimError {
   /// Occurs during an attempt to parse an expired token

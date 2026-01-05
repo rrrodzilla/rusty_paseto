@@ -1,3 +1,7 @@
+// Allow deprecated error types within this module - these are used internally
+// but deprecated for external users who should migrate to `crate::Error`.
+#![allow(deprecated)]
+
 //! The generic architectural and feature layer allows you to create your own custom version of the `batteries_included` layer by following the same pattern I've used in the source code to create your own custom builder and parser.  This is probably not what you need as it is for advanced usage.  The feature includes a generic builder and parser along with claims for you to extend.
 //!
 //! ![paseto generic](https://user-images.githubusercontent.com/24578097/147881907-a765ede6-c8e5-44ff-9845-db53f0634f07.png)

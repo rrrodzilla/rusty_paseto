@@ -175,6 +175,78 @@ impl<'a, Version, Purpose> PasetoParser<'a, Version, Purpose> {
     self.parser.set_footer(footer);
     self
   }
+
+  /// Checks that the audience claim (aud) matches the expected value.
+  ///
+  /// This is a convenience method equivalent to `.check_claim(AudienceClaim::from(value))`.
+  ///
+  /// # Example
+  /// ```
+  /// # #[cfg(all(feature = "prelude", feature="v4_local"))]
+  /// # {
+  /// use rusty_paseto::prelude::*;
+  /// let key = PasetoSymmetricKey::<V4, Local>::from(Key::<32>::from(*b"wubbalubbadubdubwubbalubbadubdub"));
+  /// let token = PasetoBuilder::<V4, Local>::default()
+  ///     .audience("customers")
+  ///     .build(&key)?;
+  /// let json = PasetoParser::<V4, Local>::default()
+  ///     .expect_audience("customers")
+  ///     .parse(&token, &key)?;
+  /// # }
+  /// # Ok::<(),anyhow::Error>(())
+  /// ```
+  pub fn expect_audience(mut self, audience: &'a str) -> Self {
+    self.check_claim(AudienceClaim::from(audience));
+    self
+  }
+
+  /// Checks that the issuer claim (iss) matches the expected value.
+  ///
+  /// This is a convenience method equivalent to `.check_claim(IssuerClaim::from(value))`.
+  ///
+  /// # Example
+  /// ```
+  /// # #[cfg(all(feature = "prelude", feature="v4_local"))]
+  /// # {
+  /// use rusty_paseto::prelude::*;
+  /// let key = PasetoSymmetricKey::<V4, Local>::from(Key::<32>::from(*b"wubbalubbadubdubwubbalubbadubdub"));
+  /// let token = PasetoBuilder::<V4, Local>::default()
+  ///     .issuer("my-service")
+  ///     .build(&key)?;
+  /// let json = PasetoParser::<V4, Local>::default()
+  ///     .expect_issuer("my-service")
+  ///     .parse(&token, &key)?;
+  /// # }
+  /// # Ok::<(),anyhow::Error>(())
+  /// ```
+  pub fn expect_issuer(mut self, issuer: &'a str) -> Self {
+    self.check_claim(IssuerClaim::from(issuer));
+    self
+  }
+
+  /// Checks that the subject claim (sub) matches the expected value.
+  ///
+  /// This is a convenience method equivalent to `.check_claim(SubjectClaim::from(value))`.
+  ///
+  /// # Example
+  /// ```
+  /// # #[cfg(all(feature = "prelude", feature="v4_local"))]
+  /// # {
+  /// use rusty_paseto::prelude::*;
+  /// let key = PasetoSymmetricKey::<V4, Local>::from(Key::<32>::from(*b"wubbalubbadubdubwubbalubbadubdub"));
+  /// let token = PasetoBuilder::<V4, Local>::default()
+  ///     .subject("user-123")
+  ///     .build(&key)?;
+  /// let json = PasetoParser::<V4, Local>::default()
+  ///     .expect_subject("user-123")
+  ///     .parse(&token, &key)?;
+  /// # }
+  /// # Ok::<(),anyhow::Error>(())
+  /// ```
+  pub fn expect_subject(mut self, subject: &'a str) -> Self {
+    self.check_claim(SubjectClaim::from(subject));
+    self
+  }
 }
 
 impl<'a, Version, Purpose> PasetoParser<'a, Version, Purpose>
@@ -301,6 +373,18 @@ impl<'a> PasetoParser<'a, V1, Local> {
     //return the full json value to the user
     self.parser.parse(token, key)
   }
+
+  /// Parses and deserializes the token claims into a strongly-typed struct.
+  ///
+  /// See [`PasetoParser<V4, Local>::parse_into`] for detailed documentation.
+  pub fn parse_into<T: serde::de::DeserializeOwned>(
+    &mut self,
+    token: &'a str,
+    key: &'a PasetoSymmetricKey<V1, Local>,
+  ) -> Result<T, GenericParserError> {
+    let json = self.parse(token, key)?;
+    serde_json::from_value(json).map_err(GenericParserError::from)
+  }
 }
 
 #[cfg(feature = "v2_local")]
@@ -355,6 +439,18 @@ impl<'a> PasetoParser<'a, V2, Local> {
   pub fn parse(&mut self, token: &'a str, key: &'a PasetoSymmetricKey<V2, Local>) -> Result<Value, GenericParserError> {
     //return the full json value to the user
     self.parser.parse(token, key)
+  }
+
+  /// Parses and deserializes the token claims into a strongly-typed struct.
+  ///
+  /// See [`PasetoParser<V4, Local>::parse_into`] for detailed documentation.
+  pub fn parse_into<T: serde::de::DeserializeOwned>(
+    &mut self,
+    token: &'a str,
+    key: &'a PasetoSymmetricKey<V2, Local>,
+  ) -> Result<T, GenericParserError> {
+    let json = self.parse(token, key)?;
+    serde_json::from_value(json).map_err(GenericParserError::from)
   }
 }
 
@@ -414,6 +510,18 @@ impl<'a> PasetoParser<'a, V3, Local> {
     //return the full json value to the user
     self.parser.parse(token, key)
   }
+
+  /// Parses and deserializes the token claims into a strongly-typed struct.
+  ///
+  /// See [`PasetoParser<V4, Local>::parse_into`] for detailed documentation.
+  pub fn parse_into<T: serde::de::DeserializeOwned>(
+    &mut self,
+    token: &'a str,
+    key: &'a PasetoSymmetricKey<V3, Local>,
+  ) -> Result<T, GenericParserError> {
+    let json = self.parse(token, key)?;
+    serde_json::from_value(json).map_err(GenericParserError::from)
+  }
 }
 
 #[cfg(feature = "v4_local")]
@@ -471,6 +579,57 @@ impl<'a> PasetoParser<'a, V4, Local> {
   pub fn parse(&mut self, token: &'a str, key: &'a PasetoSymmetricKey<V4, Local>) -> Result<Value, GenericParserError> {
     //return the full json value to the user
     self.parser.parse(token, key)
+  }
+
+  /// Parses and deserializes the token claims into a strongly-typed struct.
+  ///
+  /// This method first parses and validates the token, then deserializes
+  /// the claims into the specified type `T`.
+  ///
+  /// # Type Parameters
+  /// - `T`: The target type for deserialization. Must implement [`serde::de::DeserializeOwned`].
+  ///
+  /// # Errors
+  /// Returns [`GenericParserError`] if:
+  /// - Token decryption fails
+  /// - Claim validation fails
+  /// - JSON deserialization into `T` fails
+  ///
+  /// # Example
+  /// ```
+  /// # #[cfg(all(feature = "prelude", feature="v4_local"))]
+  /// # {
+  /// use rusty_paseto::prelude::*;
+  /// use serde::Deserialize;
+  ///
+  /// #[derive(Deserialize)]
+  /// struct MyClaims {
+  ///     sub: String,
+  ///     #[serde(default)]
+  ///     user_id: Option<i64>,
+  /// }
+  ///
+  /// let key = PasetoSymmetricKey::<V4, Local>::from(Key::<32>::from(*b"wubbalubbadubdubwubbalubbadubdub"));
+  /// let token = PasetoBuilder::<V4, Local>::default()
+  ///     .subject("user-123")
+  ///     .claim("user_id", 42)?
+  ///     .build(&key)?;
+  ///
+  /// let claims: MyClaims = PasetoParser::<V4, Local>::default()
+  ///     .parse_into(&token, &key)?;
+  ///
+  /// assert_eq!(claims.sub, "user-123");
+  /// assert_eq!(claims.user_id, Some(42));
+  /// # }
+  /// # Ok::<(),anyhow::Error>(())
+  /// ```
+  pub fn parse_into<T: serde::de::DeserializeOwned>(
+    &mut self,
+    token: &'a str,
+    key: &'a PasetoSymmetricKey<V4, Local>,
+  ) -> Result<T, GenericParserError> {
+    let json = self.parse(token, key)?;
+    serde_json::from_value(json).map_err(GenericParserError::from)
   }
 }
 
@@ -562,6 +721,23 @@ impl<'a> PasetoParser<'a, V1, Public> {
     //return the full json value to the user
     self.parser.parse(token, key)
   }
+
+  /// Parses and deserializes the token claims into a strongly-typed struct.
+  ///
+  /// See [`PasetoParser<V4, Local>::parse_into`] for detailed documentation.
+  #[deprecated(
+      since = "0.8.1",
+      note = "V1 public tokens use RSA which is vulnerable to RUSTSEC-2023-0071 (Marvin Attack). Use V4 instead."
+  )]
+  #[allow(deprecated)]
+  pub fn parse_into<T: serde::de::DeserializeOwned>(
+    &mut self,
+    token: &'a str,
+    key: &'a PasetoAsymmetricPublicKey<V1, Public>,
+  ) -> Result<T, GenericParserError> {
+    let json = self.parse(token, key)?;
+    serde_json::from_value(json).map_err(GenericParserError::from)
+  }
 }
 
 #[cfg(feature = "v2_public")]
@@ -635,6 +811,18 @@ impl<'a> PasetoParser<'a, V2, Public> {
   ) -> Result<Value, GenericParserError> {
     //return the full json value to the user
     self.parser.parse(token, key)
+  }
+
+  /// Parses and deserializes the token claims into a strongly-typed struct.
+  ///
+  /// See [`PasetoParser<V4, Local>::parse_into`] for detailed documentation.
+  pub fn parse_into<T: serde::de::DeserializeOwned>(
+    &mut self,
+    token: &'a str,
+    key: &'a PasetoAsymmetricPublicKey<V2, Public>,
+  ) -> Result<T, GenericParserError> {
+    let json = self.parse(token, key)?;
+    serde_json::from_value(json).map_err(GenericParserError::from)
   }
 }
 
@@ -717,6 +905,18 @@ impl<'a> PasetoParser<'a, V3, Public> {
     //return the full json value to the user
     self.parser.parse(token, key)
   }
+
+  /// Parses and deserializes the token claims into a strongly-typed struct.
+  ///
+  /// See [`PasetoParser<V4, Local>::parse_into`] for detailed documentation.
+  pub fn parse_into<T: serde::de::DeserializeOwned>(
+    &mut self,
+    token: &'a str,
+    key: &'a PasetoAsymmetricPublicKey<V3, Public>,
+  ) -> Result<T, GenericParserError> {
+    let json = self.parse(token, key)?;
+    serde_json::from_value(json).map_err(GenericParserError::from)
+  }
 }
 
 #[cfg(feature = "v4_public")]
@@ -794,6 +994,18 @@ impl<'a> PasetoParser<'a, V4, Public> {
   ) -> Result<Value, GenericParserError> {
     //return the full json value to the user
     self.parser.parse(token, key)
+  }
+
+  /// Parses and deserializes the token claims into a strongly-typed struct.
+  ///
+  /// See [`PasetoParser<V4, Local>::parse_into`] for detailed documentation.
+  pub fn parse_into<T: serde::de::DeserializeOwned>(
+    &mut self,
+    token: &'a str,
+    key: &'a PasetoAsymmetricPublicKey<V4, Public>,
+  ) -> Result<T, GenericParserError> {
+    let json = self.parse(token, key)?;
+    serde_json::from_value(json).map_err(GenericParserError::from)
   }
 }
 

@@ -1,0 +1,220 @@
+export const metadata = {
+  title: 'Custom Claims',
+  description:
+    'Learn how to add custom claims to your PASETO tokens for application-specific data.',
+}
+
+# Custom Claims
+
+Beyond the seven standard claims, you can add any custom data to your tokens using `CustomClaim`. {{ className: 'lead' }}
+
+## Basic Custom Claims
+
+Create custom claims with `CustomClaim::new()`:
+
+```rust
+use rusty_paseto::prelude::*;
+
+let token = PasetoBuilder::<V4, Local>::default()
+    .set_claim(CustomClaim::new("role", "admin")?)
+    .set_claim(CustomClaim::new("department", "engineering")?)
+    .set_claim(CustomClaim::new("employee_id", 12345)?)
+    .build(&key)?;
+```
+
+---
+
+## Supported Value Types
+
+`CustomClaim` accepts any value that implements `serde::Serialize`:
+
+```rust
+use rusty_paseto::prelude::*;
+
+// Strings
+CustomClaim::new("name", "Alice")?;
+
+// Numbers
+CustomClaim::new("level", 42)?;
+CustomClaim::new("score", 98.5)?;
+
+// Booleans
+CustomClaim::new("verified", true)?;
+
+// Arrays
+CustomClaim::new("roles", vec!["admin", "user"])?;
+CustomClaim::new("ids", vec![1, 2, 3])?;
+
+// Objects (via serde_json)
+use serde_json::json;
+CustomClaim::new("metadata", json!({
+    "created_by": "system",
+    "version": 2
+}))?;
+```
+
+---
+
+## Reserved Claim Keys
+
+You cannot use reserved PASETO claim keys for custom claims:
+
+```rust
+use rusty_paseto::prelude::*;
+
+// These will return an error
+let result = CustomClaim::new("iss", "value");  // Reserved
+let result = CustomClaim::new("sub", "value");  // Reserved
+let result = CustomClaim::new("aud", "value");  // Reserved
+let result = CustomClaim::new("exp", "value");  // Reserved
+let result = CustomClaim::new("nbf", "value");  // Reserved
+let result = CustomClaim::new("iat", "value");  // Reserved
+let result = CustomClaim::new("jti", "value");  // Reserved
+```
+
+Use the dedicated claim types for reserved keys instead:
+
+```rust
+// Correct - use the dedicated type
+.set_claim(SubjectClaim::from("user_123"))
+
+// Wrong - will error
+.set_claim(CustomClaim::new("sub", "user_123")?)
+```
+
+---
+
+## Validating Custom Claims
+
+Use `check_claim` to validate custom claims when parsing:
+
+```rust
+use rusty_paseto::prelude::*;
+
+let payload = PasetoParser::<V4, Local>::default()
+    .check_claim(CustomClaim::new("role", "admin")?)
+    .check_claim(CustomClaim::new("department", "engineering")?)
+    .parse(&token, &key)?;
+```
+
+If the claim value doesn't match, parsing returns `Error::InvalidClaimValue`.
+
+---
+
+## Custom Validation Functions
+
+For complex validation logic, use `validate_claim`:
+
+```rust
+use rusty_paseto::prelude::*;
+
+let payload = PasetoParser::<V4, Local>::default()
+    .validate_claim(
+        "level",
+        |value| {
+            // value is a serde_json::Value
+            value.as_i64()
+                .map(|level| level >= 5)
+                .unwrap_or(false)
+        }
+    )
+    .parse(&token, &key)?;
+```
+
+---
+
+## Accessing Custom Claims in Payload
+
+After parsing, access custom claims from the JSON payload:
+
+```rust
+use rusty_paseto::prelude::*;
+
+let payload = PasetoParser::<V4, Local>::default()
+    .parse(&token, &key)?;
+
+// Parse the JSON payload
+let claims: serde_json::Value = serde_json::from_str(&payload)?;
+
+// Access custom claims
+let role = claims["role"].as_str().unwrap_or("unknown");
+let level = claims["level"].as_i64().unwrap_or(0);
+```
+
+### Typed Parsing
+
+For type-safe access, parse into a struct:
+
+```rust
+use rusty_paseto::prelude::*;
+use serde::Deserialize;
+
+#[derive(Deserialize)]
+struct MyClaims {
+    sub: String,
+    role: String,
+    level: i32,
+    #[serde(default)]
+    permissions: Vec<String>,
+}
+
+let claims: MyClaims = PasetoParser::<V4, Local>::default()
+    .parse_into(&token, &key)?;
+
+println!("User {} has role {}", claims.sub, claims.role);
+```
+
+---
+
+## Example: Role-Based Access Control
+
+<Row>
+  <Col>
+
+    A complete example implementing role-based access control with custom claims:
+
+  </Col>
+  <Col>
+
+    ```rust
+    use rusty_paseto::prelude::*;
+    use serde::{Deserialize, Serialize};
+
+    #[derive(Serialize)]
+    struct TokenData {
+        role: String,
+        permissions: Vec<String>,
+        tenant_id: String,
+    }
+
+    fn create_token(
+        user_id: &str,
+        data: &TokenData,
+        key: &PasetoSymmetricKey<V4, Local>,
+    ) -> Result<String, Box<dyn std::error::Error>> {
+        let token = PasetoBuilder::<V4, Local>::default()
+            .subject(user_id)
+            .set_claim(CustomClaim::new("role", &data.role)?)
+            .set_claim(CustomClaim::new("permissions", &data.permissions)?)
+            .set_claim(CustomClaim::new("tenant_id", &data.tenant_id)?)
+            .build(key)?;
+
+        Ok(token)
+    }
+
+    fn verify_admin(
+        token: &str,
+        tenant: &str,
+        key: &PasetoSymmetricKey<V4, Local>,
+    ) -> Result<String, Box<dyn std::error::Error>> {
+        let payload = PasetoParser::<V4, Local>::default()
+            .check_claim(CustomClaim::new("role", "admin")?)
+            .check_claim(CustomClaim::new("tenant_id", tenant)?)
+            .parse(token, key)?;
+
+        Ok(payload)
+    }
+    ```
+
+  </Col>
+</Row>

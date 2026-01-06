@@ -1,0 +1,198 @@
+export const metadata = {
+  title: 'Claims',
+  description:
+    'Learn about the seven standard PASETO claims and how to use them in your tokens.',
+}
+
+# Claims
+
+PASETO defines seven standard claims for common token use cases. rusty_paseto provides type-safe wrappers for each. {{ className: 'lead' }}
+
+## Standard Claims Overview
+
+| Claim | Key | Description |
+|-------|-----|-------------|
+| Issuer | `iss` | Who created the token |
+| Subject | `sub` | Who/what the token is about |
+| Audience | `aud` | Who the token is intended for |
+| Expiration | `exp` | When the token expires |
+| Not Before | `nbf` | When the token becomes valid |
+| Issued At | `iat` | When the token was created |
+| Token ID | `jti` | Unique identifier for the token |
+
+---
+
+## Issuer Claim (iss)
+
+Identifies who created and signed the token.
+
+```rust
+use rusty_paseto::prelude::*;
+
+// Building
+let token = PasetoBuilder::<V4, Local>::default()
+    .set_claim(IssuerClaim::from("auth.example.com"))
+    // or using fluent method
+    .issuer("auth.example.com")
+    .build(&key)?;
+
+// Parsing - check issuer matches
+let payload = PasetoParser::<V4, Local>::default()
+    .check_claim(IssuerClaim::from("auth.example.com"))
+    .parse(&token, &key)?;
+```
+
+---
+
+## Subject Claim (sub)
+
+Identifies the principal (user, service) the token represents.
+
+```rust
+use rusty_paseto::prelude::*;
+
+// Building
+let token = PasetoBuilder::<V4, Local>::default()
+    .set_claim(SubjectClaim::from("user_12345"))
+    // or using fluent method
+    .subject("user_12345")
+    .build(&key)?;
+
+// Parsing - check subject matches
+let payload = PasetoParser::<V4, Local>::default()
+    .check_claim(SubjectClaim::from("user_12345"))
+    .parse(&token, &key)?;
+```
+
+---
+
+## Audience Claim (aud)
+
+Identifies the intended recipient(s) of the token.
+
+```rust
+use rusty_paseto::prelude::*;
+
+// Building
+let token = PasetoBuilder::<V4, Local>::default()
+    .set_claim(AudienceClaim::from("api.example.com"))
+    // or using fluent method
+    .audience("api.example.com")
+    .build(&key)?;
+
+// Parsing - reject tokens not intended for us
+let payload = PasetoParser::<V4, Local>::default()
+    .check_claim(AudienceClaim::from("api.example.com"))
+    .parse(&token, &key)?;
+```
+
+---
+
+## Expiration Claim (exp)
+
+Specifies when the token expires. Must be an RFC3339 timestamp.
+
+```rust
+use rusty_paseto::prelude::*;
+
+// Building with explicit timestamp
+let token = PasetoBuilder::<V4, Local>::default()
+    .set_claim(ExpirationClaim::try_from("2025-01-01T00:00:00Z")?)
+    // or using fluent method
+    .expiration("2025-01-01T00:00:00Z")?
+    .build(&key)?;
+
+// Building with duration
+use time::{Duration, OffsetDateTime};
+let exp = OffsetDateTime::now_utc() + Duration::hours(24);
+let exp_str = exp.format(&time::format_description::well_known::Rfc3339)?;
+
+let token = PasetoBuilder::<V4, Local>::default()
+    .set_claim(ExpirationClaim::try_from(exp_str.as_str())?)
+    .build(&key)?;
+```
+
+<Note>
+  `PasetoParser` automatically validates expiration. Expired tokens return
+  `Error::Expired`.
+</Note>
+
+---
+
+## Not Before Claim (nbf)
+
+Specifies when the token becomes valid. Useful for pre-issued tokens.
+
+```rust
+use rusty_paseto::prelude::*;
+
+// Token valid starting tomorrow
+let token = PasetoBuilder::<V4, Local>::default()
+    .set_claim(NotBeforeClaim::try_from("2024-12-25T00:00:00Z")?)
+    // or using fluent method
+    .not_before("2024-12-25T00:00:00Z")?
+    .build(&key)?;
+```
+
+<Note>
+  `PasetoParser` automatically validates not-before. Early tokens return
+  `Error::NotYetValid`.
+</Note>
+
+---
+
+## Issued At Claim (iat)
+
+Records when the token was created.
+
+```rust
+use rusty_paseto::prelude::*;
+use time::OffsetDateTime;
+
+let now = OffsetDateTime::now_utc()
+    .format(&time::format_description::well_known::Rfc3339)?;
+
+let token = PasetoBuilder::<V4, Local>::default()
+    .set_claim(IssuedAtClaim::try_from(now.as_str())?)
+    // or using fluent method
+    .issued_at(now.as_str())?
+    .build(&key)?;
+```
+
+---
+
+## Token ID Claim (jti)
+
+A unique identifier for the token. Useful for revocation lists.
+
+```rust
+use rusty_paseto::prelude::*;
+use uuid::Uuid;
+
+let token_id = Uuid::new_v4().to_string();
+
+let token = PasetoBuilder::<V4, Local>::default()
+    .set_claim(TokenIdentifierClaim::from(token_id.as_str()))
+    // or using fluent method
+    .token_identifier(&token_id)
+    .build(&key)?;
+```
+
+---
+
+## Combining Claims
+
+A typical authentication token uses multiple claims:
+
+```rust
+use rusty_paseto::prelude::*;
+
+let token = PasetoBuilder::<V4, Local>::default()
+    .issuer("auth.myapp.com")
+    .subject("user_12345")
+    .audience("api.myapp.com")
+    .expiration("2025-01-01T00:00:00Z")?
+    .issued_at("2024-06-15T10:30:00Z")?
+    .token_identifier("tok_abc123")
+    .build(&key)?;
+```

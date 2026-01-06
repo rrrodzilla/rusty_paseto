@@ -1,0 +1,207 @@
+export const metadata = {
+  title: 'Claim Validation',
+  description:
+    'Learn how to validate claims using check_claim, validate_claim, and custom validators.',
+}
+
+# Claim Validation
+
+rusty_paseto provides flexible claim validation through exact matching, custom validators, and automatic time-based validation. {{ className: 'lead' }}
+
+## Automatic Validation
+
+`PasetoParser` automatically validates time-based claims:
+
+<Properties>
+  <Property name="exp (Expiration)">
+    Tokens with past expiration times are rejected with `Error::Expired`
+  </Property>
+  <Property name="nbf (Not Before)">
+    Tokens used before their not-before time are rejected with `Error::NotYetValid`
+  </Property>
+</Properties>
+
+```rust
+use rusty_paseto::prelude::*;
+
+// Automatic validation happens during parse
+let payload = PasetoParser::<V4, Local>::default()
+    .parse(&token, &key)?;
+// If exp is in the past -> Error::Expired
+// If nbf is in the future -> Error::NotYetValid
+```
+
+---
+
+## Exact Value Matching
+
+Use `check_claim` to require exact claim values:
+
+```rust
+use rusty_paseto::prelude::*;
+
+let payload = PasetoParser::<V4, Local>::default()
+    .check_claim(AudienceClaim::from("api.myapp.com"))
+    .check_claim(IssuerClaim::from("auth.myapp.com"))
+    .check_claim(CustomClaim::new("role", "admin")?)
+    .parse(&token, &key)?;
+```
+
+### Fluent Expect Methods
+
+Cleaner syntax with `expect_*` methods:
+
+```rust
+let payload = PasetoParser::<V4, Local>::default()
+    .expect_audience("api.myapp.com")
+    .expect_issuer("auth.myapp.com")
+    .expect_subject("user_123")
+    .parse(&token, &key)?;
+```
+
+---
+
+## Custom Validation Functions
+
+Use `validate_claim` for complex validation logic:
+
+```rust
+use rusty_paseto::prelude::*;
+
+let payload = PasetoParser::<V4, Local>::default()
+    // Check role is one of allowed values
+    .validate_claim("role", |value| {
+        value.as_str()
+            .map(|r| ["admin", "moderator", "user"].contains(&r))
+            .unwrap_or(false)
+    })
+    // Check level is at least 5
+    .validate_claim("level", |value| {
+        value.as_i64()
+            .map(|level| level >= 5)
+            .unwrap_or(false)
+    })
+    // Check permissions array contains "read"
+    .validate_claim("permissions", |value| {
+        value.as_array()
+            .map(|perms| perms.iter().any(|p| p == "read"))
+            .unwrap_or(false)
+    })
+    .parse(&token, &key)?;
+```
+
+The validation function receives a `&serde_json::Value` and returns `bool`.
+
+---
+
+## Multiple Validators
+
+Chain multiple validators for comprehensive validation:
+
+```rust
+use rusty_paseto::prelude::*;
+
+let payload = PasetoParser::<V4, Local>::default()
+    // Standard claims
+    .expect_audience("api.myapp.com")
+    .expect_issuer("auth.myapp.com")
+
+    // Custom exact match
+    .check_claim(CustomClaim::new("tenant", "acme-corp")?)
+
+    // Custom validation
+    .validate_claim("scope", |v| {
+        v.as_str()
+            .map(|s| s.split(' ').any(|scope| scope == "read:users"))
+            .unwrap_or(false)
+    })
+
+    .parse(&token, &key)?;
+```
+
+---
+
+## Validation Error Messages
+
+When validation fails, you get descriptive errors:
+
+```rust
+use rusty_paseto::{prelude::*, Error};
+
+let result = PasetoParser::<V4, Local>::default()
+    .check_claim(AudienceClaim::from("expected-app"))
+    .parse(&token, &key);
+
+match result {
+    Err(Error::InvalidClaimValue { claim, expected, actual }) => {
+        println!("Claim '{}' failed: expected '{}', got '{}'",
+                 claim, expected, actual);
+        // Output: Claim 'aud' failed: expected 'expected-app', got 'other-app'
+    }
+    Err(Error::CustomValidationFailed(claim)) => {
+        println!("Custom validation failed for claim: {}", claim);
+    }
+    _ => {}
+}
+```
+
+---
+
+## Validation Patterns
+
+### Multi-Audience Validation
+
+Accept tokens for multiple audiences:
+
+```rust
+let valid_audiences = ["api.myapp.com", "internal.myapp.com"];
+
+let payload = PasetoParser::<V4, Local>::default()
+    .validate_claim("aud", |value| {
+        value.as_str()
+            .map(|aud| valid_audiences.contains(&aud))
+            .unwrap_or(false)
+    })
+    .parse(&token, &key)?;
+```
+
+### Required vs Optional Claims
+
+```rust
+// Required claim - parser fails if missing or invalid
+.check_claim(SubjectClaim::from("user_123"))
+
+// Optional claim - only validate if present
+.validate_claim("optional_field", |value| {
+    // Return true if null (not present) or valid
+    value.is_null() || value.as_str().is_some()
+})
+```
+
+### Type-Safe Struct Validation
+
+For complex validation, parse into a struct first:
+
+```rust
+use rusty_paseto::prelude::*;
+use serde::Deserialize;
+
+#[derive(Deserialize)]
+struct Claims {
+    sub: String,
+    role: String,
+    level: i32,
+}
+
+let claims: Claims = PasetoParser::<V4, Local>::default()
+    .parse_into(&token, &key)?;
+
+// Now use Rust's type system for validation
+if claims.level < 5 {
+    return Err("Insufficient level".into());
+}
+
+if !["admin", "user"].contains(&claims.role.as_str()) {
+    return Err("Invalid role".into());
+}
+```

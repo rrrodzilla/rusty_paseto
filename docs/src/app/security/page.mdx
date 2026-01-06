@@ -1,0 +1,201 @@
+export const metadata = {
+  title: 'Security',
+  description:
+    'Security considerations, V1 Public deprecation, and best practices for rusty_paseto.',
+}
+
+# Security
+
+PASETO was designed to be more secure than JWT by eliminating common pitfalls. However, proper usage is still essential. {{ className: 'lead' }}
+
+## V1 Public Deprecation
+
+<Note>
+  **V1 Public (`v1_public_insecure`) is deprecated and should not be used for
+  new applications.** The feature flag name reflects this status.
+</Note>
+
+### Why V1 Public is Deprecated
+
+V1 Public uses RSA-PSS for signatures, which has several drawbacks:
+
+- **Larger keys:** RSA requires 2048+ bit keys vs 256-bit for Ed25519
+- **Slower operations:** RSA signing/verification is significantly slower
+- **Implementation complexity:** RSA has more ways to be implemented incorrectly
+- **No modern benefits:** V4 Public with Ed25519 is faster and equally secure
+
+### Migration Path
+
+If you're using V1 Public tokens:
+
+1. Add V4 Public feature alongside V1:
+   ```toml
+   features = ["v1_public_insecure", "v4_public", "prelude"]
+   ```
+
+2. Start issuing new tokens with V4:
+   ```rust
+   let token = PasetoBuilder::<V4, Public>::default()
+       .build(&v4_private_key)?;
+   ```
+
+3. Continue accepting V1 tokens during transition:
+   ```rust
+   // Check token header to determine version
+   if token.starts_with("v4.public.") {
+       PasetoParser::<V4, Public>::default().parse(&token, &v4_public_key)?
+   } else if token.starts_with("v1.public.") {
+       PasetoParser::<V1, Public>::default().parse(&token, &v1_public_key)?
+   }
+   ```
+
+4. Once all V1 tokens have expired, remove the feature.
+
+---
+
+## Best Practices
+
+### Token Expiration
+
+Always set reasonable expiration times:
+
+```rust
+// Good - token expires in 1 hour
+let token = PasetoBuilder::<V4, Local>::default()
+    .expiration("2024-06-15T13:00:00Z")?
+    .build(&key)?;
+
+// Avoid - non-expiring tokens
+let token = PasetoBuilder::<V4, Local>::default()
+    .set_no_expiration_danger_acknowledged()  // Security risk!
+    .build(&key)?;
+```
+
+### Audience Validation
+
+Always validate the audience claim:
+
+```rust
+// Good - reject tokens not intended for this service
+let payload = PasetoParser::<V4, Local>::default()
+    .expect_audience("api.myservice.com")
+    .parse(&token, &key)?;
+
+// Risky - accepting any audience
+let payload = PasetoParser::<V4, Local>::default()
+    .parse(&token, &key)?;  // No audience check
+```
+
+### Issuer Validation
+
+Validate the issuer if tokens can come from multiple sources:
+
+```rust
+let payload = PasetoParser::<V4, Local>::default()
+    .expect_issuer("auth.mycompany.com")
+    .parse(&token, &key)?;
+```
+
+---
+
+## Key Security
+
+### Key Generation
+
+Always use cryptographically secure random number generators:
+
+```rust
+// Good - OS-level CSPRNG
+let key = Key::<32>::try_new_random()?;
+
+// Bad - predictable or weak random
+// Don't do this
+```
+
+### Key Storage
+
+<Properties>
+  <Property name="Environment Variables">
+    Acceptable for simple deployments. Never commit to version control.
+  </Property>
+  <Property name="Secret Managers">
+    Preferred. Use AWS Secrets Manager, HashiCorp Vault, etc.
+  </Property>
+  <Property name="Hardware Security Modules">
+    Best for high-security requirements.
+  </Property>
+</Properties>
+
+### Key Rotation
+
+Rotate keys periodically:
+
+1. Generate new key with new ID
+2. Start issuing tokens with new key
+3. Keep old key for verifying existing tokens
+4. Remove old key after all old tokens expire
+
+---
+
+## Common Vulnerabilities to Avoid
+
+### Don't Trust Untrusted Footers for Key Selection
+
+The footer can be modified without affecting decryption. Don't use it alone for security decisions:
+
+```rust
+// Risky - attacker could modify footer
+let footer = Footer::try_from_token(&token)?;
+let kid = parse_kid(&footer)?;
+let key = get_key(kid)?;  // Attacker controls which key is used
+
+// Better - validate footer matches after decryption
+let payload = PasetoParser::<V4, Local>::default()
+    .set_footer(Footer::from(expected_footer))  // Must match exactly
+    .parse(&token, &key)?;
+```
+
+### Don't Expose Cryptographic Errors
+
+Return generic errors to users to avoid oracle attacks:
+
+```rust
+// Bad - reveals information to attackers
+match parse_result {
+    Err(Error::InvalidSignature) => "Invalid signature",
+    Err(Error::CryptoError) => "Decryption failed",
+    Err(Error::FooterMismatch) => "Wrong footer",
+    // ...
+}
+
+// Good - generic error message
+match parse_result {
+    Err(_) => "Invalid token",
+}
+```
+
+### Don't Log Token Contents
+
+Tokens may contain sensitive data:
+
+```rust
+// Bad - logs potentially sensitive data
+log::debug!("Token payload: {}", payload);
+
+// Good - log only non-sensitive identifiers
+log::debug!("Processed token for user: {}", claims.sub);
+```
+
+---
+
+## Security Checklist
+
+- [ ] Using V4 (or V3 for NIST compliance), not V1 Public
+- [ ] Setting reasonable expiration times
+- [ ] Validating audience claim
+- [ ] Validating issuer claim (if applicable)
+- [ ] Storing keys securely (not in code or version control)
+- [ ] Rotating keys periodically
+- [ ] Returning generic error messages to users
+- [ ] Not logging token contents
+- [ ] Using HTTPS for token transmission

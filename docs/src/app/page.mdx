@@ -1,0 +1,32 @@
+import { Guides } from '@/components/Guides'
+import { Resources } from '@/components/Resources'
+import { HeroPattern } from '@/components/HeroPattern'
+
+export const metadata = {
+  title: 'rusty_paseto Documentation',
+  description:
+    'A type-driven, ergonomic PASETO library for Rust. Build secure, stateless tokens with an intuitive fluent API.',
+}
+
+export const sections = [
+  { title: 'Guides', id: 'guides' },
+  { title: 'Resources', id: 'resources' },
+]
+
+<HeroPattern />
+
+# rusty_paseto Documentation
+
+A type-driven, ergonomic implementation of the PASETO token specification for Rust. Build secure, stateless tokens with compile-time version and purpose safety. {{ className: 'lead' }}
+
+[**Quick Start →**](/quickstart) | [Installation](/installation)
+
+## Why PASETO? {{ anchor: false }}
+
+PASETO (Platform-Agnostic Security Tokens) is a modern, secure alternative to JWT. Unlike JWT, PASETO eliminates algorithm confusion attacks by enforcing specific cryptographic algorithms for each version and purpose. {{ className: 'lead' }}
+
+[Learn more about PASETO vs JWT →](/paseto-vs-jwt)
+
+<Guides />
+
+<Resources />

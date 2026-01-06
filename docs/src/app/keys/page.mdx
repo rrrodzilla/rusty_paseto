@@ -1,0 +1,243 @@
+export const metadata = {
+  title: 'Key Management',
+  description:
+    'Learn how to generate, store, and manage cryptographic keys for PASETO tokens.',
+}
+
+# Key Management
+
+Different PASETO versions and purposes require different key types. This guide covers key generation, storage, and best practices. {{ className: 'lead' }}
+
+## Key Types Overview
+
+| Version | Local (Symmetric) | Public (Asymmetric) |
+|---------|-------------------|---------------------|
+| V4 | 32-byte key | Ed25519 keypair |
+| V3 | 32-byte key | P-384 ECDSA keypair |
+| V2 | 32-byte key | Ed25519 keypair |
+| V1 | 32-byte key | RSA keypair |
+
+---
+
+## Symmetric Keys (Local Purpose)
+
+### Generating Random Keys
+
+```rust
+use rusty_paseto::prelude::*;
+
+// Generate a random 32-byte key
+let key = PasetoSymmetricKey::<V4, Local>::from(
+    Key::try_new_random()?
+);
+```
+
+### From Existing Bytes
+
+```rust
+use rusty_paseto::prelude::*;
+
+// From a 32-byte array
+let bytes: [u8; 32] = [0u8; 32]; // Your key bytes
+let key = PasetoSymmetricKey::<V4, Local>::from(
+    Key::<32>::from(bytes)
+);
+
+// From a slice (must be exactly 32 bytes)
+let slice: &[u8] = &[0u8; 32];
+let key = PasetoSymmetricKey::<V4, Local>::from(
+    Key::<32>::try_from(slice)?
+);
+```
+
+### From Hex String
+
+```rust
+use rusty_paseto::prelude::*;
+
+let hex = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+let key = PasetoSymmetricKey::<V4, Local>::from(
+    Key::<32>::try_from(hex)?
+);
+```
+
+---
+
+## Asymmetric Keys (Public Purpose)
+
+### V4/V2 (Ed25519)
+
+```rust
+use rusty_paseto::prelude::*;
+
+// Private key is 64 bytes (32-byte seed + 32-byte public key)
+let private_bytes: [u8; 64] = /* your private key */;
+let private_key = PasetoAsymmetricPrivateKey::<V4, Public>::from(
+    &Key::<64>::from(private_bytes)
+);
+
+// Public key is 32 bytes
+let public_bytes: [u8; 32] = /* your public key */;
+let public_key = PasetoAsymmetricPublicKey::<V4, Public>::from(
+    &Key::<32>::from(public_bytes)
+);
+```
+
+### V3 (P-384 ECDSA)
+
+```rust
+use rusty_paseto::prelude::*;
+
+// Private key is 48 bytes
+let private_key = PasetoAsymmetricPrivateKey::<V3, Public>::from(
+    &Key::<48>::try_from(private_hex)?
+);
+
+// Public key is 49 bytes (compressed) or 97 bytes (uncompressed)
+let public_key = PasetoAsymmetricPublicKey::<V3, Public>::from(
+    &Key::<49>::try_from(public_hex)?
+);
+```
+
+---
+
+## Key Generation Best Practices
+
+### Use Cryptographically Secure Random
+
+```rust
+use rusty_paseto::prelude::*;
+
+// Good - uses OS-level CSPRNG
+let key = Key::<32>::try_new_random()?;
+
+// Bad - don't use weak random sources
+// let key = [rand::random::<u8>(); 32];  // Not recommended
+```
+
+### Generate Keys Once, Store Securely
+
+```rust
+// Generate once
+let key = Key::<32>::try_new_random()?;
+let hex = key.to_hex();  // Convert to hex for storage
+
+// Store hex string in secure location:
+// - Environment variable
+// - Secret manager (AWS Secrets, HashiCorp Vault)
+// - Hardware security module (HSM)
+```
+
+---
+
+## Key Storage Patterns
+
+### Environment Variables
+
+```rust
+use rusty_paseto::prelude::*;
+use std::env;
+
+fn get_key() -> Result<PasetoSymmetricKey<V4, Local>, Box<dyn std::error::Error>> {
+    let hex = env::var("PASETO_KEY")?;
+    let key = PasetoSymmetricKey::<V4, Local>::from(
+        Key::<32>::try_from(hex.as_str())?
+    );
+    Ok(key)
+}
+```
+
+### Configuration Files
+
+```rust
+use rusty_paseto::prelude::*;
+use serde::Deserialize;
+
+#[derive(Deserialize)]
+struct Config {
+    paseto_key_hex: String,
+}
+
+fn load_key(config: &Config) -> Result<PasetoSymmetricKey<V4, Local>, Box<dyn std::error::Error>> {
+    let key = PasetoSymmetricKey::<V4, Local>::from(
+        Key::<32>::try_from(config.paseto_key_hex.as_str())?
+    );
+    Ok(key)
+}
+```
+
+---
+
+## Key Rotation
+
+Use footers to identify which key was used:
+
+```rust
+use rusty_paseto::prelude::*;
+use std::collections::HashMap;
+
+struct KeyManager {
+    keys: HashMap<String, PasetoSymmetricKey<V4, Local>>,
+    current_key_id: String,
+}
+
+impl KeyManager {
+    fn create_token(&self, claims: &str) -> Result<String, Box<dyn std::error::Error>> {
+        let key = self.keys.get(&self.current_key_id).unwrap();
+        let footer = format!(r#"{{"kid":"{}"}}"#, self.current_key_id);
+
+        let token = PasetoBuilder::<V4, Local>::default()
+            .set_claim(SubjectClaim::from(claims))
+            .set_footer(Footer::from(footer.as_str()))
+            .build(key)?;
+
+        Ok(token)
+    }
+
+    fn verify_token(&self, token: &str) -> Result<String, Box<dyn std::error::Error>> {
+        // Extract key ID from footer
+        let footer = Footer::try_from_token(token)?
+            .ok_or("missing footer")?;
+        let footer_json: serde_json::Value = serde_json::from_str(&footer)?;
+        let kid = footer_json["kid"].as_str().ok_or("missing kid")?;
+
+        let key = self.keys.get(kid).ok_or("unknown key")?;
+
+        let payload = PasetoParser::<V4, Local>::default()
+            .set_footer(Footer::from(footer.as_str()))
+            .parse(token, key)?;
+
+        Ok(payload)
+    }
+
+    fn rotate_key(&mut self, new_key_id: String, new_key: PasetoSymmetricKey<V4, Local>) {
+        self.keys.insert(new_key_id.clone(), new_key);
+        self.current_key_id = new_key_id;
+        // Old keys remain for verifying existing tokens
+    }
+}
+```
+
+---
+
+## Security Recommendations
+
+<Note>
+  Never commit keys to version control. Use `.gitignore` to exclude key files
+  and environment files containing keys.
+</Note>
+
+<Properties>
+  <Property name="Key Length">
+    Always use the full key length (32 bytes for symmetric keys)
+  </Property>
+  <Property name="Key Derivation">
+    If deriving keys from passwords, use a proper KDF (Argon2, scrypt, PBKDF2)
+  </Property>
+  <Property name="Key Separation">
+    Use different keys for different purposes (auth tokens vs. refresh tokens)
+  </Property>
+  <Property name="Regular Rotation">
+    Rotate keys periodically, keeping old keys for token verification
+  </Property>
+</Properties>

@@ -1,0 +1,161 @@
+export const metadata = {
+  title: 'Error Handling',
+  description:
+    'Learn about the unified Error type in rusty_paseto and how to handle errors gracefully.',
+}
+
+# Error Handling
+
+rusty_paseto provides a unified `Error` type that consolidates all error variants from token building, parsing, claim validation, and cryptographic operations. {{ className: 'lead' }}
+
+The `Error` enum is marked `#[non_exhaustive]`, allowing new variants to be added in future versions without breaking your code.
+
+```rust
+use rusty_paseto::Error;
+
+fn handle_error(err: Error) {
+    match err {
+        Error::Expired => println!("Token expired"),
+        Error::InvalidSignature => println!("Signature verification failed"),
+        _ => println!("Other error: {}", err),
+    }
+}
+```
+
+---
+
+## Claim Errors
+
+These errors occur during claim validation when parsing tokens.
+
+<Properties>
+  <Property name="Expired">
+    Token has expired (exp claim validation failed).
+  </Property>
+  <Property name="NotYetValid(String)">
+    Token cannot be used yet (nbf claim validation failed). Contains the
+    not-before timestamp.
+  </Property>
+  <Property name="MissingClaim(String)">
+    A required claim is missing from the token. Contains the claim name.
+  </Property>
+  <Property name="InvalidClaimValue">
+    Claim value does not match expected value. Contains claim name, expected
+    value, and actual value.
+  </Property>
+  <Property name="ReservedClaimKey(String)">
+    Attempted to use a reserved PASETO claim key for a custom claim.
+  </Property>
+  <Property name="DuplicateClaim(String)">
+    The same claim key appears multiple times in the token.
+  </Property>
+  <Property name="UnexpectedClaimType(String)">
+    A claim value could not be converted to its expected type.
+  </Property>
+  <Property name="CustomValidationFailed(String)">
+    A custom validation function failed for the specified claim.
+  </Property>
+  <Property name="MalformedDate(String)">
+    Invalid RFC3339 date format in a time-based claim.
+  </Property>
+  <Property name="InvalidEmail(String)">
+    Invalid email address format.
+  </Property>
+</Properties>
+
+---
+
+## Cryptographic Errors
+
+These errors occur during encryption, decryption, signing, or verification.
+
+<Properties>
+  <Property name="CryptoError">
+    A cryptographic operation failed. Details are intentionally vague for
+    security reasons.
+  </Property>
+  <Property name="InvalidKey">
+    The provided key is in an invalid format.
+  </Property>
+  <Property name="InvalidSignature">
+    Signature verification failed for a public token.
+  </Property>
+</Properties>
+
+---
+
+## Token Structure Errors
+
+These errors occur when parsing malformed tokens.
+
+<Properties>
+  <Property name="InvalidTokenStructure">
+    The token string has an invalid structure (wrong number of parts).
+  </Property>
+  <Property name="InvalidHeader">
+    The token header is invalid or doesn't match the expected version/purpose.
+  </Property>
+  <Property name="FooterMismatch">
+    The token footer doesn't match the expected footer.
+  </Property>
+</Properties>
+
+---
+
+## Serialization Errors
+
+These errors occur during JSON or Base64 processing.
+
+<Properties>
+  <Property name="Json">
+    JSON serialization or deserialization error. Wraps `serde_json::Error`.
+  </Property>
+  <Property name="Base64Decode">
+    Base64 decoding error. Wraps `base64::DecodeError`.
+  </Property>
+  <Property name="Utf8">
+    UTF-8 string conversion error.
+  </Property>
+</Properties>
+
+---
+
+## Example: Comprehensive Error Handling
+
+<Row>
+  <Col>
+
+    Here's a complete example showing how to handle different error types when parsing a token:
+
+  </Col>
+  <Col>
+
+    ```rust
+    use rusty_paseto::{prelude::*, Error};
+
+    fn verify_token(token: &str, key: &PasetoSymmetricKey<V4, Local>)
+        -> Result<String, String>
+    {
+        match PasetoParser::<V4, Local>::default()
+            .check_claim(AudienceClaim::from("my-app"))
+            .parse(token, key)
+        {
+            Ok(payload) => Ok(payload),
+            Err(Error::Expired) => {
+                Err("Please log in again".into())
+            }
+            Err(Error::InvalidClaimValue { claim, .. }) => {
+                Err(format!("Token not valid for this {}", claim))
+            }
+            Err(Error::InvalidSignature) => {
+                Err("Token has been tampered with".into())
+            }
+            Err(e) => {
+                Err(format!("Token error: {}", e))
+            }
+        }
+    }
+    ```
+
+  </Col>
+</Row>

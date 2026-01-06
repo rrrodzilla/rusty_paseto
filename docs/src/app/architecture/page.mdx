@@ -1,0 +1,137 @@
+export const metadata = {
+  title: 'Architecture',
+  description:
+    'Understand the three-layer architecture of rusty_paseto: prelude, generic, and core.',
+}
+
+# Architecture
+
+rusty_paseto is organized into three layers, each providing different levels of abstraction. Choose the layer that best fits your needs. {{ className: 'lead' }}
+
+## Layer Overview
+
+The library provides three API layers:
+
+- **Prelude Layer** - High-level, fluent API with PasetoBuilder and PasetoParser
+- **Generic Layer** - Claim types, validation utilities
+- **Core Layer** - Low-level cryptography with Paseto, Keys, Encryption
+
+---
+
+## Prelude Layer
+
+The **prelude layer** provides the highest-level API with fluent builders and parsers. This is the recommended starting point for most applications.
+
+```rust
+use rusty_paseto::prelude::*;
+
+// Building tokens
+let token = PasetoBuilder::<V4, Local>::default()
+    .set_claim(SubjectClaim::from("user_123"))
+    .set_claim(ExpirationClaim::try_from("2025-01-01T00:00:00Z")?)
+    .set_claim(CustomClaim::new("role", "admin")?)
+    .build(&key)?;
+
+// Parsing tokens
+let payload = PasetoParser::<V4, Local>::default()
+    .check_claim(SubjectClaim::from("user_123"))
+    .parse(&token, &key)?;
+```
+
+**Features:**
+
+- Fluent builder pattern
+- Automatic claim validation
+- Type-safe claim methods
+- Strongly-typed result parsing with parse_into
+
+**Enable with:** `features = ["prelude", "v4_local"]`
+
+---
+
+## Generic Layer
+
+The **generic layer** provides claim types and validation without the builder abstraction. Use this when you need more control over token construction.
+
+```rust
+use rusty_paseto::generic::*;
+
+// Working with claims directly
+let exp = ExpirationClaim::try_from("2025-01-01T00:00:00Z")?;
+let sub = SubjectClaim::from("user_123");
+
+// Custom validation
+let custom = CustomClaim::new("permissions", vec!["read", "write"])?;
+```
+
+**Features:**
+
+- Seven standard PASETO claims
+- Custom claim support
+- Validation utilities
+- Claim error types
+
+**Enable with:** `features = ["generic", "v4_local"]`
+
+---
+
+## Core Layer
+
+The **core layer** provides direct access to PASETO cryptographic operations. Use this for maximum control or when building custom abstractions.
+
+```rust
+use rusty_paseto::core::*;
+
+// Direct token creation
+let key = PasetoSymmetricKey::<V4, Local>::from(Key::try_new_random()?);
+let nonce = PasetoNonce::<V4, Local>::from(&Key::try_new_random()?);
+
+let token = Paseto::<V4, Local>::builder()
+    .set_payload(Payload::from(r#"{"sub":"user"}"#))
+    .set_footer(Footer::from("key-id"))
+    .try_encrypt(&key, &nonce)?;
+
+// Direct token parsing
+let payload = Paseto::<V4, Local>::try_decrypt(
+    &token,
+    &key,
+    Footer::from("key-id"),
+    None,
+)?;
+```
+
+**Features:**
+
+- Raw cryptographic operations
+- Manual nonce handling
+- Footer and implicit assertion support
+- No automatic claim validation
+
+**Enable with:** `features = ["v4_local"]` (core is always included)
+
+---
+
+## Choosing a Layer
+
+- **Quick start, most applications** - Use Prelude
+- **Custom claim types only** - Use Generic
+- **Maximum control** - Use Core
+- **Building a wrapper library** - Use Core
+- **Integration with existing validation** - Use Generic
+
+---
+
+## Layer Dependencies
+
+The layers build on each other: prelude requires generic, which requires core.
+
+- **Prelude** requires Generic and Core
+- **Generic** requires Core
+- **Core** is always available with any version feature
+
+The feature flags automatically enable required dependencies:
+
+```toml
+# This automatically enables generic and core
+features = ["prelude", "v4_local"]
+```

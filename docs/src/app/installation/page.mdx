@@ -1,0 +1,124 @@
+export const metadata = {
+  title: 'Installation',
+  description:
+    'Learn how to install rusty_paseto and configure feature flags for your project.',
+}
+
+# Installation
+
+rusty_paseto uses Cargo feature flags to let you include only the PASETO versions and purposes you need, minimizing compile time and binary size. {{ className: 'lead' }}
+
+## Basic Installation
+
+Add rusty_paseto to your `Cargo.toml`:
+
+```bash
+cargo add rusty_paseto
+```
+
+By default, no features are enabled. You must enable at least one version/purpose combination.
+
+---
+
+## Feature Flags
+
+### Version and Purpose Features
+
+Each PASETO version and purpose has its own feature flag:
+
+<Properties>
+  <Property name="v1_local">
+    V1 Local (symmetric encryption with AES-256-CTR + HMAC-SHA384)
+  </Property>
+  <Property name="v1_public_insecure">
+    V1 Public (asymmetric signing with RSA-PSS). **Deprecated** - use V4 instead.
+  </Property>
+  <Property name="v2_local">
+    V2 Local (symmetric encryption with XChaCha20-Poly1305)
+  </Property>
+  <Property name="v2_public">
+    V2 Public (asymmetric signing with Ed25519)
+  </Property>
+  <Property name="v3_local">
+    V3 Local (symmetric encryption with AES-256-CTR + HMAC-SHA384)
+  </Property>
+  <Property name="v3_public">
+    V3 Public (asymmetric signing with P-384 ECDSA)
+  </Property>
+  <Property name="v4_local">
+    V4 Local (symmetric encryption with XChaCha20 + BLAKE2b). **Recommended**
+  </Property>
+  <Property name="v4_public">
+    V4 Public (asymmetric signing with Ed25519). **Recommended**
+  </Property>
+</Properties>
+
+### API Layer Features
+
+<Properties>
+  <Property name="core">
+    Low-level API for maximum control. Enabled automatically with any version feature.
+  </Property>
+  <Property name="generic">
+    Mid-level API with claim types and validation. Requires `core`.
+  </Property>
+  <Property name="prelude">
+    High-level fluent API with `PasetoBuilder` and `PasetoParser`. Requires `generic`.
+  </Property>
+</Properties>
+
+---
+
+## Recommended Configurations
+
+### Most Applications
+
+For most applications, use V4 Local with the prelude layer:
+
+```toml
+[dependencies]
+rusty_paseto = { version = "0.9", features = ["v4_local", "prelude"] }
+```
+
+### Public Tokens (Asymmetric)
+
+For tokens that need to be verified without the signing key:
+
+```toml
+[dependencies]
+rusty_paseto = { version = "0.9", features = ["v4_public", "prelude"] }
+```
+
+### Multiple Versions
+
+If you need to support multiple versions (e.g., during migration):
+
+```toml
+[dependencies]
+rusty_paseto = { version = "0.9", features = ["v3_local", "v4_local", "prelude"] }
+```
+
+### Core API Only
+
+For low-level control without the builder/parser abstractions:
+
+```toml
+[dependencies]
+rusty_paseto = { version = "0.9", features = ["v4_local"] }
+```
+
+---
+
+## Version Selection Guide
+
+<Note>
+  **New projects should use V4.** V4 offers the best security and performance
+  with modern cryptographic algorithms.
+</Note>
+
+| Version | Local Encryption | Public Signing | Notes |
+|---------|------------------|----------------|-------|
+| V1 | AES-256-CTR | RSA-PSS | Legacy, V1 Public deprecated |
+| V2 | XChaCha20 | Ed25519 | Good, but V4 preferred |
+| V3 | AES-256-CTR | P-384 ECDSA | NIST compliance |
+| V4 | XChaCha20 + BLAKE2b | Ed25519 | **Recommended** |

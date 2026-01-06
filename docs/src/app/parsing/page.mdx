@@ -1,0 +1,177 @@
+export const metadata = {
+  title: 'Parsing Tokens',
+  description:
+    'Learn how to parse and decrypt PASETO tokens using PasetoParser.',
+}
+
+# Parsing Tokens
+
+The `PasetoParser` decrypts or verifies PASETO tokens and provides automatic claim validation. {{ className: 'lead' }}
+
+## Basic Parsing
+
+Parse a token with the default parser:
+
+```rust
+use rusty_paseto::prelude::*;
+
+let payload = PasetoParser::<V4, Local>::default()
+    .parse(&token, &key)?;
+
+println!("Payload: {}", payload);
+// {"sub":"user_123","exp":"2025-01-01T00:00:00Z",...}
+```
+
+The parser automatically:
+- Decrypts (Local) or verifies (Public) the token
+- Validates `exp` (expiration) claim
+- Validates `nbf` (not before) claim
+
+---
+
+## Public Token Verification
+
+For Public purpose tokens, provide the public key:
+
+```rust
+use rusty_paseto::prelude::*;
+
+let public_key = PasetoAsymmetricPublicKey::<V4, Public>::from(&key_bytes);
+
+let payload = PasetoParser::<V4, Public>::default()
+    .parse(&token, &public_key)?;
+```
+
+---
+
+## Expecting Claims
+
+Use `check_claim` to verify specific claim values:
+
+```rust
+use rusty_paseto::prelude::*;
+
+let payload = PasetoParser::<V4, Local>::default()
+    .check_claim(SubjectClaim::from("user_123"))
+    .check_claim(AudienceClaim::from("my-app"))
+    .check_claim(IssuerClaim::from("auth.example.com"))
+    .parse(&token, &key)?;
+```
+
+If any claim doesn't match, parsing returns `Error::InvalidClaimValue`.
+
+### Fluent Expect Methods
+
+For convenience, use the `expect_*` methods:
+
+```rust
+let payload = PasetoParser::<V4, Local>::default()
+    .expect_subject("user_123")
+    .expect_audience("my-app")
+    .expect_issuer("auth.example.com")
+    .parse(&token, &key)?;
+```
+
+---
+
+## Requiring Claims
+
+Ensure claims exist without checking specific values:
+
+```rust
+use rusty_paseto::prelude::*;
+
+let payload = PasetoParser::<V4, Local>::default()
+    .validate_claim("role", |_| true)  // Just check existence
+    .parse(&token, &key)?;
+```
+
+---
+
+## Footer Validation
+
+If the token has a footer, you can require it matches:
+
+```rust
+use rusty_paseto::prelude::*;
+
+let payload = PasetoParser::<V4, Local>::default()
+    .set_footer(Footer::from(r#"{"kid":"key-v1"}"#))
+    .parse(&token, &key)?;
+```
+
+If the footer doesn't match, parsing returns `Error::FooterMismatch`.
+
+---
+
+## Implicit Assertions
+
+Provide implicit assertions that were used during token creation:
+
+```rust
+use rusty_paseto::prelude::*;
+
+let payload = PasetoParser::<V4, Local>::default()
+    .set_implicit_assertion(ImplicitAssertion::from("tenant:acme"))
+    .parse(&token, &key)?;
+```
+
+---
+
+## Error Handling
+
+Handle common parsing errors:
+
+```rust
+use rusty_paseto::{prelude::*, Error};
+
+let result = PasetoParser::<V4, Local>::default()
+    .check_claim(AudienceClaim::from("my-app"))
+    .parse(&token, &key);
+
+match result {
+    Ok(payload) => {
+        println!("Valid token: {}", payload);
+    }
+    Err(Error::Expired) => {
+        println!("Token has expired - please re-authenticate");
+    }
+    Err(Error::NotYetValid(time)) => {
+        println!("Token not valid until: {}", time);
+    }
+    Err(Error::InvalidClaimValue { claim, expected, actual }) => {
+        println!("Claim {} mismatch: expected {}, got {}", claim, expected, actual);
+    }
+    Err(Error::FooterMismatch) => {
+        println!("Token footer doesn't match expected value");
+    }
+    Err(Error::InvalidSignature) => {
+        println!("Token signature invalid - possible tampering");
+    }
+    Err(e) => {
+        println!("Parse error: {}", e);
+    }
+}
+```
+
+---
+
+## Accessing Payload Data
+
+The parsed payload is a JSON string. Parse it to access claims:
+
+```rust
+use rusty_paseto::prelude::*;
+
+let payload = PasetoParser::<V4, Local>::default()
+    .parse(&token, &key)?;
+
+// Parse as generic JSON
+let claims: serde_json::Value = serde_json::from_str(&payload)?;
+let sub = claims["sub"].as_str().unwrap();
+let role = claims["role"].as_str().unwrap_or("user");
+
+println!("Subject: {}, Role: {}", sub, role);
+```
+
+For type-safe access, see [Typed Parsing](/typed-parsing).

@@ -1,0 +1,201 @@
+export const metadata = {
+  title: 'Footer & Assertions',
+  description:
+    'Learn about PASETO footers for public metadata and implicit assertions for context binding.',
+}
+
+# Footer & Assertions
+
+PASETO tokens support two additional data mechanisms: **footers** for public metadata and **implicit assertions** for context binding. {{ className: 'lead' }}
+
+## Footers
+
+Footers are unencrypted data appended to the token. They're visible without decryption but are still authenticated (tamper-proof).
+
+### Adding a Footer
+
+```rust
+use rusty_paseto::prelude::*;
+
+let token = PasetoBuilder::<V4, Local>::default()
+    .set_claim(SubjectClaim::from("user_123"))
+    .set_footer(Footer::from(r#"{"kid":"key-2024-01"}"#))
+    .build(&key)?;
+
+// Token format: v4.local.encrypted-payload.base64-footer
+```
+
+### Reading Footers
+
+Extract the footer before parsing to select the right key:
+
+```rust
+use rusty_paseto::prelude::*;
+
+// Extract footer without decrypting
+let footer = Footer::try_from_token(&token)?
+    .expect("footer should be present");
+
+// Parse footer to get key ID
+let footer_json: serde_json::Value = serde_json::from_str(&footer)?;
+let key_id = footer_json["kid"].as_str().unwrap();
+
+// Select key based on ID
+let key = key_store.get(key_id)?;
+
+// Now parse with the correct key and expected footer
+let payload = PasetoParser::<V4, Local>::default()
+    .set_footer(Footer::from(footer.as_str()))
+    .parse(&token, &key)?;
+```
+
+### Common Footer Uses
+
+<Properties>
+  <Property name="Key ID (kid)">
+    Identify which key to use for decryption/verification
+  </Property>
+  <Property name="Key Version">
+    Track key rotation versions
+  </Property>
+  <Property name="Algorithm hints">
+    Metadata about token generation (not for algorithm selection!)
+  </Property>
+  <Property name="Wrapped keys">
+    Encrypted key material for key exchange protocols
+  </Property>
+</Properties>
+
+---
+
+## Key Rotation with Footers
+
+A complete example of key rotation using footers:
+
+```rust
+use rusty_paseto::prelude::*;
+use std::collections::HashMap;
+
+struct KeyStore {
+    keys: HashMap<String, PasetoSymmetricKey<V4, Local>>,
+    current_key_id: String,
+}
+
+impl KeyStore {
+    fn create_token(&self, user_id: &str) -> Result<String, Box<dyn std::error::Error>> {
+        let key = self.keys.get(&self.current_key_id).unwrap();
+        let footer = format!(r#"{{"kid":"{}"}}"#, self.current_key_id);
+
+        let token = PasetoBuilder::<V4, Local>::default()
+            .set_claim(SubjectClaim::from(user_id))
+            .set_footer(Footer::from(footer.as_str()))
+            .build(key)?;
+
+        Ok(token)
+    }
+
+    fn parse_token(&self, token: &str) -> Result<String, Box<dyn std::error::Error>> {
+        // Read footer to determine key
+        let footer = Footer::try_from_token(token)?
+            .ok_or("missing footer")?;
+        let footer_json: serde_json::Value = serde_json::from_str(&footer)?;
+        let kid = footer_json["kid"].as_str().ok_or("missing kid")?;
+
+        let key = self.keys.get(kid).ok_or("unknown key")?;
+
+        let payload = PasetoParser::<V4, Local>::default()
+            .set_footer(Footer::from(footer.as_str()))
+            .parse(token, key)?;
+
+        Ok(payload)
+    }
+}
+```
+
+---
+
+## Implicit Assertions
+
+Implicit assertions are data bound to the token cryptographically but **not** included in the token string. They must be provided during both creation and parsing.
+
+### Setting Implicit Assertions
+
+```rust
+use rusty_paseto::prelude::*;
+
+let token = PasetoBuilder::<V4, Local>::default()
+    .set_claim(SubjectClaim::from("user_123"))
+    .set_implicit_assertion(ImplicitAssertion::from("tenant:acme-corp"))
+    .build(&key)?;
+```
+
+### Parsing with Implicit Assertions
+
+```rust
+use rusty_paseto::prelude::*;
+
+// Must provide the same implicit assertion
+let payload = PasetoParser::<V4, Local>::default()
+    .set_implicit_assertion(ImplicitAssertion::from("tenant:acme-corp"))
+    .parse(&token, &key)?;
+
+// Wrong assertion = decryption fails
+let result = PasetoParser::<V4, Local>::default()
+    .set_implicit_assertion(ImplicitAssertion::from("tenant:other-corp"))
+    .parse(&token, &key);
+// Returns Error::CryptoError
+```
+
+### When to Use Implicit Assertions
+
+<Properties>
+  <Property name="Multi-tenant systems">
+    Bind tokens to specific tenants without exposing tenant ID in token
+  </Property>
+  <Property name="Request binding">
+    Bind tokens to specific API endpoints or request contexts
+  </Property>
+  <Property name="Channel binding">
+    Bind tokens to TLS session or other channel properties
+  </Property>
+</Properties>
+
+---
+
+## Footer vs Implicit Assertion
+
+| Feature | Footer | Implicit Assertion |
+|---------|--------|-------------------|
+| In token string | Yes | No |
+| Readable without key | Yes | No (not in token) |
+| Authenticated | Yes | Yes |
+| Use case | Key IDs, metadata | Context binding |
+
+---
+
+## Combining Both
+
+Use footers and implicit assertions together:
+
+```rust
+use rusty_paseto::prelude::*;
+
+// Create token with both
+let token = PasetoBuilder::<V4, Local>::default()
+    .set_claim(SubjectClaim::from("user_123"))
+    .set_footer(Footer::from(r#"{"kid":"key-v1","env":"prod"}"#))
+    .set_implicit_assertion(ImplicitAssertion::from("tenant:acme"))
+    .build(&key)?;
+
+// Parse with both
+let payload = PasetoParser::<V4, Local>::default()
+    .set_footer(Footer::from(r#"{"kid":"key-v1","env":"prod"}"#))
+    .set_implicit_assertion(ImplicitAssertion::from("tenant:acme"))
+    .parse(&token, &key)?;
+```
+
+<Note>
+  Both footer and implicit assertion must match exactly, or parsing will fail.
+  Footer mismatch returns `Error::FooterMismatch`, while implicit assertion
+  mismatch returns `Error::CryptoError`.
+</Note>

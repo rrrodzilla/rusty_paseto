@@ -1,0 +1,41 @@
+export const metadata = {
+  title: 'Quick Start',
+  description:
+    'Get up and running with rusty_paseto in minutes.',
+}
+
+# Quick Start
+
+Get up and running with rusty_paseto in minutes. {{ className: 'lead' }}
+
+## Add rusty_paseto to your project
+
+```bash
+cargo add rusty_paseto --features v4_local,prelude
+```
+
+## Create your first token
+
+```rust
+use rusty_paseto::prelude::*;
+
+let key = PasetoSymmetricKey::<V4, Local>::from(Key::try_new_random()?);
+
+let token = PasetoBuilder::<V4, Local>::default()
+    .set_claim(SubjectClaim::from("user_12345"))
+    .build(&key)?;
+```
+
+## Parse tokens
+
+```rust
+use rusty_paseto::prelude::*;
+
+let payload = PasetoParser::<V4, Local>::default()
+    .parse(&token, &key)?;
+```
+
+## Next steps
+
+- [Learn about claims](/claims)
+- [Handle errors](/errors)

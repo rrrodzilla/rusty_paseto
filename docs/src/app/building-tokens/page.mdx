@@ -1,0 +1,189 @@
+export const metadata = {
+  title: 'Building Tokens',
+  description:
+    'Learn how to create PASETO tokens using the fluent PasetoBuilder API.',
+}
+
+# Building Tokens
+
+The `PasetoBuilder` provides a fluent API for creating PASETO tokens with claims, footers, and implicit assertions. {{ className: 'lead' }}
+
+## Basic Token Creation
+
+Create a simple token with the builder:
+
+```rust
+use rusty_paseto::prelude::*;
+
+let key = PasetoSymmetricKey::<V4, Local>::from(Key::try_new_random()?);
+
+let token = PasetoBuilder::<V4, Local>::default()
+    .set_claim(SubjectClaim::from("user_123"))
+    .build(&key)?;
+
+println!("{}", token);
+// v4.local.encoded-encrypted-payload...
+```
+
+---
+
+## Adding Claims
+
+Use `set_claim()` to add standard or custom claims:
+
+```rust
+use rusty_paseto::prelude::*;
+
+let token = PasetoBuilder::<V4, Local>::default()
+    // Standard claims
+    .set_claim(SubjectClaim::from("user_123"))
+    .set_claim(AudienceClaim::from("my-app"))
+    .set_claim(IssuerClaim::from("auth-service"))
+    .set_claim(ExpirationClaim::try_from("2025-01-01T00:00:00Z")?)
+
+    // Custom claims
+    .set_claim(CustomClaim::new("role", "admin")?)
+    .set_claim(CustomClaim::new("permissions", vec!["read", "write"])?)
+
+    .build(&key)?;
+```
+
+### Fluent Claim Methods
+
+For convenience, common claims have dedicated methods:
+
+```rust
+let token = PasetoBuilder::<V4, Local>::default()
+    .subject("user_123")
+    .audience("my-app")
+    .issuer("auth-service")
+    .expiration("2025-01-01T00:00:00Z")?
+    .not_before("2024-01-01T00:00:00Z")?
+    .issued_at("2024-06-15T12:00:00Z")?
+    .token_identifier("token_abc")
+    .build(&key)?;
+```
+
+---
+
+## Public Tokens (Signing)
+
+For Public purpose tokens, use an asymmetric private key:
+
+```rust
+use rusty_paseto::prelude::*;
+
+let private_key = PasetoAsymmetricPrivateKey::<V4, Public>::from(&key_bytes);
+
+let token = PasetoBuilder::<V4, Public>::default()
+    .set_claim(SubjectClaim::from("user_123"))
+    .set_claim(AudienceClaim::from("api-consumers"))
+    .build(&private_key)?;
+```
+
+<Note>
+  Public tokens are signed, not encrypted. The payload is visible to anyone who
+  has the token. Don't include sensitive data.
+</Note>
+
+---
+
+## Adding Footers
+
+Footers are unencrypted metadata attached to tokens. They're useful for key identifiers:
+
+```rust
+use rusty_paseto::prelude::*;
+
+let token = PasetoBuilder::<V4, Local>::default()
+    .set_claim(SubjectClaim::from("user_123"))
+    .set_footer(Footer::from(r#"{"kid":"key-2024-01"}"#))
+    .build(&key)?;
+```
+
+The footer can be read without decrypting the token, making it useful for key rotation scenarios.
+
+---
+
+## Implicit Assertions
+
+Implicit assertions are data bound to the token cryptographically but not included in the token string:
+
+```rust
+use rusty_paseto::prelude::*;
+
+let token = PasetoBuilder::<V4, Local>::default()
+    .set_claim(SubjectClaim::from("user_123"))
+    .set_implicit_assertion(ImplicitAssertion::from("tenant-id:12345"))
+    .build(&key)?;
+```
+
+<Note>
+  When parsing, you must provide the same implicit assertion or decryption will
+  fail. This is useful for binding tokens to specific contexts.
+</Note>
+
+---
+
+## Non-Expiring Tokens
+
+By default, tokens include an expiration claim. To create a non-expiring token:
+
+```rust
+use rusty_paseto::prelude::*;
+
+let token = PasetoBuilder::<V4, Local>::default()
+    .set_claim(SubjectClaim::from("service-account"))
+    .set_no_expiration_danger_acknowledged()
+    .build(&key)?;
+```
+
+<Note>
+  Non-expiring tokens are a security risk. Use them only for service-to-service
+  authentication where token rotation is handled differently.
+</Note>
+
+---
+
+## Complete Example
+
+<Row>
+  <Col>
+
+    Here's a complete example creating a token for user authentication:
+
+  </Col>
+  <Col>
+
+    ```rust
+    use rusty_paseto::prelude::*;
+    use time::{Duration, OffsetDateTime};
+
+    fn create_auth_token(
+        user_id: &str,
+        role: &str,
+        key: &PasetoSymmetricKey<V4, Local>,
+    ) -> Result<String, Box<dyn std::error::Error>> {
+        let now = OffsetDateTime::now_utc();
+        let exp = now + Duration::hours(24);
+
+        let token = PasetoBuilder::<V4, Local>::default()
+            .set_claim(SubjectClaim::from(user_id))
+            .set_claim(AudienceClaim::from("my-app"))
+            .set_claim(IssuerClaim::from("auth-service"))
+            .set_claim(IssuedAtClaim::try_from(
+                now.format(&time::format_description::well_known::Rfc3339)?
+            )?)
+            .set_claim(ExpirationClaim::try_from(
+                exp.format(&time::format_description::well_known::Rfc3339)?
+            )?)
+            .set_claim(CustomClaim::new("role", role)?)
+            .set_footer(Footer::from(r#"{"kid":"v1"}"#))
+            .build(key)?;
+
+        Ok(token)
+    }
+    ```
+
+  </Col>
+</Row>

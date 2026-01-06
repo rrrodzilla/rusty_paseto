@@ -1,0 +1,191 @@
+export const metadata = {
+  title: 'Expiration',
+  description:
+    'Learn how to handle token expiration and create non-expiring tokens when needed.',
+}
+
+# Expiration
+
+Token expiration is a critical security feature. rusty_paseto provides automatic expiration validation and flexible options for setting token lifetimes. {{ className: 'lead' }}
+
+## Setting Expiration
+
+Set token expiration with an RFC3339 timestamp:
+
+```rust
+use rusty_paseto::prelude::*;
+
+let token = PasetoBuilder::<V4, Local>::default()
+    .set_claim(ExpirationClaim::try_from("2025-06-15T12:00:00Z")?)
+    .build(&key)?;
+```
+
+### Using the Fluent Method
+
+```rust
+let token = PasetoBuilder::<V4, Local>::default()
+    .expiration("2025-06-15T12:00:00Z")?
+    .build(&key)?;
+```
+
+---
+
+## Dynamic Expiration
+
+Calculate expiration based on current time:
+
+```rust
+use rusty_paseto::prelude::*;
+use time::{Duration, OffsetDateTime};
+
+// Token expires in 1 hour
+let exp = OffsetDateTime::now_utc() + Duration::hours(1);
+let exp_str = exp.format(&time::format_description::well_known::Rfc3339)?;
+
+let token = PasetoBuilder::<V4, Local>::default()
+    .set_claim(ExpirationClaim::try_from(exp_str.as_str())?)
+    .build(&key)?;
+```
+
+### Common Expiration Durations
+
+```rust
+use time::Duration;
+
+// Short-lived tokens (API requests)
+let exp = OffsetDateTime::now_utc() + Duration::minutes(15);
+
+// Session tokens
+let exp = OffsetDateTime::now_utc() + Duration::hours(24);
+
+// Refresh tokens
+let exp = OffsetDateTime::now_utc() + Duration::days(30);
+
+// Long-lived API keys
+let exp = OffsetDateTime::now_utc() + Duration::days(365);
+```
+
+---
+
+## Automatic Validation
+
+`PasetoParser` automatically validates expiration:
+
+```rust
+use rusty_paseto::prelude::*;
+
+// This will fail if the token is expired
+let result = PasetoParser::<V4, Local>::default()
+    .parse(&token, &key);
+
+match result {
+    Ok(payload) => println!("Token valid: {}", payload),
+    Err(Error::Expired) => println!("Token has expired!"),
+    Err(e) => println!("Other error: {}", e),
+}
+```
+
+---
+
+## Not Before (nbf)
+
+Use `NotBeforeClaim` for tokens that shouldn't be used until a specific time:
+
+```rust
+use rusty_paseto::prelude::*;
+use time::{Duration, OffsetDateTime};
+
+// Token valid starting in 1 hour, expires in 2 hours
+let nbf = OffsetDateTime::now_utc() + Duration::hours(1);
+let exp = OffsetDateTime::now_utc() + Duration::hours(2);
+
+let nbf_str = nbf.format(&time::format_description::well_known::Rfc3339)?;
+let exp_str = exp.format(&time::format_description::well_known::Rfc3339)?;
+
+let token = PasetoBuilder::<V4, Local>::default()
+    .set_claim(NotBeforeClaim::try_from(nbf_str.as_str())?)
+    .set_claim(ExpirationClaim::try_from(exp_str.as_str())?)
+    .build(&key)?;
+```
+
+Attempting to use the token before `nbf` returns `Error::NotYetValid`.
+
+---
+
+## Non-Expiring Tokens
+
+<Note>
+  Non-expiring tokens are a security risk. Only use them when you have other
+  mechanisms for token rotation or revocation.
+</Note>
+
+To create a token without expiration:
+
+```rust
+use rusty_paseto::prelude::*;
+
+let token = PasetoBuilder::<V4, Local>::default()
+    .set_claim(SubjectClaim::from("service-account"))
+    .set_no_expiration_danger_acknowledged()
+    .build(&key)?;
+```
+
+### When Non-Expiring Tokens Are Acceptable
+
+- Service-to-service authentication with key rotation
+- Tokens stored in secure vaults with rotation policies
+- Development/testing environments
+
+### Better Alternatives
+
+Instead of non-expiring tokens, consider:
+
+1. **Long expiration with refresh:** 30-day tokens with a refresh mechanism
+2. **Key rotation:** Rotate signing keys periodically
+3. **Revocation lists:** Maintain a list of revoked token IDs
+
+---
+
+## Token Refresh Pattern
+
+Implement a refresh token pattern for long sessions:
+
+<Row>
+  <Col>
+
+    ```rust
+    use rusty_paseto::prelude::*;
+    use time::{Duration, OffsetDateTime};
+
+    fn create_token_pair(
+        user_id: &str,
+        key: &PasetoSymmetricKey<V4, Local>,
+    ) -> Result<(String, String), Box<dyn std::error::Error>> {
+        let now = OffsetDateTime::now_utc();
+
+        // Access token: short-lived (15 min)
+        let access_exp = (now + Duration::minutes(15))
+            .format(&time::format_description::well_known::Rfc3339)?;
+
+        let access_token = PasetoBuilder::<V4, Local>::default()
+            .subject(user_id)
+            .set_claim(CustomClaim::new("type", "access")?)
+            .expiration(&access_exp)?
+            .build(key)?;
+
+        // Refresh token: longer-lived (7 days)
+        let refresh_exp = (now + Duration::days(7))
+            .format(&time::format_description::well_known::Rfc3339)?;
+
+        let refresh_token = PasetoBuilder::<V4, Local>::default()
+            .subject(user_id)
+            .set_claim(CustomClaim::new("type", "refresh")?)
+            .expiration(&refresh_exp)?
+            .build(key)?;
+
+        Ok((access_token, refresh_token))
+    }
+    ```
+
+  </Col>
+</Row>

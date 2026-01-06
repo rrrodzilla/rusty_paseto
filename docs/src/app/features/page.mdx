@@ -1,0 +1,214 @@
+export const metadata = {
+  title: 'Feature Flags',
+  description:
+    'Configure rusty_paseto features to include only what you need.',
+}
+
+# Feature Flags
+
+rusty_paseto uses Cargo feature flags to let you include only the PASETO versions, purposes, and API layers you need. {{ className: 'lead' }}
+
+## Available Features
+
+### Version/Purpose Features
+
+Each combination of PASETO version and purpose has its own feature:
+
+<Properties>
+  <Property name="v1_local">
+    V1 Local tokens (AES-256-CTR + HMAC-SHA384)
+  </Property>
+  <Property name="v1_public_insecure">
+    V1 Public tokens (RSA-PSS). **Deprecated** - see Security page.
+  </Property>
+  <Property name="v2_local">
+    V2 Local tokens (XChaCha20-Poly1305)
+  </Property>
+  <Property name="v2_public">
+    V2 Public tokens (Ed25519)
+  </Property>
+  <Property name="v3_local">
+    V3 Local tokens (AES-256-CTR + HMAC-SHA384)
+  </Property>
+  <Property name="v3_public">
+    V3 Public tokens (P-384 ECDSA)
+  </Property>
+  <Property name="v4_local">
+    V4 Local tokens (XChaCha20 + BLAKE2b). **Recommended**
+  </Property>
+  <Property name="v4_public">
+    V4 Public tokens (Ed25519). **Recommended**
+  </Property>
+</Properties>
+
+### API Layer Features
+
+<Properties>
+  <Property name="core">
+    Low-level cryptographic API. Automatically enabled by any version feature.
+  </Property>
+  <Property name="generic">
+    Claim types and validation utilities. Requires `core`.
+  </Property>
+  <Property name="prelude">
+    High-level `PasetoBuilder` and `PasetoParser`. Requires `generic`.
+  </Property>
+</Properties>
+
+---
+
+## Common Configurations
+
+### Recommended: V4 Local with Prelude
+
+For most applications using symmetric encryption:
+
+```toml
+[dependencies]
+rusty_paseto = { version = "0.9", features = ["v4_local", "prelude"] }
+```
+
+### V4 Public with Prelude
+
+For asymmetric signing (multiple verifiers):
+
+```toml
+[dependencies]
+rusty_paseto = { version = "0.9", features = ["v4_public", "prelude"] }
+```
+
+### Multiple Versions
+
+During migration or for compatibility:
+
+```toml
+[dependencies]
+rusty_paseto = { version = "0.9", features = [
+    "v3_local",
+    "v4_local",
+    "prelude"
+] }
+```
+
+### Both Purposes
+
+When you need both Local and Public tokens:
+
+```toml
+[dependencies]
+rusty_paseto = { version = "0.9", features = [
+    "v4_local",
+    "v4_public",
+    "prelude"
+] }
+```
+
+### Core API Only
+
+For low-level control without builder abstractions:
+
+```toml
+[dependencies]
+rusty_paseto = { version = "0.9", features = ["v4_local"] }
+```
+
+### NIST Compliance
+
+For environments requiring NIST-approved algorithms:
+
+```toml
+[dependencies]
+rusty_paseto = { version = "0.9", features = [
+    "v3_local",   # AES-256-CTR
+    "v3_public",  # P-384 ECDSA
+    "prelude"
+] }
+```
+
+---
+
+## Feature Dependencies
+
+Features automatically enable their dependencies:
+
+```
+┌─────────────────────────────────────┐
+│ prelude                             │
+│   └── enables: generic              │
+├─────────────────────────────────────┤
+│ generic                             │
+│   └── enables: core                 │
+├─────────────────────────────────────┤
+│ v4_local, v4_public, etc.           │
+│   └── enables: core                 │
+└─────────────────────────────────────┘
+```
+
+So this configuration:
+
+```toml
+features = ["v4_local", "prelude"]
+```
+
+Actually enables: `v4_local`, `prelude`, `generic`, `core`
+
+---
+
+## Compile Time Impact
+
+Each version/purpose feature adds cryptographic dependencies:
+
+| Feature | Dependencies Added |
+|---------|-------------------|
+| v4_local | blake2, chacha20 |
+| v4_public | ed25519-dalek |
+| v3_local | aes, ctr, hmac, sha2 |
+| v3_public | p384, ecdsa |
+| v2_local | chacha20poly1305 |
+| v2_public | ed25519-dalek |
+| v1_local | aes, ctr, hmac, sha2 |
+| v1_public_insecure | rsa |
+
+Enable only what you need to minimize compile time and binary size.
+
+---
+
+## Checking Enabled Features
+
+At runtime, you can check which features are enabled:
+
+```rust
+#[cfg(feature = "v4_local")]
+fn v4_local_available() -> bool { true }
+
+#[cfg(not(feature = "v4_local"))]
+fn v4_local_available() -> bool { false }
+```
+
+---
+
+## Migration Guide
+
+### Adding a New Version
+
+1. Add the feature to `Cargo.toml`:
+   ```toml
+   features = ["v3_local", "v4_local", "prelude"]
+   ```
+
+2. Update token creation to use new version:
+   ```rust
+   // Old
+   let token = PasetoBuilder::<V3, Local>::default().build(&old_key)?;
+
+   // New
+   let token = PasetoBuilder::<V4, Local>::default().build(&new_key)?;
+   ```
+
+3. Keep old feature for parsing existing tokens during transition.
+
+### Removing a Version
+
+1. Stop creating new tokens with the old version
+2. Wait for all old tokens to expire
+3. Remove the feature from `Cargo.toml`

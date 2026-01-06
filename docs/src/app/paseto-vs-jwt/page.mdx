@@ -1,0 +1,134 @@
+export const metadata = {
+  title: 'PASETO vs JWT',
+  description:
+    'Learn why PASETO is a more secure alternative to JWT and when to use each.',
+}
+
+# PASETO vs JWT
+
+PASETO (Platform-Agnostic Security Tokens) was designed to address the security pitfalls of JSON Web Tokens (JWT). This page explains the key differences and why you might choose PASETO. {{ className: 'lead' }}
+
+## The Problem with JWT
+
+JWT has been widely adopted but suffers from several design issues that have led to security vulnerabilities:
+
+### Algorithm Confusion
+
+JWT allows the token to specify which algorithm to use for verification. This has led to attacks where:
+
+- Attackers change the algorithm header to "none" to bypass verification
+- Attackers switch from RS256 to HS256 and use the public key as an HMAC secret
+
+```json
+// JWT header - algorithm is attacker-controlled
+{
+  "alg": "HS256",  // Could be changed to "none" or mismatched
+  "typ": "JWT"
+}
+```
+
+### Too Many Choices
+
+JWT supports many algorithm combinations, making it easy to choose insecure options or misconfigure verification.
+
+---
+
+## How PASETO Solves These Problems
+
+### No Algorithm Negotiation
+
+PASETO tokens don't include algorithm information. The version and purpose completely determine the cryptographic algorithms used:
+
+```
+v4.local.base64-encoded-payload
+^^ ^^^^^
+|  |
+|  Purpose (determines symmetric vs asymmetric)
+Version (determines exact algorithms)
+```
+
+### Versioned Protocols
+
+Each PASETO version specifies exact algorithms with no choices:
+
+<Properties>
+  <Property name="V4 Local">
+    XChaCha20 + BLAKE2b-MAC (no negotiation possible)
+  </Property>
+  <Property name="V4 Public">
+    Ed25519 signatures (no negotiation possible)
+  </Property>
+</Properties>
+
+### Authenticated Encryption
+
+PASETO Local tokens use authenticated encryption (AEAD), ensuring both confidentiality and integrity in a single operation.
+
+---
+
+## Feature Comparison
+
+| Feature | JWT | PASETO |
+|---------|-----|--------|
+| Algorithm in token | Yes (attack vector) | No |
+| Encryption built-in | No (requires JWE) | Yes (Local purpose) |
+| Algorithm choices | Many (footgun) | None (version-determined) |
+| "none" algorithm | Supported (dangerous) | Not possible |
+| Footer/assertions | No | Yes |
+| Key confusion attacks | Possible | Not possible |
+
+---
+
+## When to Use Each
+
+### Use PASETO When
+
+- Building new applications from scratch
+- Security is a top priority
+- You want simpler, harder-to-misuse APIs
+- You don't need ecosystem compatibility
+
+### Use JWT When
+
+- Integrating with existing systems that require JWT
+- Using third-party identity providers (OAuth, OIDC)
+- Ecosystem compatibility is more important than security properties
+
+---
+
+## Migration Path
+
+If you're currently using JWT and want to migrate to PASETO, rusty_paseto makes it straightforward:
+
+<Row>
+  <Col>
+
+    **JWT (using jsonwebtoken crate):**
+
+    ```rust
+    use jsonwebtoken::{encode, Header, EncodingKey};
+
+    let token = encode(
+        &Header::default(),
+        &claims,
+        &EncodingKey::from_secret(key),
+    )?;
+    ```
+
+  </Col>
+  <Col>
+
+    **PASETO (using rusty_paseto):**
+
+    ```rust
+    use rusty_paseto::prelude::*;
+
+    let token = PasetoBuilder::<V4, Local>::default()
+        .set_claim(SubjectClaim::from("user"))
+        .build(&key)?;
+    ```
+
+  </Col>
+</Row>
+
+The PASETO approach eliminates the need to specify algorithms and provides compile-time guarantees about the token format.

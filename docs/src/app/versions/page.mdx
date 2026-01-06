@@ -1,0 +1,162 @@
+export const metadata = {
+  title: 'Versions & Purposes',
+  description:
+    'Understand PASETO versions (V1-V4) and purposes (Local vs Public) and choose the right combination.',
+}
+
+# Versions & Purposes
+
+PASETO tokens are defined by two key properties: **version** (which algorithms to use) and **purpose** (symmetric or asymmetric cryptography). {{ className: 'lead' }}
+
+## Understanding Purposes
+
+### Local Purpose (Symmetric)
+
+Local tokens use **symmetric encryption**. The same key encrypts and decrypts the token.
+
+```rust
+use rusty_paseto::prelude::*;
+
+// Same key for both operations
+let key = PasetoSymmetricKey::<V4, Local>::from(Key::try_new_random()?);
+
+// Encrypt
+let token = PasetoBuilder::<V4, Local>::default()
+    .set_claim(SubjectClaim::from("user"))
+    .build(&key)?;
+
+// Decrypt (same key)
+let payload = PasetoParser::<V4, Local>::default()
+    .parse(&token, &key)?;
+```
+
+**Use Local when:**
+- Only your application creates and verifies tokens
+- Token contents should be encrypted (not just signed)
+- You can securely share the key between services
+
+### Public Purpose (Asymmetric)
+
+Public tokens use **asymmetric signing**. A private key signs the token; a public key verifies it.
+
+```rust
+use rusty_paseto::prelude::*;
+
+// Different keys for each operation
+let private_key = PasetoAsymmetricPrivateKey::<V4, Public>::from(&key_bytes);
+let public_key = PasetoAsymmetricPublicKey::<V4, Public>::from(&pub_bytes);
+
+// Sign with private key
+let token = PasetoBuilder::<V4, Public>::default()
+    .set_claim(SubjectClaim::from("user"))
+    .build(&private_key)?;
+
+// Verify with public key
+let payload = PasetoParser::<V4, Public>::default()
+    .parse(&token, &public_key)?;
+```
+
+**Use Public when:**
+- Multiple parties need to verify tokens
+- You can't share the signing key with verifiers
+- Token contents don't need to be encrypted
+
+<Note>
+  Public tokens are **signed, not encrypted**. The payload is Base64-encoded and
+  readable by anyone. Don't put sensitive data in Public tokens.
+</Note>
+
+---
+
+## Version Comparison
+
+### V4 (Recommended)
+
+The latest version with modern cryptographic algorithms.
+
+<Properties>
+  <Property name="V4 Local">
+    XChaCha20 stream cipher + BLAKE2b MAC
+  </Property>
+  <Property name="V4 Public">
+    Ed25519 signatures
+  </Property>
+</Properties>
+
+```rust
+use rusty_paseto::prelude::*;
+
+// V4 Local
+let key = PasetoSymmetricKey::<V4, Local>::from(Key::try_new_random()?);
+let token = PasetoBuilder::<V4, Local>::default().build(&key)?;
+
+// V4 Public
+let token = PasetoBuilder::<V4, Public>::default().build(&private_key)?;
+```
+
+### V3 (NIST Compliance)
+
+For environments requiring NIST-approved algorithms.
+
+<Properties>
+  <Property name="V3 Local">
+    AES-256-CTR + HMAC-SHA384
+  </Property>
+  <Property name="V3 Public">
+    ECDSA with P-384 curve
+  </Property>
+</Properties>
+
+### V2 (Legacy)
+
+Previous recommended version, still secure but V4 preferred.
+
+<Properties>
+  <Property name="V2 Local">
+    XChaCha20-Poly1305 AEAD
+  </Property>
+  <Property name="V2 Public">
+    Ed25519 signatures
+  </Property>
+</Properties>
+
+### V1 (Deprecated)
+
+Original version with compatibility focus. **V1 Public is deprecated and insecure.**
+
+<Properties>
+  <Property name="V1 Local">
+    AES-256-CTR + HMAC-SHA384
+  </Property>
+  <Property name="V1 Public">
+    RSA-PSS signatures. **Deprecated** - do not use for new applications.
+  </Property>
+</Properties>
+
+---
+
+## Decision Matrix
+
+| Requirement | Recommended |
+|-------------|-------------|
+| New application | V4 Local or V4 Public |
+| NIST compliance | V3 Local or V3 Public |
+| Existing V2 system | V2 (or migrate to V4) |
+| Single service | Local purpose |
+| Distributed verification | Public purpose |
+| Encrypted payload | Local purpose |
+
+---
+
+## Token Format
+
+All PASETO tokens follow the same structure:
+
+```
+version.purpose.payload.optional-footer
+```
+
+Examples:
+- `v4.local.encoded-encrypted-data`
+- `v4.public.encoded-signed-data.footer`
+- `v3.local.encoded-encrypted-data`

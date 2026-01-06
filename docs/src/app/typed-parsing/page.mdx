@@ -1,0 +1,238 @@
+export const metadata = {
+  title: 'Typed Parsing',
+  description:
+    'Learn how to parse PASETO tokens directly into Rust structs using parse_into<T>().',
+}
+
+# Typed Parsing
+
+Instead of parsing to JSON strings, use `parse_into<T>()` to deserialize tokens directly into your Rust types. {{ className: 'lead' }}
+
+## Basic Typed Parsing
+
+Define a struct matching your token's claims:
+
+```rust
+use rusty_paseto::prelude::*;
+use serde::Deserialize;
+
+#[derive(Deserialize)]
+struct MyClaims {
+    sub: String,
+    aud: String,
+    role: String,
+}
+
+// Parse directly into your struct
+let claims: MyClaims = PasetoParser::<V4, Local>::default()
+    .parse_into(&token, &key)?;
+
+println!("User: {}, Role: {}", claims.sub, claims.role);
+```
+
+---
+
+## Optional Fields
+
+Use `Option<T>` for claims that may not be present:
+
+```rust
+use serde::Deserialize;
+
+#[derive(Deserialize)]
+struct MyClaims {
+    sub: String,
+    #[serde(default)]
+    role: Option<String>,
+    #[serde(default)]
+    permissions: Option<Vec<String>>,
+}
+```
+
+---
+
+## Default Values
+
+Provide defaults for missing claims:
+
+```rust
+use serde::Deserialize;
+
+fn default_role() -> String {
+    "user".to_string()
+}
+
+#[derive(Deserialize)]
+struct MyClaims {
+    sub: String,
+    #[serde(default = "default_role")]
+    role: String,
+    #[serde(default)]
+    level: i32,  // Defaults to 0
+}
+```
+
+---
+
+## Time-Based Claims
+
+Parse time claims as strings (RFC3339 format):
+
+```rust
+use serde::Deserialize;
+
+#[derive(Deserialize)]
+struct MyClaims {
+    sub: String,
+    exp: String,  // "2025-01-01T00:00:00Z"
+    iat: Option<String>,
+    nbf: Option<String>,
+}
+```
+
+Or parse into time types:
+
+```rust
+use serde::Deserialize;
+use time::OffsetDateTime;
+
+#[derive(Deserialize)]
+struct MyClaims {
+    sub: String,
+    #[serde(with = "time::serde::rfc3339")]
+    exp: OffsetDateTime,
+}
+```
+
+---
+
+## Nested Structures
+
+Handle complex nested claims:
+
+```rust
+use serde::Deserialize;
+
+#[derive(Deserialize)]
+struct UserMetadata {
+    department: String,
+    manager_id: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct MyClaims {
+    sub: String,
+    role: String,
+    metadata: UserMetadata,
+}
+
+let claims: MyClaims = PasetoParser::<V4, Local>::default()
+    .parse_into(&token, &key)?;
+
+println!("Department: {}", claims.metadata.department);
+```
+
+---
+
+## Combining with Validation
+
+Use claim validation before typed parsing:
+
+```rust
+use rusty_paseto::prelude::*;
+use serde::Deserialize;
+
+#[derive(Deserialize)]
+struct MyClaims {
+    sub: String,
+    aud: String,
+    role: String,
+    level: i32,
+}
+
+let claims: MyClaims = PasetoParser::<V4, Local>::default()
+    // Validation happens before deserialization
+    .expect_audience("my-app")
+    .validate_claim("level", |v| {
+        v.as_i64().map(|l| l >= 1).unwrap_or(false)
+    })
+    .parse_into(&token, &key)?;
+```
+
+---
+
+## Generic Claims Type
+
+Create reusable claim structures:
+
+```rust
+use serde::Deserialize;
+
+// Base claims present in all tokens
+#[derive(Deserialize)]
+struct BaseClaims<T> {
+    sub: String,
+    aud: String,
+    iss: String,
+    exp: String,
+    #[serde(flatten)]
+    custom: T,
+}
+
+// Application-specific custom claims
+#[derive(Deserialize)]
+struct AppCustomClaims {
+    role: String,
+    tenant_id: String,
+}
+
+// Usage
+let claims: BaseClaims<AppCustomClaims> = PasetoParser::<V4, Local>::default()
+    .parse_into(&token, &key)?;
+
+println!("Tenant: {}", claims.custom.tenant_id);
+```
+
+---
+
+## All Version/Purpose Combinations
+
+`parse_into<T>()` is available for all 8 combinations:
+
+```rust
+// V4
+let claims: T = PasetoParser::<V4, Local>::default().parse_into(&token, &key)?;
+let claims: T = PasetoParser::<V4, Public>::default().parse_into(&token, &key)?;
+
+// V3
+let claims: T = PasetoParser::<V3, Local>::default().parse_into(&token, &key)?;
+let claims: T = PasetoParser::<V3, Public>::default().parse_into(&token, &key)?;
+
+// V2
+let claims: T = PasetoParser::<V2, Local>::default().parse_into(&token, &key)?;
+let claims: T = PasetoParser::<V2, Public>::default().parse_into(&token, &key)?;
+
+// V1
+let claims: T = PasetoParser::<V1, Local>::default().parse_into(&token, &key)?;
+let claims: T = PasetoParser::<V1, Public>::default().parse_into(&token, &key)?;
+```
+
+---
+
+## Error Handling
+
+Deserialization errors are wrapped in `Error::Json`:
+
+```rust
+use rusty_paseto::{prelude::*, Error};
+
+let result: Result<MyClaims, _> = PasetoParser::<V4, Local>::default()
+    .parse_into(&token, &key);
+
+match result {
+    Ok(claims) => println!("Parsed: {:?}", claims),
+    Err(Error::Json(e)) => println!("Deserialization failed: {}", e),
+    Err(Error::Expired) => println!("Token expired"),
+    Err(e) => println!("Other error: {}", e),
+}
+```

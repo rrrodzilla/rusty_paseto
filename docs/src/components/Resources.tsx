@@ -84,8 +84,8 @@ const resources: Array<Resource> = [
 
 function ResourceIcon({ icon: Icon }: { icon: Resource['icon'] }) {
   return (
-    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-zinc-900/5 ring-1 ring-zinc-900/25 backdrop-blur-[2px] transition duration-300 group-hover:bg-white/50 group-hover:ring-zinc-900/25 dark:bg-white/7.5 dark:ring-white/15 dark:group-hover:bg-orange-300/10 dark:group-hover:ring-orange-400">
-      <Icon className="h-5 w-5 fill-zinc-700/10 stroke-zinc-700 transition-colors duration-300 group-hover:stroke-zinc-900 dark:fill-white/10 dark:stroke-zinc-400 dark:group-hover:fill-orange-300/10 dark:group-hover:stroke-orange-400" />
+    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-zinc-900/5 ring-1 ring-zinc-900/25 backdrop-blur-[2px] transition duration-300 group-hover:bg-white/50 group-hover:ring-zinc-900/25 dark:bg-white/7.5 dark:ring-white/15 dark:group-hover:bg-accent-300/10 dark:group-hover:ring-accent-400">
+      <Icon className="h-5 w-5 fill-zinc-700/10 stroke-zinc-700 transition-colors duration-300 group-hover:stroke-zinc-900 dark:fill-white/10 dark:stroke-zinc-400 dark:group-hover:fill-accent-300/10 dark:group-hover:stroke-accent-400" />
     </div>
   )
 }
@@ -113,7 +113,7 @@ function ResourcePattern({
         />
       </div>
       <motion.div
-        className="absolute inset-0 rounded-2xl bg-linear-to-r from-[#ffedd5] to-[#fed7aa] opacity-0 transition duration-300 group-hover:opacity-100 dark:from-[#431407] dark:to-[#7c2d12]"
+        className="absolute inset-0 rounded-2xl bg-linear-to-r from-[oklch(97%_0.02_27.518)] to-[oklch(85%_0.08_27.518)] opacity-0 transition duration-300 group-hover:opacity-100 dark:from-[oklch(15%_0.06_27.518)] dark:to-[oklch(22%_0.09_27.518)]"
         style={style}
       />
       <motion.div

@@ -4,7 +4,7 @@ export function Logo(props: React.ComponentPropsWithoutRef<'svg'>) {
       <text
         x="0"
         y="18"
-        className="fill-orange-500 dark:fill-orange-400"
+        className="fill-accent-500 dark:fill-accent-400"
         style={{
           fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
           fontSize: '18px',

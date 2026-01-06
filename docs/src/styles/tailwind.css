@@ -4,6 +4,19 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
+  /* Accent color scale based on oklch(50.5% 0.213 27.518) */
+  --color-accent-50: oklch(97% 0.02 27.518);
+  --color-accent-100: oklch(93% 0.04 27.518);
+  --color-accent-200: oklch(85% 0.08 27.518);
+  --color-accent-300: oklch(75% 0.14 27.518);
+  --color-accent-400: oklch(65% 0.18 27.518);
+  --color-accent-500: oklch(50.5% 0.213 27.518);
+  --color-accent-600: oklch(45% 0.2 27.518);
+  --color-accent-700: oklch(38% 0.17 27.518);
+  --color-accent-800: oklch(30% 0.13 27.518);
+  --color-accent-900: oklch(22% 0.09 27.518);
+  --color-accent-950: oklch(15% 0.06 27.518);
+
   --text-2xs: 0.75rem;
   --text-2xs--line-height: 1.25rem;
   --text-xs: 0.8125rem;
@@ -44,13 +57,13 @@
 @layer base {
   :root {
     --shiki-color-text: var(--color-white);
-    --shiki-token-constant: var(--color-orange-300);
-    --shiki-token-string: var(--color-orange-300);
+    --shiki-token-constant: var(--color-accent-300);
+    --shiki-token-string: var(--color-accent-300);
     --shiki-token-comment: var(--color-zinc-500);
     --shiki-token-keyword: var(--color-sky-300);
     --shiki-token-parameter: var(--color-pink-300);
     --shiki-token-function: var(--color-violet-300);
-    --shiki-token-string-expression: var(--color-orange-300);
+    --shiki-token-string-expression: var(--color-accent-300);
     --shiki-token-punctuation: var(--color-zinc-200);
   }
 

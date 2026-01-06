@@ -6,10 +6,10 @@ const variantStyles = {
 }
 
 const colorStyles = {
-  orange: {
-    small: 'text-orange-500 dark:text-orange-400',
+  accent: {
+    small: 'text-accent-500 dark:text-accent-400',
     medium:
-      'ring-orange-300 dark:ring-orange-400/30 bg-orange-400/10 text-orange-500 dark:text-orange-400',
+      'ring-accent-300 dark:ring-accent-400/30 bg-accent-400/10 text-accent-500 dark:text-accent-400',
   },
   sky: {
     small: 'text-sky-500',
@@ -34,7 +34,7 @@ const colorStyles = {
 }
 
 const valueColorMap = {
-  GET: 'orange',
+  GET: 'accent',
   POST: 'sky',
   PUT: 'amber',
   DELETE: 'rose',
@@ -43,7 +43,7 @@ const valueColorMap = {
 export function Tag({
   children,
   variant = 'medium',
-  color = valueColorMap[children] ?? 'orange',
+  color = valueColorMap[children] ?? 'accent',
 }: {
   children: keyof typeof valueColorMap & (string | {})
   variant?: keyof typeof variantStyles

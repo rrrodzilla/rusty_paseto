@@ -70,8 +70,8 @@ const FeedbackThanks = forwardRef<
         'absolute inset-0 flex justify-center md:justify-start',
       )}
     >
-      <div className="flex items-center gap-3 rounded-full bg-orange-50/50 py-1 pr-3 pl-1.5 text-sm text-orange-900 ring-1 ring-orange-500/20 ring-inset dark:bg-orange-500/5 dark:text-orange-200 dark:ring-orange-500/30">
-        <CheckIcon className="h-5 w-5 flex-none fill-orange-500 stroke-white dark:fill-orange-200/20 dark:stroke-orange-200" />
+      <div className="flex items-center gap-3 rounded-full bg-accent-50/50 py-1 pr-3 pl-1.5 text-sm text-accent-900 ring-1 ring-accent-500/20 ring-inset dark:bg-accent-500/5 dark:text-accent-200 dark:ring-accent-500/30">
+        <CheckIcon className="h-5 w-5 flex-none fill-accent-500 stroke-white dark:fill-accent-200/20 dark:stroke-accent-200" />
         Thanks for your feedback!
       </div>
     </div>

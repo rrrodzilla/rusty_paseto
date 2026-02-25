@@ -350,7 +350,7 @@ use rusty_paseto::prelude::*;
  PasetoParser::<V4, Local>::default()
    .check_claim(SubjectClaim::from("Get schwifty"))
    .check_claim(CustomClaim::try_from(("Contestant", "Earth"))?)
-    .validate_claim(CustomClaim::try_from("Universe")?, &|key, value| {
+   .validate_claim(CustomClaim::try_from("Universe")?, &|key, value| {
       //let's get the value
       let universe = value
         .as_u64()

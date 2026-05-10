@@ -30,11 +30,22 @@ impl<const KEYSIZE: usize> Deref for Key<KEYSIZE> {
   }
 }
 
-impl<const KEYSIZE: usize> From<&[u8]> for Key<KEYSIZE> {
-  fn from(key: &[u8]) -> Self {
+/// Fallible construction of a [`Key`] from a byte slice.
+///
+/// Returns [`PasetoError::InvalidKey`] if `key.len() != KEYSIZE`. This
+/// replaces the previous `From<&[u8]>` impl, which silently panicked on
+/// size mismatch via `copy_from_slice`. The infallible
+/// [`From<&[u8; KEYSIZE]>`] and [`From<[u8; KEYSIZE]>`] impls remain for
+/// callers who have an array of the correct size at compile time.
+impl<const KEYSIZE: usize> TryFrom<&[u8]> for Key<KEYSIZE> {
+  type Error = PasetoError;
+  fn try_from(key: &[u8]) -> Result<Self, Self::Error> {
+    if key.len() != KEYSIZE {
+      return Err(PasetoError::InvalidKey);
+    }
     let mut me = Self::default();
     me.0.copy_from_slice(key);
-    me
+    Ok(me)
   }
 }
 
@@ -74,6 +85,32 @@ impl<const KEYSIZE: usize> Key<KEYSIZE> {
     let mut buf = [0u8; KEYSIZE];
     rng.fill(&mut buf)?;
     Ok(Self(buf))
+  }
+}
+
+#[cfg(test)]
+mod key_size_check_tests {
+  use super::*;
+
+  #[test]
+  fn try_from_rejects_short_slice() {
+    let too_short = [0u8; 16];
+    let result = Key::<32>::try_from(&too_short[..]);
+    assert!(matches!(result, Err(PasetoError::InvalidKey)));
+  }
+
+  #[test]
+  fn try_from_rejects_long_slice() {
+    let too_long = [0u8; 48];
+    let result = Key::<32>::try_from(&too_long[..]);
+    assert!(matches!(result, Err(PasetoError::InvalidKey)));
+  }
+
+  #[test]
+  fn try_from_accepts_exact_size() {
+    let exact = [0u8; 32];
+    let result = Key::<32>::try_from(&exact[..]);
+    assert!(result.is_ok());
   }
 }
 

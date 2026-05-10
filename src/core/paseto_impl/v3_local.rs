@@ -44,7 +44,7 @@ impl<'a> Paseto<'a, V3, Local> {
 
         // Safe slicing with bounds-checked access
         let nonce_bytes = decoded_payload.get(..NONCE_SIZE).ok_or(PasetoError::IncorrectSize)?;
-        let nonce = Key::from(nonce_bytes);
+        let nonce = Key::<NONCE_SIZE>::try_from(nonce_bytes)?;
         let nonce = PasetoNonce::<V3, Local>::from(&nonce);
 
         let authentication_key =

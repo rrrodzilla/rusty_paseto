@@ -42,13 +42,16 @@ impl<'a> Paseto<'a, V1, Local> {
 
         // Safe slicing with bounds-checked access
         let nonce_bytes = decoded_payload.get(..NONCE_SIZE).ok_or(PasetoError::IncorrectSize)?;
-        let nonce = Key::from(nonce_bytes);
+        let nonce = Key::<NONCE_SIZE>::try_from(nonce_bytes)?;
         let nonce = PasetoNonce::<V1, Local>::from(&nonce);
 
         let aks: &[u8] = &AuthenticationKeySeparator::default();
-        let authentication_key = AuthenticationKey::<V1, Local>::try_from(&Key::from(aks), key, &nonce)?;
+        let aks_key = Key::<24>::try_from(aks)?;
+        let authentication_key =
+            AuthenticationKey::<V1, Local>::try_from(&aks_key, key, &nonce)?;
         let eks: &[u8] = &EncryptionKeySeparator::default();
-        let encryption_key = EncryptionKey::<V1, Local>::try_from(&Key::from(eks), key, &nonce)?;
+        let eks_key = Key::<21>::try_from(eks)?;
+        let encryption_key = EncryptionKey::<V1, Local>::try_from(&eks_key, key, &nonce)?;
 
         // Ciphertext is between nonce and tag
         let ciphertext_end = decoded_payload.len().saturating_sub(TAG_SIZE);
@@ -115,14 +118,17 @@ impl<'a> Paseto<'a, V1, Local> {
         let out = mac.finalize();
         let hmac_bytes = out.into_bytes();
         let nonce_bytes = hmac_bytes.get(..32).ok_or(PasetoError::IncorrectSize)?;
-        let nonce = Key::from(nonce_bytes);
+        let nonce = Key::<32>::try_from(nonce_bytes)?;
         let nonce = PasetoNonce::<V1, Local>::from(&nonce);
 
         //split key
         let aks: &[u8] = &AuthenticationKeySeparator::default();
-        let authentication_key = AuthenticationKey::<V1, Local>::try_from(&Key::from(aks), key, &nonce)?;
+        let aks_key = Key::<24>::try_from(aks)?;
+        let authentication_key =
+            AuthenticationKey::<V1, Local>::try_from(&aks_key, key, &nonce)?;
         let eks: &[u8] = &EncryptionKeySeparator::default();
-        let encryption_key = EncryptionKey::<V1, Local>::try_from(&Key::from(eks), key, &nonce)?;
+        let eks_key = Key::<21>::try_from(eks)?;
+        let encryption_key = EncryptionKey::<V1, Local>::try_from(&eks_key, key, &nonce)?;
 
         //encrypt payload
         let ciphertext = CipherText::<V1, Local>::from(&self.payload, &encryption_key);

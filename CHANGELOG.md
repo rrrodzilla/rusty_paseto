@@ -2,6 +2,81 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.10.0] - 2026-05-10
+
+This release is a focused security pass driven by a full internal audit of the
+crate against the PASETO specification and current advisory database.
+
+### Security
+
+- **Ed25519 verification is now strict (RFC 8032).** `Paseto::<V2, Public>` and
+  `Paseto::<V4, Public>` now call `ed25519_dalek::VerifyingKey::verify_strict`
+  instead of the lenient `verify`. The strict path rejects signatures with
+  torsion components and non-canonical R encodings, eliminating ed25519
+  signature malleability. All 56 default tests and the official PASETO v2/v4
+  public test vectors continue to pass.
+- **Token and footer size limits.** New constants `Paseto::MAX_TOKEN_SIZE`
+  (64 KiB) and `Paseto::MAX_FOOTER_SIZE` (1024 bytes, per PASETO spec
+  recommendation) are enforced in both `parse_raw_token` and
+  `UntrustedToken::try_parse` before any base64 decoding or PAE construction.
+  Bounds the work an attacker can force on inputs that would have failed MAC
+  verification. New error variants `Error::TokenTooLarge` and
+  `Error::FooterTooLarge`.
+- **Derived encryption and authentication keys now zeroize on drop.**
+  `EncryptionKey`, `AuthenticationKey`, and `HkdfKey` derive
+  `Zeroize` + `ZeroizeOnDrop`. The root `PasetoSymmetricKey` (`Key<N>`) was
+  already zeroized; this closes the gap for per-message Ek/Ak material derived
+  via HKDF (v1/v3) and BLAKE2b (v4).
+
+### Dependencies
+
+- **`time` 0.3 → 0.3.47** to resolve RUSTSEC-2026-0009 (DoS via stack
+  exhaustion in claim parsing).
+- **`zeroize` 1.4 → 1.8** for current derive macros and bug fixes.
+
+### Fixed
+
+- **`nbf` claim boundary.** A token with `nbf == now` is now accepted, per
+  RFC 7519 §4.1.5. Previously the strict `<=` check rejected tokens for one
+  instant at the boundary.
+
+### Spec compliance
+
+- **PAE `le64`** now masks the high bit (`n &= 0x7FFF_FFFF_FFFF_FFFF`) for
+  byte-exact compatibility with the reference implementation. In Rust this is
+  structurally redundant — slice/Vec lengths are bounded by `isize::MAX` — but
+  the masking matches the spec pseudocode.
+
+### Documentation
+
+- **Corrected `v1_public_insecure` rationale.** Previous docs cited
+  RUSTSEC-2023-0071 (Marvin Attack), which targets the `rsa` crate. This crate
+  uses `ring`'s RSA-PSS, which is constant-time blinded and not affected by
+  that advisory. The `_insecure` suffix and `#[deprecated]` attributes remain
+  — V1 is the legacy PASETO version (2048-bit RSA-PSS-SHA384) and the spec
+  recommends V4 — but the justification now reflects reality.
+- **`SECURITY.md`** rewritten with private disclosure channels (GitHub
+  Security Advisory plus `rrrodzilla@proton.me`), supported-versions table,
+  SLA expectations, and hardening guidance for users.
+- **`actix_identity` example hardened.** Replaced hardcoded keys with env
+  vars (`PASETO_KEY`, `COOKIE_KEY` as 32-byte hex; random fallback per
+  process start), removed `.expect()`/`.unwrap()` from request handlers,
+  and added a leading module doc explaining what to fix before adapting it
+  to production.
+
+### Meta
+
+- **MSRV declared as 1.85**, the minimum supported by the dependency tree
+  (transitive `time-core 0.1.8` requires `edition2024`).
+
+### Notes
+
+- `cargo audit` against the library's runtime dependency tree is clean.
+  Two `rand` warnings (`RUSTSEC-2026-0097`, "unsound with a custom logger")
+  remain in the dev-dependency tree, reachable only through `proptest`
+  and the actix-web-based `actix_identity` example. They do not affect
+  consumers of `rusty_paseto` itself.
+
 ## [0.8.0] - 2025-10-05
 
 ### Added

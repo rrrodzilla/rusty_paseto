@@ -124,8 +124,10 @@ impl<'a> From<&'a [u8]> for PasetoAsymmetricPrivateKey<'a, V1, Public> {
   ///
   /// # Security Warning
   ///
-  /// V1 public tokens use RSA which is vulnerable to RUSTSEC-2023-0071 (Marvin Attack).
-  /// Use V4 instead for new implementations.
+  /// V1 PASETO is the legacy version (2048-bit RSA-PSS-SHA384) retained only for
+  /// backward compatibility. The PASETO specification recommends V4 for new code.
+  /// (This implementation uses `ring`, which is not affected by the Marvin Attack
+  /// RUSTSEC-2023-0071 that targets the `rsa` crate.)
   fn from(key: &'a [u8]) -> Self {
     Self {
       version: PhantomData,
@@ -240,8 +242,10 @@ impl From<Vec<u8>> for PasetoAsymmetricPrivateKeyOwned<V1, Public> {
   ///
   /// # Security Warning
   ///
-  /// V1 public tokens use RSA which is vulnerable to RUSTSEC-2023-0071 (Marvin Attack).
-  /// Use V4 instead for new implementations.
+  /// V1 PASETO is the legacy version (2048-bit RSA-PSS-SHA384) retained only for
+  /// backward compatibility. The PASETO specification recommends V4 for new code.
+  /// (This implementation uses `ring`, which is not affected by the Marvin Attack
+  /// RUSTSEC-2023-0071 that targets the `rsa` crate.)
   fn from(key: Vec<u8>) -> Self {
     Self {
       version: PhantomData,

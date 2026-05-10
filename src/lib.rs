@@ -12,17 +12,23 @@
 //!
 //! # ⚠️ Security Advisory
 //!
-//! **V1 Public Tokens (`v1_public_insecure` feature)**: The V1 PASETO version uses RSA-PSS which is
-//! affected by [RUSTSEC-2023-0071](https://rustsec.org/advisories/RUSTSEC-2023-0071) (Marvin Attack).
-//! This timing side-channel vulnerability allows potential key recovery in RSA decryption operations.
+//! **V1 Public Tokens (`v1_public_insecure` feature)**: V1 is the original NIST-only PASETO
+//! version, retained only for backward compatibility. The PASETO specification recommends
+//! **V4** for new deployments and discourages V1. V1 public uses 2048-bit RSA-PSS-SHA384,
+//! which has a smaller security margin than modern signature schemes and exposes a larger
+//! cryptographic surface (key generation, parameter validation, padding) than the Ed25519
+//! used by V4. This crate's V1 RSA-PSS verification runs through `ring`, whose
+//! constant-time blinded implementation is **not** affected by RUSTSEC-2023-0071 (which
+//! targets the unrelated `rsa` crate). The `_insecure` suffix communicates "do not use for
+//! new code", not an active exploitable bug in this implementation.
 //!
 //! **Recommendation**: Use **V4** (`v4_public`) for all new public-key PASETO implementations.
-//! V4 uses Ed25519 signatures which are not affected by this vulnerability.
+//! V4 uses Ed25519 signatures with strict (RFC 8032) verification.
 //!
-//! The `v1_public_insecure` feature has been renamed to clearly indicate its security status and all
-//! V1 public types are marked as `#[deprecated]`. If you must use V1 public tokens for legacy
-//! compatibility, explicitly enable the `v1_public_insecure` feature and use `#[allow(deprecated)]`
-//! to acknowledge the security risk.
+//! The `v1_public_insecure` feature has been renamed to clearly indicate its legacy status
+//! and all V1 public types are marked as `#[deprecated]`. If you must use V1 public tokens
+//! for legacy compatibility, explicitly enable the `v1_public_insecure` feature and use
+//! `#[allow(deprecated)]` to acknowledge that you are opting in to a legacy version.
 //!
 //! > "Paseto is everything you love about JOSE (JWT, JWE, JWS) without any of the
 //!> [many design deficits that plague the JOSE standards](https://paragonie.com/blog/2017/03/jwt-json-web-tokens-is-bad-standard-that-everyone-should-avoid)."
@@ -122,7 +128,7 @@
 //! - `v2_local` (Sodium Original Symmetric Encryption)
 //! - `v3_local` (NIST Modern Symmetric Encryption)
 //! - `v4_local` (Sodium Modern Symmetric Encryption)
-//! - `v1_public_insecure` (NIST Original Asymmetric Authentication - **INSECURE**: Vulnerable to RUSTSEC-2023-0071)
+//! - `v1_public_insecure` (NIST Original Asymmetric Authentication - **LEGACY**: 2048-bit RSA-PSS; use V4 for new code)
 //! - `v2_public` (Sodium Original Asymmetric Authentication)
 //! - `v3_public` (NIST Modern Asymmetric Authentication)
 //! - `v4_public` (Sodium Modern Asymmetric Authentication)

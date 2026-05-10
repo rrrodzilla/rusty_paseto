@@ -461,7 +461,7 @@ impl<'a, 'b> GenericParser<'a, 'b, V1, Public> {
   ///
   /// # Deprecated
   ///
-  /// V1 public tokens use RSA which is vulnerable to RUSTSEC-2023-0071 (Marvin Attack). Use V4 instead.
+  /// V1 PASETO is the legacy version (2048-bit RSA-PSS-SHA384). The PASETO specification recommends V4 for new code. This implementation uses `ring`, which is not affected by the Marvin Attack RUSTSEC-2023-0071 (that advisory targets the `rsa` crate, not used here).
   ///
   /// # Example
   ///
@@ -526,7 +526,7 @@ impl<'a, 'b> GenericParser<'a, 'b, V1, Public> {
   ///```
   #[deprecated(
       since = "0.8.1",
-      note = "V1 public tokens use RSA which is vulnerable to RUSTSEC-2023-0071 (Marvin Attack). Use V4 instead."
+      note = "V1 is the legacy PASETO version (2048-bit RSA-PSS). PASETO spec recommends V4 for new code."
   )]
   #[allow(deprecated)]
   pub fn parse(

@@ -37,8 +37,11 @@ pub use paserk::core::types::{
     PaserkLocal, PaserkLocalId, PaserkLocalPw, PaserkLocalWrap, PaserkPublic, PaserkPublicId,
     PaserkSeal, PaserkSecret, PaserkSecretId, PaserkSecretPw, PaserkSecretWrap,
 };
-// K1 is deprecated due to RUSTSEC-2023-0071 (Marvin Attack on RSA) but re-exported
-// for users who need backward compatibility with v1_public_insecure tokens.
+// K1 wraps PASETO v1 (2048-bit RSA-PSS) keys. PASETO spec recommends K4 for new code;
+// K1 is retained for backward compatibility with existing v1 deployments. (Note: the
+// often-cited RUSTSEC-2023-0071 Marvin Attack targets the `rsa` crate, not the `ring`
+// implementation used here.) Re-exported for users who need backward compatibility with
+// v1_public_insecure tokens.
 #[allow(deprecated)]
 pub use paserk::core::version::{K1, K2, K3, K4, PaserkVersion};
 

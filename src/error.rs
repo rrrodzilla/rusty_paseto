@@ -109,6 +109,14 @@ pub enum Error {
     #[error("footer mismatch")]
     FooterMismatch,
 
+    /// The token exceeds the maximum permitted size (default 64 KiB)
+    #[error("token exceeds maximum permitted size")]
+    TokenTooLarge,
+
+    /// The footer exceeds the maximum permitted size (default 1024 bytes per PASETO spec recommendation)
+    #[error("footer exceeds maximum permitted size")]
+    FooterTooLarge,
+
     // ==================== Serialization Errors ====================
     /// JSON serialization or deserialization error
     #[error("JSON error: {0}")]
@@ -217,6 +225,8 @@ impl From<crate::core::PasetoError> for Error {
                 unreachable!("Infallible error should never be constructed")
             }
             PasetoError::FromUtf8Error { source } => Error::FromUtf8(source),
+            PasetoError::TokenTooLarge => Error::TokenTooLarge,
+            PasetoError::FooterTooLarge => Error::FooterTooLarge,
         }
     }
 }

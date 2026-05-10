@@ -54,6 +54,22 @@ pub struct Paseto<'a, Version, Purpose>
 }
 
 impl<'a, Version: VersionTrait, Purpose: PurposeTrait> Paseto<'a, Version, Purpose> {
+    /// Maximum permitted size of an untrusted token string, in bytes.
+    ///
+    /// Bounded to prevent resource exhaustion (base64 decoding, PAE
+    /// construction, and MAC computation) on inputs that would have failed
+    /// authentication anyway. 64 KiB is generous — typical PASETO tokens are
+    /// well under 4 KiB. Callers needing larger tokens should pre-validate
+    /// at the transport layer.
+    pub const MAX_TOKEN_SIZE: usize = 64 * 1024;
+
+    /// Maximum permitted size of a token footer, in bytes (raw, base64-encoded).
+    ///
+    /// Per PASETO specification guidance, footers should be small (≤ 1024 bytes
+    /// is the spec recommendation). Enforced to prevent unbounded footer growth
+    /// from impacting PAE construction or MAC computation.
+    pub const MAX_FOOTER_SIZE: usize = 1024;
+
     /// Returns a builder for creating a PASETO token
     ///
     /// # Example usage
@@ -149,6 +165,12 @@ impl<'a, Version: VersionTrait, Purpose: PurposeTrait> Paseto<'a, Version, Purpo
         v: &Version,
         p: &Purpose,
     ) -> Result<Vec<u8>, PasetoError> {
+        //reject oversized tokens before doing any further work — bounds the
+        //memory and CPU an attacker can force us to spend before MAC fails
+        if raw_token.len() > Self::MAX_TOKEN_SIZE {
+            return Err(PasetoError::TokenTooLarge);
+        }
+
         //split the raw token into parts
         let potential_parts = raw_token.split('.').collect::<Vec<_>>();
 
@@ -166,6 +188,10 @@ impl<'a, Version: VersionTrait, Purpose: PurposeTrait> Paseto<'a, Version, Purpo
         //verify footer if present (4 parts)
         if parts_len == 4 {
             let footer_part = potential_parts.get(3).ok_or(PasetoError::IncorrectSize)?;
+            //reject oversized footers per PASETO spec guidance
+            if footer_part.len() > Self::MAX_FOOTER_SIZE {
+                return Err(PasetoError::FooterTooLarge);
+            }
             let footer = footer.into().unwrap_or_default();
             let found_footer = Footer::from(*footer_part);
             if !footer.constant_time_equals(found_footer) {

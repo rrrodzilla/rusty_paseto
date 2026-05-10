@@ -1,6 +1,19 @@
 use super::{Base64Encodable, Footer, PasetoError};
 use std::str;
 
+/// Maximum permitted size of an untrusted token string, in bytes.
+///
+/// Mirrors [`crate::core::Paseto::MAX_TOKEN_SIZE`]. Bounds the work an
+/// attacker can force the parser to do on an input that would have failed
+/// MAC/signature verification anyway.
+pub(crate) const MAX_TOKEN_SIZE: usize = 64 * 1024;
+
+/// Maximum permitted size of a token footer, in bytes (base64-encoded).
+///
+/// Mirrors [`crate::core::Paseto::MAX_FOOTER_SIZE`]. PASETO spec recommends
+/// footers stay small (≤ 1024 bytes).
+pub(crate) const MAX_FOOTER_SIZE: usize = 1024;
+
 /// Represents a PASETO token that has been structurally parsed but **NOT** cryptographically verified.
 ///
 /// This struct provides the ability to extract footer information from PASETO tokens before
@@ -91,6 +104,13 @@ impl<'a> UntrustedToken<'a> {
     /// # }
     /// ```
     pub fn try_parse(token: &'a str) -> Result<Self, PasetoError> {
+        // Reject oversized tokens before splitting/allocating — bounds the
+        // work an attacker can force the parser to do on inputs that have
+        // not yet been cryptographically verified.
+        if token.len() > MAX_TOKEN_SIZE {
+            return Err(PasetoError::TokenTooLarge);
+        }
+
         let parts: Vec<&str> = token.split('.').collect();
 
         // PASETO tokens must have exactly 3 parts (no footer) or 4 parts (with footer)
@@ -103,7 +123,11 @@ impl<'a> UntrustedToken<'a> {
         let version = parts.first().ok_or(PasetoError::IncorrectSize)?;
         let purpose = parts.get(1).ok_or(PasetoError::IncorrectSize)?;
         let footer = if parts_len == 4 {
-            Some(*parts.get(3).ok_or(PasetoError::IncorrectSize)?)
+            let f = *parts.get(3).ok_or(PasetoError::IncorrectSize)?;
+            if f.len() > MAX_FOOTER_SIZE {
+                return Err(PasetoError::FooterTooLarge);
+            }
+            Some(f)
         } else {
             None
         };
@@ -373,5 +397,35 @@ mod unit_tests {
             let untrusted = UntrustedToken::try_parse(&token).expect("failed to parse token");
             assert_eq!(untrusted.purpose(), *purpose);
         }
+    }
+
+    #[test]
+    fn test_oversized_token_rejected() {
+        // Build a token that just exceeds MAX_TOKEN_SIZE
+        let oversized_payload = "A".repeat(MAX_TOKEN_SIZE);
+        let token = format!("v4.local.{oversized_payload}");
+        assert!(token.len() > MAX_TOKEN_SIZE);
+
+        let result = UntrustedToken::try_parse(&token);
+        assert!(matches!(result, Err(PasetoError::TokenTooLarge)));
+    }
+
+    #[test]
+    fn test_oversized_footer_rejected() {
+        let oversized_footer = "A".repeat(MAX_FOOTER_SIZE + 1);
+        let token = format!("v4.local.payload.{oversized_footer}");
+        // Token itself stays under MAX_TOKEN_SIZE; the footer is what trips
+        assert!(token.len() < MAX_TOKEN_SIZE);
+
+        let result = UntrustedToken::try_parse(&token);
+        assert!(matches!(result, Err(PasetoError::FooterTooLarge)));
+    }
+
+    #[test]
+    fn test_footer_at_max_size_accepted() {
+        let max_footer = "A".repeat(MAX_FOOTER_SIZE);
+        let token = format!("v4.local.payload.{max_footer}");
+        let untrusted = UntrustedToken::try_parse(&token).expect("should accept footer at limit");
+        assert!(untrusted.footer_base64().is_some());
     }
 }

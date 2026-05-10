@@ -112,4 +112,17 @@ pub enum PasetoError {
     #[from]
     source: std::string::FromUtf8Error,
   },
+  ///Occurs when an untrusted token exceeds the maximum permitted size.
+  ///
+  ///Prevents DoS via oversized inputs that would otherwise be base64-decoded
+  ///and fed into PAE construction before MAC verification fails. See
+  ///[`crate::core::Paseto::MAX_TOKEN_SIZE`].
+  #[error("Token exceeds maximum permitted size")]
+  TokenTooLarge,
+  ///Occurs when a token's footer exceeds the maximum permitted size.
+  ///
+  ///The PASETO specification recommends footers be kept small (≤ 1024 bytes).
+  ///See [`crate::core::Paseto::MAX_FOOTER_SIZE`].
+  #[error("Footer exceeds maximum permitted size")]
+  FooterTooLarge,
 }

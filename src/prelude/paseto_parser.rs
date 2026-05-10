@@ -176,6 +176,62 @@ impl<'a, Version, Purpose> PasetoParser<'a, Version, Purpose> {
     self
   }
 
+  /// Acknowledge that this parser may accept tokens with no `exp` claim.
+  ///
+  /// By default, [`PasetoParser::default()`] rejects tokens whose `exp` claim
+  /// is missing, null, or not a string — non-expiring tokens are an
+  /// elevated risk and must be opted into explicitly. This method mirrors
+  /// [`PasetoBuilder::set_no_expiration_danger_acknowledged()`] on the
+  /// parsing side: once called, an absent `exp` is treated as a valid
+  /// non-expiring token, while a present `exp` is still parsed and
+  /// compared against the current time.
+  ///
+  /// # When to use this
+  ///
+  /// Use this only when you have a deliberate non-expiring token in your
+  /// design (e.g., long-lived API keys that you intend to revoke through
+  /// other means). In every other case, leave the default in place and
+  /// reject tokens that fail to commit to an expiration.
+  ///
+  /// # Example
+  /// ```
+  /// # #[cfg(all(feature = "prelude", feature = "v4_local"))]
+  /// # {
+  /// # use rusty_paseto::prelude::*;
+  /// # let key = PasetoSymmetricKey::<V4, Local>::from(Key::<32>::from(*b"wubbalubbadubdubwubbalubbadubdub"));
+  /// // mint a deliberately non-expiring token
+  /// let token = PasetoBuilder::<V4, Local>::default()
+  ///     .set_no_expiration_danger_acknowledged()
+  ///     .build(&key)?;
+  ///
+  /// // parse with the symmetric opt-in
+  /// let _value = PasetoParser::<V4, Local>::default()
+  ///     .set_no_expiration_danger_acknowledged()
+  ///     .parse(&token, &key)?;
+  /// # }
+  /// # Ok::<(), anyhow::Error>(())
+  /// ```
+  pub fn set_no_expiration_danger_acknowledged(&mut self) -> &mut Self {
+    // Overwrite the strict exp validator (installed by `default()`) with a
+    // permissive one that accepts absent/empty exp values but still
+    // validates the expiration time when a value is present.
+    self.parser.validate_claim(ExpirationClaim::default(), &|_, value| {
+      let val = value.as_str().unwrap_or_default();
+      if val.is_empty() {
+        return Ok(());
+      }
+      let datetime = time::OffsetDateTime::parse(val, &Rfc3339)
+        .map_err(|_| PasetoClaimError::RFC3339Date(val.to_string()))?;
+      let now = time::OffsetDateTime::now_utc();
+      if datetime <= now {
+        Err(PasetoClaimError::Expired)
+      } else {
+        Ok(())
+      }
+    });
+    self
+  }
+
   /// Checks that the audience claim (aud) matches the expected value.
   ///
   /// This is a convenience method equivalent to `.check_claim(AudienceClaim::from(value))`.
@@ -264,8 +320,15 @@ impl<'a, Version, Purpose> Default for PasetoParser<'a, Version, Purpose> {
   /// Creates a parser with automatic expiration and not-before validation.
   ///
   /// This default implementation validates:
-  /// * Expiration (`exp`) - Returns `PasetoClaimError::Expired` if the token has expired
-  /// * Not-before (`nbf`) - Returns `PasetoClaimError::UseBeforeAvailable` if used before the specified time
+  /// * Expiration (`exp`) - Returns `PasetoClaimError::Missing("exp")` if the
+  ///   claim is absent, null, or not a string, and `PasetoClaimError::Expired`
+  ///   if the token has expired. To accept tokens without an `exp` claim, call
+  ///   [`PasetoParser::set_no_expiration_danger_acknowledged()`] — the parser
+  ///   side mirrors the builder's
+  ///   [`PasetoBuilder::set_no_expiration_danger_acknowledged()`].
+  /// * Not-before (`nbf`) - When present, returns
+  ///   `PasetoClaimError::UseBeforeAvailable` if the token is used before its
+  ///   `nbf` time. An absent `nbf` is valid (it means "no lower bound on use").
   ///
   /// Use [`PasetoParser::new()`] to create a parser without these automatic validations.
   fn default() -> Self {
@@ -274,11 +337,13 @@ impl<'a, Version, Purpose> Default for PasetoParser<'a, Version, Purpose> {
       //let's get the expiration claim value
       let val = value.as_str().unwrap_or_default();
 
-      //check if this is a non-expiring token
+      //An absent/empty/non-string `exp` claim is rejected by default. The
+      //builder requires an explicit set_no_expiration_danger_acknowledged()
+      //to mint non-expiring tokens; the parser side is symmetric — call
+      //PasetoParser::set_no_expiration_danger_acknowledged() to opt in to
+      //accepting them.
       if val.is_empty() {
-        //this means the claim wasn't found, which means this is a non-expiring token
-        //and we can just skip this validation
-        return Ok(());
+        return Err(PasetoClaimError::Missing("exp".to_string()));
       }
       //turn the value into a datetime
       let datetime =
@@ -1100,10 +1165,50 @@ mod paseto_parser_unit_tests {
       //without the line above this would have errored as an expired token
       .build(&key)?;
 
-    let token = PasetoParser::<V2, Local>::default().parse(&token, &key)?;
+    //Both sides must acknowledge non-expiring tokens. The parser's default
+    //rejects missing `exp`; the builder's symmetric opt-in only relaxes the
+    //builder side, so we apply the parser opt-in here too.
+    let token = PasetoParser::<V2, Local>::default()
+      .set_no_expiration_danger_acknowledged()
+      .parse(&token, &key)?;
 
     assert!(token["iat"].is_string());
     assert!(token["exp"].is_null());
+
+    Ok(())
+  }
+
+  #[cfg(feature = "v2_local")]
+  #[test]
+  fn parser_rejects_missing_exp_by_default() -> Result<()> {
+    //Regression test for the security audit finding: an attacker with
+    //the signing key could mint a forever-token without `exp`, and the
+    //old default parser silently accepted it. The default now rejects
+    //missing exp as PasetoClaimError::Missing("exp").
+
+    let key = PasetoSymmetricKey::<V2, Local>::from(Key::from(*b"wubbalubbadubdubwubbalubbadubdub"));
+
+    //Forge a token with no exp by using the builder's opt-in.
+    let token = PasetoBuilder::<V2, Local>::default()
+      .set_no_expiration_danger_acknowledged()
+      .build(&key)?;
+
+    //The default parser must reject it.
+    let result = PasetoParser::<V2, Local>::default().parse(&token, &key);
+    assert!(
+      result.is_err(),
+      "default parser must reject a token with no exp claim",
+    );
+    let err = format!("{}", result.unwrap_err());
+    assert!(
+      err.contains("exp"),
+      "error should mention the missing exp claim, got: {err}",
+    );
+
+    //But it must accept the same token when the caller opts in.
+    PasetoParser::<V2, Local>::default()
+      .set_no_expiration_danger_acknowledged()
+      .parse(&token, &key)?;
 
     Ok(())
   }

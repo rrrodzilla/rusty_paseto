@@ -15,6 +15,13 @@ crate against the PASETO specification and current advisory database.
   torsion components and non-canonical R encodings, eliminating ed25519
   signature malleability. All 56 default tests and the official PASETO v2/v4
   public test vectors continue to pass.
+- **Default parser now rejects tokens missing the `exp` claim.** A second-look
+  audit highlighted an asymmetry: the builder required an explicit
+  `set_no_expiration_danger_acknowledged()` to mint non-expiring tokens, but
+  the parser silently accepted them. The parser is now symmetric — an absent,
+  null, or non-string `exp` returns `PasetoClaimError::Missing("exp")`. Use
+  the new `PasetoParser::set_no_expiration_danger_acknowledged()` to opt in
+  when you genuinely want to accept non-expiring tokens.
 - **Token and footer size limits.** New constants `Paseto::MAX_TOKEN_SIZE`
   (64 KiB) and `Paseto::MAX_FOOTER_SIZE` (1024 bytes, per PASETO spec
   recommendation) are enforced in both `parse_raw_token` and
@@ -27,6 +34,12 @@ crate against the PASETO specification and current advisory database.
   `Zeroize` + `ZeroizeOnDrop`. The root `PasetoSymmetricKey` (`Key<N>`) was
   already zeroized; this closes the gap for per-message Ek/Ak material derived
   via HKDF (v1/v3) and BLAKE2b (v4).
+- **Eliminated two public-API panic-on-bad-input paths.**
+  `Key::<N>::from(&[u8])` and `PasetoAsymmetricPrivateKey::<V2|V4, Public>::from(&[u8])`
+  previously called `copy_from_slice` into fixed-size buffers, panicking the
+  thread on size mismatch. Both now use `TryFrom<&[u8]>` returning
+  `PasetoError::InvalidKey`. The infallible array-typed `From` impls remain
+  for callers that already have a correctly-sized array.
 
 ### Dependencies
 
@@ -39,6 +52,21 @@ crate against the PASETO specification and current advisory database.
 - **`nbf` claim boundary.** A token with `nbf == now` is now accepted, per
   RFC 7519 §4.1.5. Previously the strict `<=` check rejected tokens for one
   instant at the boundary.
+
+### Breaking changes
+
+- `PasetoParser::default()` now rejects tokens missing `exp` by default;
+  callers that want non-expiring tokens must add
+  `.set_no_expiration_danger_acknowledged()` on the parser (mirroring the
+  existing builder method).
+- `Key::<N>::from(&[u8])` removed. Callers using `Key::<N>::from(slice)`
+  with a slice (rather than an array) must switch to
+  `Key::<N>::try_from(slice)?`. The array-typed `From<[u8; N]>` and
+  `From<&[u8; N]>` impls are unchanged.
+- `PasetoAsymmetricPrivateKey::<V2|V4, Public>::from(&[u8])` is now
+  `TryFrom<&[u8]>`. Callers using `from(slice)` must switch to
+  `try_from(slice)?`. V1 (RSA, arbitrary-length) and V3 (Key<48>-typed)
+  are unaffected.
 
 ### Spec compliance
 

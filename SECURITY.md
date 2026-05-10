@@ -30,7 +30,7 @@ Use one of these private channels:
    report at
    <https://github.com/rrrodzilla/rusty_paseto/security/advisories/new>.
    This creates a confidential discussion between you and the maintainer.
-2. **Email:** `rolandrodriguez@gmail.com` with subject prefix
+2. **Email:** `rrrodzilla@proton.me` with subject prefix
    `[rusty_paseto security]`. Encrypting via PGP is welcome but not required —
    if you need a key, request one via the same address before sending
    sensitive content.

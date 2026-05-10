@@ -2,6 +2,10 @@
 name = "rusty_paseto"
 version = "0.10.0"
 edition = "2021"
+# MSRV: 1.85 — required by transitive dependency time-core 0.1.8 (edition2024).
+# Earlier toolchains can build older versions of this crate, but 0.10+ tracks
+# the modern dependency tree.
+rust-version = "1.85"
 readme = "README.md"
 authors = ["Roland Rodriguez <rolandrodriguez@gmail.com>"]
 description = "A type-driven, ergonomic alternative to JWT for secure stateless PASETO tokens."

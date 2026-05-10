@@ -307,8 +307,11 @@ impl<'a, Version, Purpose> Default for PasetoParser<'a, Version, Purpose> {
       //get the current datetime
       let now = time::OffsetDateTime::now_utc();
 
-      //here we do the actual validation check for the expiration claim
-      if now <= not_before_time {
+      //here we do the actual validation check for the not-before claim.
+      //RFC 7519 §4.1.5: token is valid when `now >= nbf`, so reject only when
+      //`now < nbf`. Using strict `<` here (not `<=`) so that a token with
+      //nbf == now is accepted as soon as its activation instant arrives.
+      if now < not_before_time {
         Err(PasetoClaimError::UseBeforeAvailable(not_before_time.to_string()))
       } else {
         Ok(())

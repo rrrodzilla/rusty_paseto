@@ -1,5 +1,5 @@
 #![cfg(feature = "v2_public")]
-use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
+use ed25519_dalek::{Signature, Signer, SigningKey, VerifyingKey};
 use crate::core::{Footer, Header, Paseto, PasetoAsymmetricPrivateKey, PasetoAsymmetricPublicKey, PasetoError, Public, V2};
 use crate::core::common::{PreAuthenticationEncoding, RawPayload};
 
@@ -39,7 +39,10 @@ impl<'a> Paseto<'a, V2, Public> {
             &footer.into().unwrap_or_default(),
         ]);
 
-        verifying_key.verify(&pae, &signature)?;
+        // Use verify_strict() per RFC 8032 / ed25519-dalek 2.x guidance:
+        // rejects signatures with torsion components or non-canonical encodings
+        // that the lenient verify() would accept, eliminating signature malleability.
+        verifying_key.verify_strict(&pae, &signature)?;
 
         Ok(String::from_utf8(Vec::from(msg))?)
     }

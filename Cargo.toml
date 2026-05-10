@@ -73,7 +73,7 @@ ctr = { version = "0.9", optional = true }
 hmac = { version = "0.12", optional = true }
 sha2 = { version = "0.10", optional = true }
 subtle = "2.6"
-zeroize = { version = "1.4", features = ["zeroize_derive"] }
+zeroize = { version = "1.8", features = ["zeroize_derive"] }
 time = { version = "0.3.47", features = ["parsing", "formatting"] }
 rand_core = "0.9"
 digest = "0.10"

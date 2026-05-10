@@ -3,7 +3,7 @@ use super::Key;
 use crate::core::V1;
 #[cfg(feature = "v3_public")]
 use crate::core::V3;
-use crate::core::{Public, V2orV4};
+use crate::core::{PasetoError, Public, V2orV4};
 use std::convert::{AsRef, From};
 use std::marker::PhantomData;
 #[cfg(any(
@@ -99,16 +99,27 @@ pub struct PasetoAsymmetricPrivateKeyOwned<Version, Purpose> {
   key: Vec<u8>,
 }
 
-impl<'a, Version> From<&'a [u8]> for PasetoAsymmetricPrivateKey<'a, Version, Public>
+/// V2 and V4 PASETO private keys are exactly 64 bytes (Ed25519 keypair:
+/// 32-byte seed + 32-byte public). Constructing from an arbitrary `&[u8]`
+/// is fallible: `TryFrom` rejects mismatched sizes up front instead of
+/// deferring the failure to `to_paserk()` (where it would have been a
+/// `copy_from_slice` panic).
+impl<'a, Version> TryFrom<&'a [u8]> for PasetoAsymmetricPrivateKey<'a, Version, Public>
 where
   Version: V2orV4,
 {
-  fn from(key: &'a [u8]) -> Self {
-    Self {
+  type Error = PasetoError;
+
+  fn try_from(key: &'a [u8]) -> Result<Self, Self::Error> {
+    const EXPECTED: usize = 64;
+    if key.len() != EXPECTED {
+      return Err(PasetoError::InvalidKey);
+    }
+    Ok(Self {
       version: PhantomData,
       purpose: PhantomData,
       key,
-    }
+    })
   }
 }
 
@@ -252,5 +263,43 @@ impl From<Vec<u8>> for PasetoAsymmetricPrivateKeyOwned<V1, Public> {
       purpose: PhantomData,
       key,
     }
+  }
+}
+
+#[cfg(all(test, any(feature = "v2_public", feature = "v4_public")))]
+mod private_key_size_check_tests {
+  use super::*;
+
+  #[cfg(feature = "v4_public")]
+  #[test]
+  fn try_from_rejects_short_v4_slice() {
+    // A 32-byte Ed25519 seed is the most common wrong-size mistake.
+    let too_short = [0u8; 32];
+    let result = PasetoAsymmetricPrivateKey::<crate::core::V4, Public>::try_from(&too_short[..]);
+    assert!(matches!(result, Err(PasetoError::InvalidKey)));
+  }
+
+  #[cfg(feature = "v4_public")]
+  #[test]
+  fn try_from_rejects_long_v4_slice() {
+    let too_long = [0u8; 96];
+    let result = PasetoAsymmetricPrivateKey::<crate::core::V4, Public>::try_from(&too_long[..]);
+    assert!(matches!(result, Err(PasetoError::InvalidKey)));
+  }
+
+  #[cfg(feature = "v4_public")]
+  #[test]
+  fn try_from_accepts_correct_v4_slice() {
+    let exact = [0u8; 64];
+    let result = PasetoAsymmetricPrivateKey::<crate::core::V4, Public>::try_from(&exact[..]);
+    assert!(result.is_ok());
+  }
+
+  #[cfg(feature = "v2_public")]
+  #[test]
+  fn try_from_rejects_short_v2_slice() {
+    let too_short = [0u8; 32];
+    let result = PasetoAsymmetricPrivateKey::<crate::core::V2, Public>::try_from(&too_short[..]);
+    assert!(matches!(result, Err(PasetoError::InvalidKey)));
   }
 }

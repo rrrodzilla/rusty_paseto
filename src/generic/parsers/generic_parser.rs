@@ -723,7 +723,7 @@ impl<'a, 'b> GenericParser<'a, 'b, V4, Public> {
   /// //create a key
   /// let private_key = Key::<64>::try_from("b4cbfb43df4ce210727d953e4a713307fa19bb7d9f85041438d9e11b942a37741eb9dbbbbc047c03fd70604e0071f0987e16b28b757225c11f00415d0e20b1a2")?;
   /// let pk: &[u8] = private_key.as_slice();
-  /// let private_key = PasetoAsymmetricPrivateKey::<V4, Public>::from(pk);
+  /// let private_key = PasetoAsymmetricPrivateKey::<V4, Public>::try_from(pk)?;
   /// let public_key = Key::<32>::try_from("1eb9dbbbbc047c03fd70604e0071f0987e16b28b757225c11f00415d0e20b1a2")?;
   /// let public_key = PasetoAsymmetricPublicKey::<V4, Public>::from(&public_key);
   /// let footer = Footer::from("some footer");

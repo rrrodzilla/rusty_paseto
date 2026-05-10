@@ -104,21 +104,57 @@ Paseto is everything you love about JOSE (JWT, JWE, JWS) without any of the
 
 ### A default parser
 
- * Validates the token structure and decryptes the payload or verifies the signature of the content
+ * Validates the token structure and decrypts the payload or verifies the signature of the content
  * Validates the [footer](https://github.com/paseto-standard/paseto-spec/tree/master/docs) if
  one was provided
  * Validates the [implicit assertion](https://github.com/paseto-standard/paseto-spec/tree/master/docs) if one was provided (for V3 or V4 versioned tokens only)
  * Validates expiration (`exp`) and not-before (`nbf`) claims automatically
- * Returns a `GenericParserError` if validation fails (expired tokens, premature usage, invalid claims)
+ * Returns an `Error` if validation fails (expired tokens, premature usage, invalid claims)
 
-**Note**: `PasetoParser::default()` includes automatic expiration and not-before validation. Use `PasetoParser::new()` to construct a parser without these automatic validations.
+### Constructor semantics: `default()` vs `new()`
+
+Understanding the difference between constructors is important:
+
+| Type | `default()` | `new()` |
+|------|-------------|---------|
+| `PasetoBuilder` | Includes default claims: `exp` (1 hour), `iat`, `nbf` | Not exposed publicly |
+| `PasetoParser` | Auto-validates `exp` and `nbf` claims | Skips automatic time validation |
+| `GenericBuilder` | Empty builder (no default claims) | Same as `default()` |
+| `GenericParser` | Empty parser (no automatic validation) | Same as `default()` |
+
+**Recommendation**: Use `PasetoBuilder::default()` and `PasetoParser::default()` for most applications. Only use `PasetoParser::new()` when you need custom time validation logic.
+
+### Typed parsing with `parse_into<T>()`
+
+For type-safe claim access, parse directly into a Rust struct:
+
+```rust
+use rusty_paseto::prelude::*;
+use serde::Deserialize;
+
+#[derive(Deserialize)]
+struct MyClaims {
+    sub: String,
+    aud: String,
+    role: String,
+    #[serde(default)]
+    permissions: Vec<String>,
+}
+
+let claims: MyClaims = PasetoParser::<V4, Local>::default()
+    .parse_into(&token, &key)?;
+
+println!("User {} has role {}", claims.sub, claims.role);
+```
+
+This is the recommended approach for production code as it provides compile-time guarantees about claim structure.
 
 ### Validating tokens and handling errors
 
 Token validation occurs during parsing. Expired tokens or tokens used before their `nbf` time return errors.
 
 ```rust
-use rusty_paseto::prelude::*;
+use rusty_paseto::{prelude::*, Error};
 
 let key = PasetoSymmetricKey::<V4, Local>::from(Key::from(b"wubbalubbadubdubwubbalubbadubdub"));
 
@@ -127,13 +163,21 @@ let token = PasetoBuilder::<V4, Local>::default()
   .set_claim(ExpirationClaim::try_from("2019-01-01T00:00:00+00:00")?)
   .build(&key)?;
 
-// Parsing the expired token returns an error
+// Handle different error types
 match PasetoParser::<V4, Local>::default().parse(&token, &key) {
   Ok(json_value) => {
     println!("Token valid: {}", json_value);
   }
+  Err(Error::Expired) => {
+    eprintln!("Token has expired - please re-authenticate");
+  }
+  Err(Error::NotYetValid(time)) => {
+    eprintln!("Token not valid until: {}", time);
+  }
+  Err(Error::InvalidClaimValue { claim, expected, actual }) => {
+    eprintln!("Claim '{}' mismatch: expected '{}', got '{}'", claim, expected, actual);
+  }
   Err(err) => {
-    // This will print: "This token is expired"
     eprintln!("Token validation failed: {}", err);
   }
 }
@@ -280,24 +324,35 @@ use rusty_paseto::prelude::*;
 
 ### Setting your own Custom Claims
 
- The CustomClaim struct takes a tuple in the form of `(key: String, value: T)` where T is any
- serializable type
- #### Note: *CustomClaims use the TryFrom trait and return a Result<(), PasetoClaimError> if you attempt to use one of the [reserved PASETO keys](https://github.com/paseto-standard/paseto-spec/blob/master/docs/02-Implementation-Guide/04-Claims.md) in your CustomClaim*
- ```rust
- let token = PasetoBuilder::<V4, Local>::default()
-   .set_claim(CustomClaim::try_from(("Co-star", "Morty Smith"))?)
-   .set_claim(CustomClaim::try_from(("Universe", 137))?)
-   .build(&key)?;
+Add custom data to your tokens using the fluent `.claim()` method or `CustomClaim::new()`:
 
- ```
- This throws an error:
- ```rust
- // "exp" is a reserved PASETO claim key, you should use the ExpirationClaim type
- let token = PasetoBuilder::<V4, Local>::default()
-   .set_claim(CustomClaim::try_from(("exp", "Some expiration value"))?)
-   .build(&key)?;
+```rust
+// Recommended: Use the fluent .claim() method
+let token = PasetoBuilder::<V4, Local>::default()
+    .claim("user_id", 42)?
+    .claim("roles", vec!["admin", "user"])?
+    .claim("metadata", serde_json::json!({"tier": "premium"}))?
+    .build(&key)?;
+```
 
- ```
+You can also use `CustomClaim::new()` with `set_claim()`:
+
+```rust
+let token = PasetoBuilder::<V4, Local>::default()
+    .set_claim(CustomClaim::new("Co-star", "Morty Smith")?)
+    .set_claim(CustomClaim::new("Universe", 137)?)
+    .build(&key)?;
+```
+
+#### Reserved Claim Keys
+
+Using a reserved PASETO claim key returns an error:
+
+```rust
+// This returns an error - "exp" is reserved
+let result = CustomClaim::new("exp", "Some value");
+// Use ExpirationClaim instead
+```
 
 <h6 align="right"><a href="#user-content-table-of-contents">back to toc</a></h6>
 
@@ -311,15 +366,15 @@ use rusty_paseto::prelude::*;
  // use a default token builder with the same PASETO version and purpose
  let token = PasetoBuilder::<V4, Local>::default()
    .set_claim(SubjectClaim::from("Get schwifty"))
-   .set_claim(CustomClaim::try_from(("Contestant", "Earth"))?)
-   .set_claim(CustomClaim::try_from(("Universe", 137))?)
+   .set_claim(CustomClaim::new("Contestant", "Earth")?)
+   .set_claim(CustomClaim::new("Universe", 137)?)
    .build(&key)?;
 
  PasetoParser::<V4, Local>::default()
    // you can check any claim even custom claims
    .check_claim(SubjectClaim::from("Get schwifty"))
-   .check_claim(CustomClaim::try_from(("Contestant", "Earth"))?)
-   .check_claim(CustomClaim::try_from(("Universe", 137))?)
+   .check_claim(CustomClaim::new("Contestant", "Earth")?)
+   .check_claim(CustomClaim::new("Universe", 137)?)
    .parse(&token, &key)?;
 
  // no need for the assertions below since the check_claim methods
@@ -336,20 +391,20 @@ use rusty_paseto::prelude::*;
 
  What if we have more complex validation requirements? You can pass in a reference to a closure which receives
  the key and value of the claim you want to validate so you can implement any validation logic
- you choose.  
+ you choose.
 
  Let's see how we can validate our tokens only contain universe values with prime numbers:
  ```rust
  // use a default token builder with the same PASETO version and purpose
  let token = PasetoBuilder::<V4, Local>::default()
    .set_claim(SubjectClaim::from("Get schwifty"))
-   .set_claim(CustomClaim::try_from(("Contestant", "Earth"))?)
-   .set_claim(CustomClaim::try_from(("Universe", 137))?)
+   .set_claim(CustomClaim::new("Contestant", "Earth")?)
+   .set_claim(CustomClaim::new("Universe", 137)?)
    .build(&key)?;
 
  PasetoParser::<V4, Local>::default()
    .check_claim(SubjectClaim::from("Get schwifty"))
-   .check_claim(CustomClaim::try_from(("Contestant", "Earth"))?)
+   .check_claim(CustomClaim::new("Contestant", "Earth")?)
     .validate_claim(CustomClaim::try_from("Universe")?, &|key, value| {
       //let's get the value
       let universe = value
@@ -370,7 +425,7 @@ use rusty_paseto::prelude::*;
  ```rust
  // 136 is not a prime number
  let token = PasetoBuilder::<V4, Local>::default()
-   .set_claim(CustomClaim::try_from(("Universe", 136))?)
+   .set_claim(CustomClaim::new("Universe", 136)?)
    .build(&key)?;
 
  ```

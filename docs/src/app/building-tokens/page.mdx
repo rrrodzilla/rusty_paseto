@@ -8,6 +8,18 @@ export const metadata = {
 
 The `PasetoBuilder` provides a fluent API for creating PASETO tokens with claims, footers, and implicit assertions. {{ className: 'lead' }}
 
+## Default Behavior
+
+`PasetoBuilder::default()` automatically includes security-conscious defaults:
+
+- **exp** (expiration): Set to 1 hour from now
+- **iat** (issued at): Set to current time
+- **nbf** (not before): Set to current time
+
+This ensures tokens are secure by default. Override individual claims as needed, or use `set_no_expiration_danger_acknowledged()` to create non-expiring tokens.
+
+---
+
 ## Basic Token Creation
 
 Create a simple token with the builder:
@@ -63,6 +75,21 @@ let token = PasetoBuilder::<V4, Local>::default()
     .token_identifier("token_abc")
     .build(&key)?;
 ```
+
+### Custom Claims with `.claim()`
+
+The fluent `.claim()` method is the recommended way to add custom claims:
+
+```rust
+let token = PasetoBuilder::<V4, Local>::default()
+    .subject("user_123")
+    .claim("user_id", 42)?
+    .claim("roles", vec!["admin", "user"])?
+    .claim("metadata", serde_json::json!({"tier": "premium"}))?
+    .build(&key)?;
+```
+
+This is cleaner than using `set_claim(CustomClaim::new(...))` and supports any serializable value.
 
 ---
 

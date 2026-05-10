@@ -303,24 +303,35 @@ use rusty_paseto::prelude::*;
 
  ## Setting your own Custom Claims
 
- The CustomClaim struct takes a tuple in the form of `(key: String, value: T)` where T is any
- serializable type
- #### Note: *CustomClaims use the TryFrom trait and return a Result<(), PasetoClaimError> if you attempt to use one of the [reserved PASETO keys](https://github.com/paseto-standard/paseto-spec/blob/master/docs/02-Implementation-Guide/04-Claims.md) in your CustomClaim*
- ```rust
- let token = PasetoBuilder::<V4, Local>::default()
-   .set_claim(CustomClaim::try_from(("Co-star", "Morty Smith"))?)
-   .set_claim(CustomClaim::try_from(("Universe", 137))?)
-   .build(&key)?;
+Add custom data to your tokens using the fluent `.claim()` method or `CustomClaim::new()`:
 
- ```
- This throws an error:
- ```rust
- // "exp" is a reserved PASETO claim key, you should use the ExpirationClaim type
- let token = PasetoBuilder::<V4, Local>::default()
-   .set_claim(CustomClaim::try_from(("exp", "Some expiration value"))?)
-   .build(&key)?;
+```rust
+// Recommended: Use the fluent .claim() method
+let token = PasetoBuilder::<V4, Local>::default()
+    .claim("user_id", 42)?
+    .claim("roles", vec!["admin", "user"])?
+    .claim("metadata", serde_json::json!({"tier": "premium"}))?
+    .build(&key)?;
+```
 
- ```
+You can also use `CustomClaim::new()` with `set_claim()`:
+
+```rust
+let token = PasetoBuilder::<V4, Local>::default()
+    .set_claim(CustomClaim::new("Co-star", "Morty Smith")?)
+    .set_claim(CustomClaim::new("Universe", 137)?)
+    .build(&key)?;
+```
+
+#### Reserved Claim Keys
+
+Using a reserved PASETO claim key returns an error:
+
+```rust
+// This returns an error - "exp" is reserved
+let result = CustomClaim::new("exp", "Some value");
+// Use ExpirationClaim instead
+```
  # Validating claims
  rusty_paseto allows for flexible claim validation at parse time
 
@@ -331,15 +342,15 @@ use rusty_paseto::prelude::*;
  // use a default token builder with the same PASETO version and purpose
  let token = PasetoBuilder::<V4, Local>::default()
    .set_claim(SubjectClaim::from("Get schwifty"))
-   .set_claim(CustomClaim::try_from(("Contestant", "Earth"))?)
-   .set_claim(CustomClaim::try_from(("Universe", 137))?)
+   .set_claim(CustomClaim::new("Contestant", "Earth")?)
+   .set_claim(CustomClaim::new("Universe", 137)?)
    .build(&key)?;
 
  PasetoParser::<V4, Local>::default()
    // you can check any claim even custom claims
    .check_claim(SubjectClaim::from("Get schwifty"))
-   .check_claim(CustomClaim::try_from(("Contestant", "Earth"))?)
-   .check_claim(CustomClaim::try_from(("Universe", 137))?)
+   .check_claim(CustomClaim::new("Contestant", "Earth")?)
+   .check_claim(CustomClaim::new("Universe", 137)?)
    .parse(&token, &key)?;
 
  // no need for the assertions below since the check_claim methods
@@ -354,20 +365,20 @@ use rusty_paseto::prelude::*;
 
  What if we have more complex validation requirements? You can pass in a reference to a closure which receives
  the key and value of the claim you want to validate so you can implement any validation logic
- you choose.  
+ you choose.
 
  Let's see how we can validate our tokens only contain universe values with prime numbers:
  ```rust
  // use a default token builder with the same PASETO version and purpose
  let token = PasetoBuilder::<V4, Local>::default()
    .set_claim(SubjectClaim::from("Get schwifty"))
-   .set_claim(CustomClaim::try_from(("Contestant", "Earth"))?)
-   .set_claim(CustomClaim::try_from(("Universe", 137))?)
+   .set_claim(CustomClaim::new("Contestant", "Earth")?)
+   .set_claim(CustomClaim::new("Universe", 137)?)
    .build(&key)?;
 
  PasetoParser::<V4, Local>::default()
    .check_claim(SubjectClaim::from("Get schwifty"))
-   .check_claim(CustomClaim::try_from(("Contestant", "Earth"))?)
+   .check_claim(CustomClaim::new("Contestant", "Earth")?)
     .validate_claim(CustomClaim::try_from("Universe")?, &|key, value| {
       //let's get the value
       let universe = value
@@ -388,7 +399,7 @@ use rusty_paseto::prelude::*;
  ```rust
  // 136 is not a prime number
  let token = PasetoBuilder::<V4, Local>::default()
-   .set_claim(CustomClaim::try_from(("Universe", 136))?)
+   .set_claim(CustomClaim::new("Universe", 136)?)
    .build(&key)?;
 
  ```

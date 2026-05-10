@@ -29,6 +29,31 @@ The parser automatically:
 
 ---
 
+## Constructor Semantics
+
+Understanding when to use `default()` vs `new()`:
+
+| Constructor | Behavior |
+|-------------|----------|
+| `PasetoParser::default()` | Auto-validates `exp` and `nbf` claims |
+| `PasetoParser::new()` | Skips automatic time validation |
+
+Use `default()` for most applications. Use `new()` only when you need custom time validation logic or want to skip time-based validation entirely.
+
+```rust
+use rusty_paseto::prelude::*;
+
+// Recommended: automatic time validation
+let payload = PasetoParser::<V4, Local>::default()
+    .parse(&token, &key)?;
+
+// Skip automatic time validation (use with caution)
+let payload = PasetoParser::<V4, Local>::new()
+    .parse(&token, &key)?;
+```
+
+---
+
 ## Public Token Verification
 
 For Public purpose tokens, provide the public key:
@@ -158,7 +183,32 @@ match result {
 
 ## Accessing Payload Data
 
-The parsed payload is a JSON string. Parse it to access claims:
+### Recommended: Typed Parsing
+
+For production code, use `parse_into<T>()` to deserialize directly into a struct:
+
+```rust
+use rusty_paseto::prelude::*;
+use serde::Deserialize;
+
+#[derive(Deserialize)]
+struct MyClaims {
+    sub: String,
+    #[serde(default)]
+    role: Option<String>,
+}
+
+let claims: MyClaims = PasetoParser::<V4, Local>::default()
+    .parse_into(&token, &key)?;
+
+println!("Subject: {}, Role: {:?}", claims.sub, claims.role);
+```
+
+This provides compile-time type safety and cleaner code. See [Typed Parsing](/typed-parsing) for more patterns.
+
+### Dynamic JSON Access
+
+For dynamic access or when claim structure varies:
 
 ```rust
 use rusty_paseto::prelude::*;
@@ -166,12 +216,9 @@ use rusty_paseto::prelude::*;
 let payload = PasetoParser::<V4, Local>::default()
     .parse(&token, &key)?;
 
-// Parse as generic JSON
-let claims: serde_json::Value = serde_json::from_str(&payload)?;
-let sub = claims["sub"].as_str().unwrap();
-let role = claims["role"].as_str().unwrap_or("user");
+// Access claims dynamically
+let sub = payload["sub"].as_str().unwrap();
+let role = payload["role"].as_str().unwrap_or("user");
 
 println!("Subject: {}, Role: {}", sub, role);
 ```
-
-For type-safe access, see [Typed Parsing](/typed-parsing).

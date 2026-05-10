@@ -229,14 +229,54 @@
 //!
 //! ## A default parser
 //!
-//! * Validates the token structure and decryptes the payload or verifies the signature of the content
+//! * Validates the token structure and decrypts the payload or verifies the signature of the content
 //! * Validates the [footer](https://github.com/paseto-standard/paseto-spec/tree/master/docs) if
 //!   one was provided
 //! * Validates the [implicit assertion](https://github.com/paseto-standard/paseto-spec/tree/master/docs) if one was provided (for V3 or V4 versioned tokens only)
 //! * Validates expiration (`exp`) and not-before (`nbf`) claims automatically
-//! * Returns a [`GenericParserError`](generic::GenericParserError) if validation fails (expired tokens, premature usage, invalid claims)
+//! * Returns an [`Error`] if validation fails (expired tokens, premature usage, invalid claims)
 //!
-//! **Note**: `PasetoParser::default()` includes automatic expiration and not-before validation. Use `PasetoParser::new()` to construct a parser without these automatic validations.
+//! ## Constructor semantics: `default()` vs `new()`
+//!
+//! Understanding the difference between constructors is important:
+//!
+//! | Type | `default()` | `new()` |
+//! |------|-------------|---------|
+//! | `PasetoBuilder` | Includes default claims: `exp` (1 hour), `iat`, `nbf` | Not exposed publicly |
+//! | `PasetoParser` | Auto-validates `exp` and `nbf` claims | Skips automatic time validation |
+//! | `GenericBuilder` | Empty builder (no default claims) | Same as `default()` |
+//! | `GenericParser` | Empty parser (no automatic validation) | Same as `default()` |
+//!
+//! **Recommendation**: Use `PasetoBuilder::default()` and `PasetoParser::default()` for most applications.
+//! Only use `PasetoParser::new()` when you need custom time validation logic.
+//!
+//! ## Typed parsing with `parse_into<T>()`
+//!
+//! For type-safe claim access, parse directly into a Rust struct:
+//!
+//! ```rust
+//! # #[cfg(feature = "default")]
+//! # {
+//! use rusty_paseto::prelude::*;
+//! use serde::Deserialize;
+//!
+//! # let key = PasetoSymmetricKey::<V4, Local>::from(Key::from(b"wubbalubbadubdubwubbalubbadubdub"));
+//! # let token = PasetoBuilder::<V4, Local>::default().build(&key)?;
+//! #[derive(Deserialize)]
+//! struct MyClaims {
+//!     exp: String,
+//!     iat: String,
+//!     #[serde(default)]
+//!     sub: Option<String>,
+//! }
+//!
+//! let claims: MyClaims = PasetoParser::<V4, Local>::default()
+//!     .parse_into(&token, &key)?;
+//! # }
+//! # Ok::<(),anyhow::Error>(())
+//! ```
+//!
+//! This is recommended for production code as it provides compile-time guarantees about claim structure.
 //!
 //! ## A token with a footer
 //!
@@ -424,9 +464,7 @@
 //!
 //! ## Setting your own Custom Claims
 //!
-//! The `CustomClaim` struct takes a tuple in the form of `(key: String, value: T)` where T is any
-//! serializable type
-//! #### Note: *`CustomClaim`s use the `TryFrom` trait and return a `Result<(), PasetoClaimError>` if you attempt to use one of the [reserved PASETO keys](https://github.com/paseto-standard/paseto-spec/blob/master/docs/02-Implementation-Guide/04-Claims.md) in your `CustomClaim`*
+//! Add custom data to your tokens using the fluent `.claim()` method or `CustomClaim::new()`:
 //!
 //! ```rust
 //! # #[cfg(all(test, feature = "v4_local"))]
@@ -434,30 +472,43 @@
 //! # use rusty_paseto::prelude::*;
 //! # use rusty_paseto::core::{V4,Local, Key};
 //! # use rusty_paseto::generic::GenericBuilderError;
-//! # // must include
-//! # use std::convert::TryFrom;
+//! # use rusty_paseto::core::PasetoSymmetricKey;
+//! # let key = PasetoSymmetricKey::<V4, Local>::from(Key::from(b"wubbalubbadubdubwubbalubbadubdub"));
+//! // Recommended: Use the fluent .claim() method
+//! let token = PasetoBuilder::<V4, Local>::default()
+//!     .claim("user_id", 42)?
+//!     .claim("roles", vec!["admin", "user"])?
+//!     .build(&key)?;
+//! # Ok::<(),rusty_paseto::generic::GenericBuilderError>(())
+//! # }
+//! ```
+//!
+//! Or use `CustomClaim::new()` with `set_claim()`:
+//!
+//! ```rust
+//! # #[cfg(all(test, feature = "v4_local"))]
+//! # {
+//! # use rusty_paseto::prelude::*;
+//! # use rusty_paseto::core::{V4,Local, Key};
 //! # use rusty_paseto::core::PasetoSymmetricKey;
 //! # let key = PasetoSymmetricKey::<V4, Local>::from(Key::from(b"wubbalubbadubdubwubbalubbadubdub"));
 //! let token = PasetoBuilder::<V4, Local>::default()
-//!   .set_claim(CustomClaim::try_from(("Co-star", "Morty Smith"))?)
-//!   .set_claim(CustomClaim::try_from(("Universe", 137))?)
+//!   .set_claim(CustomClaim::new("Co-star", "Morty Smith")?)
+//!   .set_claim(CustomClaim::new("Universe", 137)?)
 //!   .build(&key)?;
 //! # Ok::<(),rusty_paseto::generic::GenericBuilderError>(())
 //! # }
 //! ```
 //!
-//! This throws an error:
+//! Using a reserved PASETO claim key returns an error:
 //! ```no_compile
 //! # #[cfg(feature = "v4_local")]
 //! # {
 //! # use rusty_paseto::prelude::*;
-//! # // must include
-//! # use std::convert::TryFrom;
 //! # let key = PasetoSymmetricKey::<V4, Local>::from(Key::from(b"wubbalubbadubdubwubbalubbadubdub"));
-//! // "exp" is a reserved PASETO claim key, you should use the ExpirationClaim type
-//! let token = PasetoBuilder::<V4, Local>::default()
-//!   .set_claim(CustomClaim::try_from(("exp", "Some expiration value"))?)
-//!   .build(&key)?;
+//! // This returns an error - "exp" is reserved
+//! let result = CustomClaim::new("exp", "Some value");
+//! // Use ExpirationClaim instead
 //! # }
 //! # Ok::<(),anyhow::Error>(())
 //! ```
@@ -471,22 +522,21 @@
 //! # #[cfg(feature = "default")]
 //! # {
 //! # use rusty_paseto::prelude::*;
-//! # use std::convert::TryFrom;
 //!
 //! # // create a key specifying the PASETO version and purpose
 //! # let key = PasetoSymmetricKey::<V4, Local>::from(Key::from(b"wubbalubbadubdubwubbalubbadubdub"));
 //! // use a default token builder with the same PASETO version and purpose
 //! let token = PasetoBuilder::<V4, Local>::default()
 //!   .set_claim(SubjectClaim::from("Get schwifty"))
-//!   .set_claim(CustomClaim::try_from(("Contestant", "Earth"))?)
-//!   .set_claim(CustomClaim::try_from(("Universe", 137))?)
+//!   .set_claim(CustomClaim::new("Contestant", "Earth")?)
+//!   .set_claim(CustomClaim::new("Universe", 137)?)
 //!   .build(&key)?;
 //!
 //! PasetoParser::<V4, Local>::default()
 //!   // you can check any claim even custom claims
 //!   .check_claim(SubjectClaim::from("Get schwifty"))
-//!   .check_claim(CustomClaim::try_from(("Contestant", "Earth"))?)
-//!   .check_claim(CustomClaim::try_from(("Universe", 137))?)
+//!   .check_claim(CustomClaim::new("Contestant", "Earth")?)
+//!   .check_claim(CustomClaim::new("Universe", 137)?)
 //!   .parse(&token, &key)?;
 //!
 //! // no need for the assertions below since the check_claim methods
@@ -503,7 +553,7 @@
 //!
 //! What if we have more complex validation requirements? You can pass in a reference to a closure which receives
 //! the key and value of the claim you want to validate so you can implement any validation logic
-//! you choose.  
+//! you choose.
 //!
 //! Let's see how we can validate our tokens only contain universes with prime numbers:
 //!
@@ -511,20 +561,19 @@
 //! # #[cfg(feature = "default")]
 //! # {
 //! # use rusty_paseto::prelude::*;
-//! # use std::convert::TryFrom;
 //!
 //! # // create a key specifying the PASETO version and purpose
 //! # let key = PasetoSymmetricKey::<V4, Local>::from(Key::from(b"wubbalubbadubdubwubbalubbadubdub"));
 //! // use a default token builder with the same PASETO version and purpose
 //! let token = PasetoBuilder::<V4, Local>::default()
 //!   .set_claim(SubjectClaim::from("Get schwifty"))
-//!   .set_claim(CustomClaim::try_from(("Contestant", "Earth"))?)
-//!   .set_claim(CustomClaim::try_from(("Universe", 137))?)
+//!   .set_claim(CustomClaim::new("Contestant", "Earth")?)
+//!   .set_claim(CustomClaim::new("Universe", 137)?)
 //!   .build(&key)?;
 //!
 //! PasetoParser::<V4, Local>::default()
 //!   .check_claim(SubjectClaim::from("Get schwifty"))
-//!   .check_claim(CustomClaim::try_from(("Contestant", "Earth"))?)
+//!   .check_claim(CustomClaim::new("Contestant", "Earth")?)
 //!    .validate_claim(CustomClaim::try_from("Universe")?, &|key, value| {
 //!      //let's get the value
 //!      let universe = value
@@ -548,13 +597,12 @@
 //! # #[cfg(feature = "v4_local")]
 //! # {
 //! use rusty_paseto::prelude::*;
-//! use std::convert::TryFrom;
 //!
 //! // create a key specifying the PASETO version and purpose
 //! let key = PasetoSymmetricKey::<V4, Local>::from(Key::from(b"wubbalubbadubdubwubbalubbadubdub"));
 //! // 136 is not a prime number
 //! let token = PasetoBuilder::<V4, Local>::default()
-//!   .set_claim(CustomClaim::try_from(("Universe", 136))?)
+//!   .set_claim(CustomClaim::new("Universe", 136)?)
 //!   .build(&key)?;
 //!
 //! let json_value = PasetoParser::<V4, Local>::default()

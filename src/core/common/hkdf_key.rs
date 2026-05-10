@@ -1,8 +1,9 @@
 use ring::hkdf;
+use zeroize::{Zeroize, ZeroizeOnDrop};
 use crate::core::PasetoError;
 
-#[derive(Debug, PartialEq, Eq)]
-pub struct HkdfKey<T: core::fmt::Debug + PartialEq>(pub T);
+#[derive(Debug, PartialEq, Eq, Zeroize, ZeroizeOnDrop)]
+pub struct HkdfKey<T: core::fmt::Debug + PartialEq + Zeroize>(pub T);
 
 impl hkdf::KeyType for HkdfKey<usize> {
     fn len(&self) -> usize {
@@ -18,4 +19,3 @@ impl TryFrom<hkdf::Okm<'_, HkdfKey<usize>>> for HkdfKey<Vec<u8>> {
         Ok(Self(r))
     }
 }
-

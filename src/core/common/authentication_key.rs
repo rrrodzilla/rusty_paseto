@@ -1,8 +1,12 @@
 use std::marker::PhantomData;
 use std::ops::Deref;
+use zeroize::{Zeroize, ZeroizeOnDrop};
 
+#[derive(Zeroize, ZeroizeOnDrop)]
 pub struct AuthenticationKey<Version, Purpose> {
+    #[zeroize(skip)]
     pub(crate) version: PhantomData<Version>,
+    #[zeroize(skip)]
     pub(crate) purpose: PhantomData<Purpose>,
     pub(crate) key: Vec<u8>,
 }

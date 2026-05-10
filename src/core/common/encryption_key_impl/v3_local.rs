@@ -8,7 +8,8 @@ impl EncryptionKey<V3, Local> {
         let info = message.as_ref();
         let salt = hkdf::Salt::new(hkdf::HKDF_SHA384, &[]);
 
-        let HkdfKey(out) = salt.extract(key.as_ref()).expand(&[info], HkdfKey(48))?.try_into()?;
+        let mut hkdf: HkdfKey<Vec<u8>> = salt.extract(key.as_ref()).expand(&[info], HkdfKey(48))?.try_into()?;
+        let out = std::mem::take(&mut hkdf.0);
 
         let key_bytes = out.get(..32).ok_or(PasetoError::IncorrectSize)?;
         let nonce_bytes = out.get(32..).ok_or(PasetoError::IncorrectSize)?;

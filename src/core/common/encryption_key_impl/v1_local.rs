@@ -13,7 +13,8 @@ impl EncryptionKey<V1, Local> {
         let info = message.as_ref();
         let nonce_salt = nonce.as_ref().get(..16).ok_or(PasetoError::IncorrectSize)?;
         let salt = hkdf::Salt::new(hkdf::HKDF_SHA384, nonce_salt);
-        let HkdfKey(out) = salt.extract(key.as_ref()).expand(&[info], HkdfKey(32))?.try_into()?;
+        let mut hkdf: HkdfKey<Vec<u8>> = salt.extract(key.as_ref()).expand(&[info], HkdfKey(32))?.try_into()?;
+        let out = std::mem::take(&mut hkdf.0);
 
         let counter_nonce = nonce.as_ref().get(16..).ok_or(PasetoError::IncorrectSize)?;
         Ok(Self {

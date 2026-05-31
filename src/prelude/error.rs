@@ -21,5 +21,10 @@ pub enum GeneralPasetoError {
   },
   /// An error with the data format
   #[error(transparent)]
+  #[cfg(feature = "time")]
   RFC3339Date(#[from] time::error::Format),
+  /// An error parsing a date/time value with chrono
+  #[error(transparent)]
+  #[cfg(feature = "chrono")]
+  ChronoParse(#[from] chrono::ParseError),
 }

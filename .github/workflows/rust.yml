@@ -16,8 +16,11 @@ permissions:
   contents: read
 jobs:
   default-features:
-    name: Default Features (batteries_included + v4)
+    name: Default Features (batteries_included + v4 + (${{ matrix.backend }}))
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        backend: [time, chrono]
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
@@ -28,13 +31,10 @@ jobs:
           components: clippy
       - name: Install nextest
         uses: taiki-e/install-action@nextest
-      - name: Clippy (default features)
-        uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: -- -D warnings
-      - name: Test (default features)
-        run: cargo nextest run
+      - name: Clippy (default features + ${{ matrix.backend }})
+        run: cargo clippy --features ${{ matrix.backend }} -- -D warnings
+      - name: Test (default features + ${{ matrix.backend }})
+        run: cargo nextest run --features ${{ matrix.backend }}
   test:
     name: Test Suite
     runs-on: ubuntu-latest
@@ -58,8 +58,10 @@ jobs:
           override: true
       - name: Install nextest
         uses: taiki-e/install-action@nextest
-      - name: Run tests
-        run: cargo nextest run --no-default-features --features ${{ matrix.feature }}
+      - name: Run tests (time)
+        run: cargo nextest run --no-default-features --features ${{ matrix.feature }},time
+      - name: Run tests (chrono)
+        run: cargo nextest run --no-default-features --features ${{ matrix.feature }},chrono
   clippy:
     name: Clippy
     runs-on: ubuntu-latest
@@ -82,10 +84,16 @@ jobs:
           toolchain: stable
           override: true
           components: clippy
-      - uses: actions-rs/cargo@v1
+      - name: Clippy (time)
+        uses: actions-rs/cargo@v1
         with:
           command: clippy
-          args: --no-default-features --features ${{ matrix.feature }} -- -D warnings
+          args: --no-default-features --features ${{ matrix.feature }},time -- -D warnings
+      - name: Clippy (chrono)
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --no-default-features --features ${{ matrix.feature }},chrono -- -D warnings
   audit:
     name: Security Audit
     runs-on: ubuntu-latest

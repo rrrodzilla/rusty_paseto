@@ -1,6 +1,8 @@
 use crate::generic::*;
 use core::marker::PhantomData;
 use serde_json::Value;
+
+#[cfg(feature = "time")]
 use time::format_description::well_known::Rfc3339;
 ///The `PasetoParser` validates and parses PASETO tokens. Created at compile time by specifying a PASETO version and purpose.
 ///
@@ -118,13 +120,18 @@ impl<'a, Version, Purpose> PasetoParser<'a, Version, Purpose> {
   ///     //let's get the value
   ///     let val = value.as_str().ok_or(PasetoClaimError::Unexpected(key.to_string()))?;
   ///     let datetime = iso8601::datetime(val).unwrap();
+  ///     # #[cfg(feature = "time")]
   ///     let in_an_hour = (time::OffsetDateTime::now_utc() + time::Duration::hours(1))
   ///       .time()
   ///       .hour()
   ///       .to_string();
+  ///     # #[cfg(feature = "chrono")]
+  ///     # let in_an_hour = (chrono::Utc::now() + chrono::Duration::hours(1))
+  ///     #   .format("%H")
+  ///     #   .to_string();
   ///     //the claimm should exist
   ///     assert_eq!(key, "exp");
-  ///     //date should be today
+  ///     //hour should match expected
   ///     assert_eq!(datetime.time.hour.to_string(), in_an_hour);
   ///     Ok(())
   ///   })
@@ -220,10 +227,19 @@ impl<'a, Version, Purpose> PasetoParser<'a, Version, Purpose> {
       if val.is_empty() {
         return Ok(());
       }
-      let datetime = time::OffsetDateTime::parse(val, &Rfc3339)
-        .map_err(|_| PasetoClaimError::RFC3339Date(val.to_string()))?;
-      let now = time::OffsetDateTime::now_utc();
-      if datetime <= now {
+      #[cfg(feature = "time")]
+      let expired: bool = {
+        let datetime =
+          time::OffsetDateTime::parse(val, &Rfc3339).map_err(|_| PasetoClaimError::RFC3339Date(val.to_string()))?;
+        datetime <= time::OffsetDateTime::now_utc()
+      };
+      #[cfg(feature = "chrono")]
+      let expired: bool = {
+        let datetime =
+          chrono::DateTime::parse_from_rfc3339(val).map_err(|_| PasetoClaimError::RFC3339Date(val.to_string()))?;
+        datetime <= chrono::Utc::now()
+      };
+      if expired {
         Err(PasetoClaimError::Expired)
       } else {
         Ok(())
@@ -345,14 +361,20 @@ impl<'a, Version, Purpose> Default for PasetoParser<'a, Version, Purpose> {
       if val.is_empty() {
         return Err(PasetoClaimError::Missing("exp".to_string()));
       }
-      //turn the value into a datetime
-      let datetime =
-        time::OffsetDateTime::parse(val, &Rfc3339).map_err(|_| PasetoClaimError::RFC3339Date(val.to_string()))?;
-      //get the current datetime
-      let now = time::OffsetDateTime::now_utc();
-
-      //here we do the actual validation check for the expiration claim
-      if datetime <= now {
+      #[cfg(feature = "time")]
+      let expired: bool = {
+        //turn the value into a datetime
+        let datetime =
+          time::OffsetDateTime::parse(val, &Rfc3339).map_err(|_| PasetoClaimError::RFC3339Date(val.to_string()))?;
+        datetime <= time::OffsetDateTime::now_utc()
+      };
+      #[cfg(feature = "chrono")]
+      let expired: bool = {
+        let datetime =
+          chrono::DateTime::parse_from_rfc3339(val).map_err(|_| PasetoClaimError::RFC3339Date(val.to_string()))?;
+        datetime <= chrono::Utc::now()
+      };
+      if expired {
         Err(PasetoClaimError::Expired)
       } else {
         Ok(())
@@ -366,18 +388,38 @@ impl<'a, Version, Purpose> Default for PasetoParser<'a, Version, Purpose> {
         return Ok(());
       }
       //otherwise let's continue with the validation
+      #[cfg(feature = "time")]
       //turn the value into a datetime
-      let not_before_time =
-        time::OffsetDateTime::parse(val, &Rfc3339).map_err(|_| PasetoClaimError::RFC3339Date(val.to_string()))?;
-      //get the current datetime
-      let now = time::OffsetDateTime::now_utc();
+      let not_before_str: Option<String> = {
+        let not_before_time =
+          time::OffsetDateTime::parse(val, &Rfc3339).map_err(|_| PasetoClaimError::RFC3339Date(val.to_string()))?;
+        //get the current datetime
+        let now = time::OffsetDateTime::now_utc();
 
-      //here we do the actual validation check for the not-before claim.
-      //RFC 7519 §4.1.5: token is valid when `now >= nbf`, so reject only when
-      //`now < nbf`. Using strict `<` here (not `<=`) so that a token with
-      //nbf == now is accepted as soon as its activation instant arrives.
-      if now < not_before_time {
-        Err(PasetoClaimError::UseBeforeAvailable(not_before_time.to_string()))
+        //here we do the actual validation check for the not-before claim.
+        //RFC 7519 §4.1.5: token is valid when `now >= nbf`, so reject only when
+        //`now < nbf`. Using strict `<` here (not `<=`) so that a token with
+        //nbf == now is accepted as soon as its activation instant arrives.
+        if now < not_before_time {
+          Some(not_before_time.to_string())
+        } else {
+          None
+        }
+      };
+      #[cfg(feature = "chrono")]
+      let not_before_str: Option<String> = {
+        let not_before_time =
+          chrono::DateTime::parse_from_rfc3339(val).map_err(|_| PasetoClaimError::RFC3339Date(val.to_string()))?;
+        let now = chrono::Utc::now();
+        if now < not_before_time {
+          Some(not_before_time.to_string())
+        } else {
+          None
+        }
+      };
+      //RFC 7519 §4.1.5: reject only when now < nbf (strict <, so nbf == now is accepted).
+      if let Some(not_before_str) = not_before_str {
+        Err(PasetoClaimError::UseBeforeAvailable(not_before_str))
       } else {
         Ok(())
       }
@@ -777,8 +819,8 @@ impl<'a> PasetoParser<'a, V1, Public> {
   /// # Ok::<(),anyhow::Error>(())
   ///```
   #[deprecated(
-      since = "0.8.1",
-      note = "V1 is the legacy PASETO version (2048-bit RSA-PSS). PASETO spec recommends V4 for new code."
+    since = "0.8.1",
+    note = "V1 is the legacy PASETO version (2048-bit RSA-PSS). PASETO spec recommends V4 for new code."
   )]
   #[allow(deprecated)]
   pub fn parse(
@@ -794,8 +836,8 @@ impl<'a> PasetoParser<'a, V1, Public> {
   ///
   /// See [`PasetoParser<V4, Local>::parse_into`] for detailed documentation.
   #[deprecated(
-      since = "0.8.1",
-      note = "V1 is the legacy PASETO version (2048-bit RSA-PSS). PASETO spec recommends V4 for new code."
+    since = "0.8.1",
+    note = "V1 is the legacy PASETO version (2048-bit RSA-PSS). PASETO spec recommends V4 for new code."
   )]
   #[allow(deprecated)]
   pub fn parse_into<T: serde::de::DeserializeOwned>(
@@ -1123,8 +1165,26 @@ mod paseto_parser_unit_tests {
 
   use crate::prelude::*;
   use anyhow::Result;
-  #[cfg(feature = "v2_local")]
+
+  #[cfg(feature = "time")]
   use time::format_description::well_known::Rfc3339;
+
+  #[cfg(feature = "time")]
+  fn rfc3339_from_now_plus_secs(secs: i64) -> String {
+    let d = time::Duration::seconds(secs);
+    (time::OffsetDateTime::now_utc() + d)
+      .format(&Rfc3339)
+      .expect("format failed")
+  }
+
+  #[cfg(feature = "chrono")]
+  fn rfc3339_from_now_plus_secs(secs: i64) -> String {
+    (chrono::Utc::now() + chrono::Duration::seconds(secs)).to_rfc3339()
+  }
+
+  fn date_from_rfc3339(s: &str) -> String {
+    iso8601::datetime(s).expect("iso8601 parse failed").date.to_string()
+  }
 
   #[cfg(feature = "v2_local")]
   #[test]
@@ -1133,7 +1193,7 @@ mod paseto_parser_unit_tests {
 
     let key = PasetoSymmetricKey::<V2, Local>::from(Key::from(*b"wubbalubbadubdubwubbalubbadubdub"));
     //let not_before = Utc::now() + Duration::hours(1);
-    let not_before = (time::OffsetDateTime::now_utc() + time::Duration::hours(1)).format(&Rfc3339)?;
+    let not_before = rfc3339_from_now_plus_secs(3600);
     //create a default builder
     let token = PasetoBuilder::<V2, Local>::default()
       .set_claim(NotBeforeClaim::try_from(not_before)?)
@@ -1154,7 +1214,7 @@ mod paseto_parser_unit_tests {
 
     let key = PasetoSymmetricKey::<V2, Local>::from(Key::from(*b"wubbalubbadubdubwubbalubbadubdub"));
     //we're going to set a token expiration date to 10 minutes ago
-    let expired = (time::OffsetDateTime::now_utc() + time::Duration::minutes(-10)).format(&Rfc3339)?;
+    let expired = rfc3339_from_now_plus_secs(-600);
 
     //create a default builder
     let token = PasetoBuilder::<V2, Local>::default()
@@ -1195,10 +1255,7 @@ mod paseto_parser_unit_tests {
 
     //The default parser must reject it.
     let result = PasetoParser::<V2, Local>::default().parse(&token, &key);
-    assert!(
-      result.is_err(),
-      "default parser must reject a token with no exp claim",
-    );
+    assert!(result.is_err(), "default parser must reject a token with no exp claim",);
     let err = format!("{}", result.unwrap_err());
     assert!(
       err.contains("exp"),
@@ -1219,7 +1276,7 @@ mod paseto_parser_unit_tests {
     //create a key
 
     let key = PasetoSymmetricKey::<V2, Local>::from(Key::from(*b"wubbalubbadubdubwubbalubbadubdub"));
-    let expired = (time::OffsetDateTime::now_utc() + time::Duration::minutes(-10)).format(&Rfc3339)?;
+    let expired = rfc3339_from_now_plus_secs(-600);
     //create a default builder
     let token = PasetoBuilder::<V2, Local>::default()
       .set_claim(ExpirationClaim::try_from(expired)?)
@@ -1308,7 +1365,7 @@ mod paseto_parser_unit_tests {
     //create a key
 
     let key = PasetoSymmetricKey::<V2, Local>::from(Key::from(*b"wubbalubbadubdubwubbalubbadubdub"));
-    let tomorrow = (time::OffsetDateTime::now_utc() + time::Duration::days(1)).format(&Rfc3339)?;
+    let tomorrow = rfc3339_from_now_plus_secs(86400);
 
     //create a builder, with default IssuedAtClaim
     let token = PasetoBuilder::<V2, Local>::default()
@@ -1325,9 +1382,7 @@ mod paseto_parser_unit_tests {
         let datetime = iso8601::datetime(val).unwrap();
 
         //let tomorrow = Utc::now() + Duration::days(1);
-        let tomorrow = (time::OffsetDateTime::now_utc() + time::Duration::days(1))
-          .date()
-          .to_string();
+        let tomorrow = date_from_rfc3339(&rfc3339_from_now_plus_secs(86400));
         //the claimm should exist
         assert_eq!(key, "iat");
         //date should be tomorrow
@@ -1359,7 +1414,7 @@ mod paseto_parser_unit_tests {
         let datetime = iso8601::datetime(val).unwrap();
 
         //the claimm should exist
-        let now = time::OffsetDateTime::now_utc().date().to_string();
+        let now = date_from_rfc3339(&rfc3339_from_now_plus_secs(0));
         assert_eq!(key, "iat");
         //date should be today
         assert_eq!(datetime.date.to_string(), now);
@@ -1377,7 +1432,7 @@ mod paseto_parser_unit_tests {
     //create a key
 
     let key = PasetoSymmetricKey::<V2, Local>::from(Key::from(*b"wubbalubbadubdubwubbalubbadubdub"));
-    let in_4_days = (time::OffsetDateTime::now_utc() + time::Duration::days(4)).format(&Rfc3339)?;
+    let in_4_days = rfc3339_from_now_plus_secs(4 * 86400);
 
     //create a builder, with default IssuedAtClaim
     let token = PasetoBuilder::<V2, Local>::default()
@@ -1394,9 +1449,7 @@ mod paseto_parser_unit_tests {
         let datetime = iso8601::datetime(val).unwrap();
 
         //let in_4_days = Utc::now() + Duration::days(4);
-        let in_4_days = (time::OffsetDateTime::now_utc() + time::Duration::days(4))
-          .date()
-          .to_string();
+        let in_4_days = date_from_rfc3339(&rfc3339_from_now_plus_secs(4 * 86400));
         //the claimm should exist
         assert_eq!(key, "exp");
         //date should be tomorrow
@@ -1427,14 +1480,11 @@ mod paseto_parser_unit_tests {
 
         let datetime = iso8601::datetime(val).unwrap();
 
-        let in_an_hour = (time::OffsetDateTime::now_utc() + time::Duration::hours(1))
-          .time()
-          .hour()
-          .to_string();
+        let in_an_hour = date_from_rfc3339(&rfc3339_from_now_plus_secs(3600));
         //the claimm should exist
         assert_eq!(key, "exp");
-        //date should be today
-        assert_eq!(datetime.time.hour.to_string(), in_an_hour);
+        //date should be today (or tomorrow if we're within 1 hour of midnight)
+        assert_eq!(datetime.date.to_string(), in_an_hour);
 
         Ok(())
       })

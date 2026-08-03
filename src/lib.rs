@@ -36,7 +36,7 @@
 //!
 //!
 //! # Usage
-//! `rusty_paseto` is meant to be flexible and configurable for your specific use case.  Whether you want to get started quickly with sensible defaults, create your own version of `rusty_paseto` in order to customize your own defaults and functionality or just want to use the core PASETO crypto features, the crate is heavily feature gated to allow for your needs.  
+//! `rusty_paseto` is meant to be flexible and configurable for your specific use case.  Whether you want to get started quickly with sensible defaults, create your own version of `rusty_paseto` in order to customize your own defaults and functionality or just want to use the core PASETO crypto features, the crate is heavily feature gated to allow for your needs.
 
 //! ## Architecture
 
@@ -164,7 +164,7 @@
 //! ```
 //! ### core
 //!
-//! The core architectural layer is the most basic PASETO implementation as it accepts a Payload, optional Footer and (if v3 or v4) an optional Implicit Assertion along with the appropriate key to encrypt/sign and decrypt/verify basic strings.  
+//! The core architectural layer is the most basic PASETO implementation as it accepts a Payload, optional Footer and (if v3 or v4) an optional Implicit Assertion along with the appropriate key to encrypt/sign and decrypt/verify basic strings.
 //!
 //! <img src="https://github.com/rrrodzilla/rusty_paseto/raw/main/assets/RustyPasetoCoreArchitecture.png" width="150" />
 //!
@@ -386,9 +386,13 @@
 //! // must include
 //! use std::convert::TryFrom;
 //! let key = PasetoSymmetricKey::<V4, Local>::from(Key::from(b"wubbalubbadubdubwubbalubbadubdub"));
-//! // real-world example using the time crate to expire 5 minutes from now
+//! // real-world example: expire 5 minutes from now
+//! # #[cfg(feature = "time")]
 //! # use time::format_description::well_known::Rfc3339;
+//! # #[cfg(feature = "time")]
 //! # let in_5_minutes = (time::OffsetDateTime::now_utc() + time::Duration::minutes(5)).format(&Rfc3339)?;
+//! # #[cfg(feature = "chrono")]
+//! # let in_5_minutes = (chrono::Utc::now() + chrono::Duration::minutes(5)).to_rfc3339();
 //!
 //! let token = PasetoBuilder::<V4, Local>::default()
 //!   // note the TryFrom implmentation for ExpirationClaim
@@ -406,7 +410,7 @@
 //!
 //! A **1 hour** `ExpirationClaim` is set by default because the use case for non-expiring tokens in the world of security tokens is fairly limited.
 //! Omitting an expiration claim or forgetting to require one when processing them
-//! is almost certainly an oversight rather than a deliberate choice.  
+//! is almost certainly an oversight rather than a deliberate choice.
 //!
 //! When it is a deliberate choice, you have the opportunity to deliberately remove this claim from the Builder.
 //! The method call required to do so ensures readers of the code understand the implicit risk.
@@ -414,10 +418,14 @@
 //! # #[cfg(feature = "default")]
 //! # {
 //! # use rusty_paseto::prelude::*;
-//! # use time::format_description::well_known::Rfc3339;
 //! # use std::convert::TryFrom;
-//! # let in_5_minutes = (time::OffsetDateTime::now_utc() + time::Duration::minutes(5)).format(&Rfc3339)?;
 //! # let key = PasetoSymmetricKey::<V4, Local>::from(Key::from(b"wubbalubbadubdubwubbalubbadubdub"));
+//! # #[cfg(feature = "time")]
+//! # use time::format_description::well_known::Rfc3339;
+//! # #[cfg(feature = "time")]
+//! # let in_5_minutes = (time::OffsetDateTime::now_utc() + time::Duration::minutes(5)).format(&Rfc3339)?;
+//! # #[cfg(feature = "chrono")]
+//! # let in_5_minutes = (chrono::Utc::now() + chrono::Duration::minutes(5)).to_rfc3339();
 //! let token = PasetoBuilder::<V4, Local>::default()
 //!   .set_claim(ExpirationClaim::try_from(in_5_minutes)?)
 //!   // even if you set an expiration claim (as above) it will be ignored
@@ -435,15 +443,20 @@
 //! # #[cfg(all(test,feature = "v4_local"))]
 //! # {
 //! # use rusty_paseto::prelude::*;
-//! # use time::format_description::well_known::Rfc3339;
 //! # // must include
 //! # use std::convert::TryFrom;
 //! # let key = PasetoSymmetricKey::<V4, Local>::from(Key::from(b"wubbalubbadubdubwubbalubbadubdub"));
-//! # // real-world example using the time crate to expire 5 minutes from now
+//! # #[cfg(feature = "time")]
+//! # use time::format_description::well_known::Rfc3339;
+//! # #[cfg(feature = "time")]
 //! # let in_5_minutes = (time::OffsetDateTime::now_utc() + time::Duration::minutes(5)).format(&Rfc3339)?;
-//! // real-world example using the time crate to prevent the token from being used before 2
-//! // minutes from now
+//! # #[cfg(feature = "chrono")]
+//! # let in_5_minutes = (chrono::Utc::now() + chrono::Duration::minutes(5)).to_rfc3339();
+//! // set not-before to 2 minutes in the future
+//! # #[cfg(feature = "time")]
 //! let in_2_minutes = (time::OffsetDateTime::now_utc() + time::Duration::minutes(2)).format(&Rfc3339)?;
+//! # #[cfg(feature = "chrono")]
+//! # let in_2_minutes = (chrono::Utc::now() + chrono::Duration::minutes(2)).to_rfc3339();
 //!
 //! let token = PasetoBuilder::<V4, Local>::default()
 //!   //json payload key: "exp"
@@ -670,6 +683,13 @@ compile_error!(
      The PASETO specification recommends using a single version throughout your application. \n\
      See: https://github.com/rrrodzilla/rusty_paseto/issues/48"
 );
+
+// Ensure exactly one time backend is selected when the prelude is used.
+#[cfg(all(feature = "time", feature = "chrono"))]
+compile_error!("features `time` and `chrono` are mutually exclusive. Enable exactly one time backend");
+
+#[cfg(all(not(feature = "time"), not(feature = "chrono")))]
+compile_error!("a time backend is required. Enable either the `time` feature or `chrono`");
 
 //public interface
 #[cfg(feature = "core")]

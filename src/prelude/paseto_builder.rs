@@ -2,8 +2,10 @@ use crate::generic::*;
 use core::marker::PhantomData;
 use std::collections::HashSet;
 use std::convert::TryFrom;
+
+#[cfg(feature = "time")]
 use time::format_description::well_known::Rfc3339;
- ///The `PasetoBuilder` is created at compile time by specifying a PASETO version and purpose and
+///The `PasetoBuilder` is created at compile time by specifying a PASETO version and purpose and
 ///providing a key of the same version and purpose. This structure allows setting [PASETO claims](https://github.com/paseto-standard/paseto-spec/blob/master/docs/02-Implementation-Guide/04-Claims.md),
 ///your own [custom claims](CustomClaim), an optional [footer](Footer) and in the case of V3/V4 tokens, an optional [implicit
 ///assertion](ImplicitAssertion).
@@ -19,9 +21,9 @@ use time::format_description::well_known::Rfc3339;
 ///# #[cfg(all(feature = "prelude", feature="v2_local"))]
 ///# {
 ///   use rusty_paseto::prelude::*;
- ///     let key = PasetoSymmetricKey::<V2, Local>::from(Key::<32>::from(*b"wubbalubbadubdubwubbalubbadubdub"));
- ///     let footer = Footer::from("some footer");
- ///     //create a builder, add some claims and then build the token with the key
+///     let key = PasetoSymmetricKey::<V2, Local>::from(Key::<32>::from(*b"wubbalubbadubdubwubbalubbadubdub"));
+///     let footer = Footer::from("some footer");
+///     //create a builder, add some claims and then build the token with the key
 ///     let token = PasetoBuilder::<V2, Local>::default()
 ///       .set_claim(AudienceClaim::from("customers"))
 ///       .set_claim(SubjectClaim::from("loyal subjects"))
@@ -35,11 +37,11 @@ use time::format_description::well_known::Rfc3339;
 ///       .set_claim(CustomClaim::try_from(("pi to 6 digits", 3.141526))?)
 ///       .set_footer(footer)
 ///       .try_encrypt(&key)?;
- ///     //now let's decrypt the token and verify the values
+///     //now let's decrypt the token and verify the values
 ///     let json = PasetoParser::<V2, Local>::default()
 ///       .set_footer(footer)
 ///       .parse(&token, &key)?;
- ///     assert_eq!(json["aud"], "customers");
+///     assert_eq!(json["aud"], "customers");
 ///     assert_eq!(json["jti"], "me");
 ///     assert_eq!(json["iss"], "me");
 ///     assert_eq!(json["data"], "this is a secret message");
@@ -72,7 +74,7 @@ impl<'a, Version, Purpose> PasetoBuilder<'a, Version, Purpose> {
       dup_top_level_found: (false, String::default()),
     }
   }
- /// Given a [`PasetoClaim`], attempts to add it to the builder for inclusion in the payload of the
+  /// Given a [`PasetoClaim`], attempts to add it to the builder for inclusion in the payload of the
   /// token.
   /// claims provided to the `GenericBuilder`. Overwrites the default 'nbf' (not before) claim if
   /// provided. Prevents duplicate claims from being added.
@@ -113,10 +115,10 @@ impl<'a, Version, Purpose> PasetoBuilder<'a, Version, Purpose> {
     self.builder.set_claim(value);
     self
   }
- /// Sets the token to have no expiration date.
+  /// Sets the token to have no expiration date.
   /// A **1 hour** `ExpirationClaim` is set by default because the use case for non-expiring tokens in the world of security tokens is fairly limited.
   ///  Omitting an expiration claim or forgetting to require one when processing them
-  ///  is almost certainly an oversight rather than a deliberate choice.  
+  ///  is almost certainly an oversight rather than a deliberate choice.
   ///  When it is a deliberate choice, you have the opportunity to deliberately remove this claim from the Builder.
   ///  This method call ensures readers of the code understand the implicit risk.
   ///
@@ -145,7 +147,7 @@ impl<'a, Version, Purpose> PasetoBuilder<'a, Version, Purpose> {
     self.non_expiring_token = true;
     self
   }
- /// Sets an optional [Footer] on the token.
+  /// Sets an optional [Footer] on the token.
   ///
   /// Returns a mutable reference to the builder on success.
   ///
@@ -304,18 +306,27 @@ impl<'a, Version, Purpose> PasetoBuilder<'a, Version, Purpose> {
   /// # Ok::<(),anyhow::Error>(())
   /// ```
   pub fn expires_in(mut self, duration: std::time::Duration) -> Self {
-    let now = time::OffsetDateTime::now_utc();
-    // Convert std::time::Duration to time::Duration
-    let time_duration = time::Duration::try_from(duration).unwrap_or(time::Duration::hours(1));
+    #[cfg(feature = "time")]
+    let formatted: Option<String> = {
+      let now = time::OffsetDateTime::now_utc();
+      // Convert std::time::Duration to time::Duration
+      let time_duration = time::Duration::try_from(duration).unwrap_or(time::Duration::hours(1));
+      now.checked_add(time_duration).and_then(|t| t.format(&Rfc3339).ok())
+    };
+    #[cfg(feature = "chrono")]
+    let formatted: Option<String> = {
+      let now = chrono::Utc::now();
+      // Convert std::time::Duration to chrono::Duration
+      let chrono_duration = chrono::Duration::from_std(duration).unwrap_or(chrono::Duration::hours(1));
+      Some((now + chrono_duration).to_rfc3339())
+    };
 
-    if let Some(expiration) = now.checked_add(time_duration) {
-      if let Ok(formatted) = expiration.format(&Rfc3339) {
-        if let Ok(exp_claim) = ExpirationClaim::try_from(formatted) {
-          // Remove existing expiration claim and add new one
-          self.builder.remove_claim("exp");
-          self.top_level_claims.remove("exp");
-          self.set_claim(exp_claim);
-        }
+    if let Some(f) = formatted {
+      if let Ok(expiration) = ExpirationClaim::try_from(f) {
+        // Remove existing expiration claim and add new one
+        self.builder.remove_claim("exp");
+        self.top_level_claims.remove("exp");
+        self.set_claim(expiration);
       }
     }
     self
@@ -340,17 +351,26 @@ impl<'a, Version, Purpose> PasetoBuilder<'a, Version, Purpose> {
   /// # Ok::<(),anyhow::Error>(())
   /// ```
   pub fn not_before_in(mut self, duration: std::time::Duration) -> Self {
-    let now = time::OffsetDateTime::now_utc();
-    // Convert std::time::Duration to time::Duration
-    let time_duration = time::Duration::try_from(duration).unwrap_or(time::Duration::ZERO);
+    #[cfg(feature = "time")]
+    let formatted: Option<String> = {
+      let now = time::OffsetDateTime::now_utc();
+      // Convert std::time::Duration to time::Duration
+      let time_duration = time::Duration::try_from(duration).unwrap_or(time::Duration::ZERO);
+      now.checked_add(time_duration).and_then(|t| t.format(&Rfc3339).ok())
+    };
+    #[cfg(feature = "chrono")]
+    let formatted: Option<String> = {
+      let now = chrono::Utc::now();
+      // Convert std::time::Duration to chrono::Duration
+      let chrono_duration = chrono::Duration::from_std(duration).unwrap_or(chrono::Duration::zero());
+      Some((now + chrono_duration).to_rfc3339())
+    };
 
-    if let Some(not_before) = now.checked_add(time_duration) {
-      if let Ok(formatted) = not_before.format(&Rfc3339) {
-        if let Ok(nbf_claim) = NotBeforeClaim::try_from(formatted) {
-          // Remove existing nbf claim and add new one
-          self.builder.remove_claim("nbf");
-          self.set_claim(nbf_claim);
-        }
+    if let Some(f) = formatted {
+      if let Ok(nbf_claim) = NotBeforeClaim::try_from(f) {
+        // Remove existing nbf claim and add new one
+        self.builder.remove_claim("nbf");
+        self.set_claim(nbf_claim);
       }
     }
     self
@@ -400,19 +420,39 @@ where
 impl<'a, Version, Purpose> Default for PasetoBuilder<'a, Version, Purpose> {
   fn default() -> Self {
     let mut new_builder = Self::new();
-    let now = time::OffsetDateTime::now_utc();
 
-    // Use checked_add to handle potential overflow (though unlikely with 1 hour duration)
-    // RFC3339 formatting of valid OffsetDateTime values should be infallible
-    // but we handle potential failures gracefully by skipping claim creation
-    if let Some(in_one_hour) = now.checked_add(time::Duration::hours(1)) {
-      if let Ok(expiration_time) = in_one_hour.format(&Rfc3339) {
-        if let Ok(exp_claim) = ExpirationClaim::try_from(expiration_time) {
-          new_builder.builder.set_claim(exp_claim);
+    #[cfg(feature = "time")]
+    {
+      let now = time::OffsetDateTime::now_utc();
+
+      // Use checked_add to handle potential overflow (though unlikely with 1 hour duration)
+      // RFC3339 formatting of valid OffsetDateTime values should be infallible
+      // but we handle potential failures gracefully by skipping claim creation
+      if let Some(in_one_hour) = now.checked_add(time::Duration::hours(1)) {
+        if let Ok(expiration_time) = in_one_hour.format(&Rfc3339) {
+          if let Ok(exp_claim) = ExpirationClaim::try_from(expiration_time) {
+            new_builder.builder.set_claim(exp_claim);
+          }
+        }
+      }
+      if let Ok(current_time) = now.format(&Rfc3339) {
+        if let Ok(iat_claim) = IssuedAtClaim::try_from(current_time.clone()) {
+          new_builder.builder.set_claim(iat_claim);
+        }
+        if let Ok(nbf_claim) = NotBeforeClaim::try_from(current_time) {
+          new_builder.builder.set_claim(nbf_claim);
         }
       }
     }
-    if let Ok(current_time) = now.format(&Rfc3339) {
+
+    #[cfg(feature = "chrono")]
+    {
+      let now = chrono::Utc::now();
+      let in_one_hour = now + chrono::Duration::hours(1);
+      if let Ok(exp_claim) = ExpirationClaim::try_from(in_one_hour.to_rfc3339()) {
+        new_builder.builder.set_claim(exp_claim);
+      }
+      let current_time = now.to_rfc3339();
       if let Ok(iat_claim) = IssuedAtClaim::try_from(current_time.clone()) {
         new_builder.builder.set_claim(iat_claim);
       }
@@ -440,7 +480,7 @@ impl PasetoBuilder<'_, V1, Local> {
   ///# {
   ///   use rusty_paseto::prelude::*;
   ///     let key = PasetoSymmetricKey::<V1, Local>::from(Key::<32>::from(*b"wubbalubbadubdubwubbalubbadubdub"));
- ///     let footer = Footer::from("some footer");
+  ///     let footer = Footer::from("some footer");
   ///     //create a builder, add some claims and then build the token with the key
   ///     let token = PasetoBuilder::<V1, Local>::default()
   ///       .set_claim(AudienceClaim::from("customers"))
@@ -495,7 +535,7 @@ impl PasetoBuilder<'_, V2, Local> {
   ///# {
   ///   use rusty_paseto::prelude::*;
   ///     let key = PasetoSymmetricKey::<V2, Local>::from(Key::<32>::from(*b"wubbalubbadubdubwubbalubbadubdub"));
- ///     let footer = Footer::from("some footer");
+  ///     let footer = Footer::from("some footer");
   ///     //create a builder, add some claims and then build the token with the key
   ///     let token = PasetoBuilder::<V2, Local>::default()
   ///       .set_claim(AudienceClaim::from("customers"))
@@ -549,7 +589,7 @@ impl PasetoBuilder<'_, V3, Local> {
   ///# {
   ///   use rusty_paseto::prelude::*;
   ///     let key = PasetoSymmetricKey::<V3, Local>::from(Key::<32>::from(*b"wubbalubbadubdubwubbalubbadubdub"));
- ///     let footer = Footer::from("some footer");
+  ///     let footer = Footer::from("some footer");
   ///     let implicit_assertion = ImplicitAssertion::from("some assertion");
   ///     //create a builder, add some claims and then build the token with the key
   ///     let token = PasetoBuilder::<V3, Local>::default()
@@ -606,7 +646,7 @@ impl PasetoBuilder<'_, V4, Local> {
   ///# {
   ///   use rusty_paseto::prelude::*;
   ///     let key = PasetoSymmetricKey::<V4, Local>::from(Key::<32>::from(*b"wubbalubbadubdubwubbalubbadubdub"));
- ///     let footer = Footer::from("some footer");
+  ///     let footer = Footer::from("some footer");
   ///     let implicit_assertion = ImplicitAssertion::from("some assertion");
   ///     //create a builder, add some claims and then build the token with the key
   ///     let token = PasetoBuilder::<V4, Local>::default()
@@ -672,7 +712,7 @@ impl PasetoBuilder<'_, V1, Public> {
   ///    #[allow(deprecated)]
   ///    let private_key = PasetoAsymmetricPrivateKey::<V1, Public>::from(pk);
   ///     let footer = Footer::from("some footer");
- ///     //sign a public V1 token
+  ///     //sign a public V1 token
   ///     #[allow(deprecated)]
   ///     let token = PasetoBuilder::<V1, Public>::default()
   ///       .set_claim(AudienceClaim::from("customers"))
@@ -722,8 +762,8 @@ impl PasetoBuilder<'_, V1, Public> {
   /// # Ok::<(),anyhow::Error>(())
   ///```
   #[deprecated(
-      since = "0.8.1",
-      note = "V1 is the legacy PASETO version (2048-bit RSA-PSS). PASETO spec recommends V4 for new code."
+    since = "0.8.1",
+    note = "V1 is the legacy PASETO version (2048-bit RSA-PSS). PASETO spec recommends V4 for new code."
   )]
   #[allow(deprecated)]
   pub fn build(&mut self, key: &PasetoAsymmetricPrivateKey<V1, Public>) -> Result<String, GenericBuilderError> {
@@ -752,7 +792,7 @@ impl PasetoBuilder<'_, V2, Public> {
   /// let public_key = Key::<32>::try_from("1eb9dbbbbc047c03fd70604e0071f0987e16b28b757225c11f00415d0e20b1a2")?;
   /// let public_key = PasetoAsymmetricPublicKey::<V2, Public>::from(&public_key);
   /// let footer = Footer::from("some footer");
- /// //sign a public V2 token
+  /// //sign a public V2 token
   /// let token = PasetoBuilder::<V2, Public>::default()
   ///   .set_claim(AudienceClaim::from("customers"))
   ///   .set_claim(SubjectClaim::from("loyal subjects"))
@@ -824,7 +864,7 @@ impl PasetoBuilder<'_, V3, Public> {
   /// )?;
   /// let public_key = PasetoAsymmetricPublicKey::<V3, Public>::try_from(&public_key)?;
   /// let footer = Footer::from("some footer");
- /// let implicit_assertion = ImplicitAssertion::from("some assertion");
+  /// let implicit_assertion = ImplicitAssertion::from("some assertion");
   /// //sign a public V3 token
   /// let token = PasetoBuilder::<V3, Public>::default()
   ///   .set_claim(AudienceClaim::from("customers"))
@@ -953,14 +993,37 @@ mod paseto_builder {
   use crate::prelude::*;
   use anyhow::Result;
   use std::convert::TryFrom;
+
+  #[cfg(feature = "time")]
   use time::format_description::well_known::Rfc3339;
+
+  // Helper: RFC3339 string for now + N seconds (positive offset only).
+  // For past datetimes use a hardcoded string.
+  #[cfg(feature = "time")]
+  fn rfc3339_from_now_plus_secs(secs: i64) -> String {
+    let d = time::Duration::seconds(secs);
+    (time::OffsetDateTime::now_utc() + d)
+      .format(&Rfc3339)
+      .expect("format failed")
+  }
+
+  #[cfg(feature = "chrono")]
+  fn rfc3339_from_now_plus_secs(secs: i64) -> String {
+    let d = chrono::Duration::seconds(secs);
+    (chrono::Utc::now() + d).to_rfc3339()
+  }
+
+  // Helper: date string (YYYY-MM-DD) for now + N seconds.
+  fn date_from_rfc3339(s: &str) -> String {
+    iso8601::datetime(s).expect("iso8601 parse failed").date.to_string()
+  }
 
   #[test]
   fn duplicate_top_level_claim_test() -> Result<()> {
     //create a key
 
     let key = PasetoSymmetricKey::<V2, Local>::from(Key::from(*b"wubbalubbadubdubwubbalubbadubdub"));
-    let tomorrow = (time::OffsetDateTime::now_utc() + time::Duration::days(1)).format(&Rfc3339)?;
+    let tomorrow = rfc3339_from_now_plus_secs(86400);
 
     //let tomorrow = (Utc::now() + Duration::days(1)).to_rfc3339();
 
@@ -987,7 +1050,7 @@ mod paseto_builder {
     //create a key
 
     let key = PasetoSymmetricKey::<V2, Local>::from(Key::from(*b"wubbalubbadubdubwubbalubbadubdub"));
-    let tomorrow = (time::OffsetDateTime::now_utc() + time::Duration::days(1)).format(&Rfc3339)?;
+    let tomorrow = rfc3339_from_now_plus_secs(86400);
 
     //create a builder, with default IssuedAtClaim
     let token = PasetoBuilder::<V2, Local>::default()
@@ -1008,7 +1071,7 @@ mod paseto_builder {
     //create a key
 
     let key = PasetoSymmetricKey::<V2, Local>::from(Key::from(*b"wubbalubbadubdubwubbalubbadubdub"));
-    let tomorrow = (time::OffsetDateTime::now_utc() + time::Duration::days(1)).format(&Rfc3339)?;
+    let tomorrow = rfc3339_from_now_plus_secs(86400);
 
     //create a builder, with default IssuedAtClaim
     let token = PasetoBuilder::<V2, Local>::default()
@@ -1025,9 +1088,7 @@ mod paseto_builder {
           .ok_or_else(|| PasetoClaimError::Unexpected(key.to_string()))?;
 
         let datetime = iso8601::datetime(val).unwrap();
-        let tomorrow = (time::OffsetDateTime::now_utc() + time::Duration::days(1))
-          .date()
-          .to_string();
+        let tomorrow = date_from_rfc3339(&rfc3339_from_now_plus_secs(86400));
 
         //the claimm should exist
         assert_eq!(key, "iat");
@@ -1060,7 +1121,7 @@ mod paseto_builder {
 
         let datetime = iso8601::datetime(val).unwrap();
 
-        let now = time::OffsetDateTime::now_utc().date().to_string();
+        let now = date_from_rfc3339(&rfc3339_from_now_plus_secs(0));
         //the claimm should exist
         assert_eq!(key, "iat");
         //date should be today
@@ -1079,7 +1140,7 @@ mod paseto_builder {
 
     let key = PasetoSymmetricKey::<V2, Local>::from(Key::from(*b"wubbalubbadubdubwubbalubbadubdub"));
     //let in_4_days = (Utc::now() + Duration::days(4)).to_rfc3339();
-    let in_4_days = (time::OffsetDateTime::now_utc() + time::Duration::days(4)).format(&Rfc3339)?;
+    let in_4_days = rfc3339_from_now_plus_secs(4 * 86400);
 
     //create a builder, with default IssuedAtClaim
     let token = PasetoBuilder::<V2, Local>::default()
@@ -1097,10 +1158,7 @@ mod paseto_builder {
 
         let datetime = iso8601::datetime(val).unwrap();
 
-        let in_4_days = (time::OffsetDateTime::now_utc() + time::Duration::days(4))
-          .date()
-          .to_string();
-        //let in_4_days = Utc::now() + Duration::days(4);
+        let in_4_days = date_from_rfc3339(&rfc3339_from_now_plus_secs(4 * 86400));
         //the claimm should exist
         assert_eq!(key, "exp");
         //date should be tomorrow
@@ -1131,9 +1189,7 @@ mod paseto_builder {
           .ok_or_else(|| PasetoClaimError::Unexpected(key.to_string()))?;
 
         let datetime = iso8601::datetime(val).unwrap();
-        let expires = (time::OffsetDateTime::now_utc() + time::Duration::hours(1))
-          .date()
-          .to_string();
+        let expires = date_from_rfc3339(&rfc3339_from_now_plus_secs(3600));
 
         //let tomorrow = Utc::now() + Duration::hours(1);
         //the claimm should exist

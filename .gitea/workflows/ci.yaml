@@ -1,0 +1,92 @@
+name: Pipeline
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+env:
+  APP_NAME: rusty_paseto
+  CARGO_TERM_COLOR: always
+  REGISTRY: git.facorazza.com
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Load CI tools from cache
+        continue-on-error: true
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            ~/.tools
+          key: ci-tools
+
+      - name: Add CI tools to PATH
+        run: |
+          echo PATH="$HOME/.tools/bin:$PATH" >> $GITEA_ENV
+
+      - name: Restore cache
+        continue-on-error: true
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            ~/.cargo
+            ~/.rustup
+            target
+          key: ${{ gitea.repository }}@${{ gitea.ref_name }}
+          restore-keys: |
+            ${{ gitea.repository }}
+
+      - name: Setup Rust
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
+          echo PATH="$HOME/.cargo/bin:$PATH" >> $GITEA_ENV
+
+      - name: Configure Cargo registry
+        run: |
+          mkdir -p ~/.cargo
+          cat > ~/.cargo/config.toml << 'EOF'
+          [registries.gitea]
+          index = "sparse+https://git.facorazza.com/api/packages/facorazza/cargo/"
+          credential-provider = ["cargo:token"]
+          EOF
+
+          cat > ~/.cargo/credentials.toml << EOF
+          [registries.gitea]
+          token = "Bearer ${{ secrets.RUNNER_TOKEN }}"
+          EOF
+
+      - name: Extract version from tag
+        id: get_version
+        run: |
+          RAW_TAG="${{ gitea.ref_name }}"
+          VERSION="${RAW_TAG#v}"
+          echo "VERSION=$VERSION" >> $GITEA_OUTPUT
+          echo "Publishing version: $VERSION"
+
+      - name: Update Cargo.toml version
+        run: |
+          VERSION=${{ steps.get_version.outputs.VERSION }}
+          sed -i "s/^version = .*/version = \"$VERSION\"/" Cargo.toml
+          cat Cargo.toml | grep "^version"
+
+      - name: Publish to Gitea registry
+        run: |
+          cargo publish --registry gitea --allow-dirty --no-verify
+
+      - name: Store cache
+        if: always()
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            ~/.cargo
+            ~/.rustup
+            target
+          key: ${{ gitea.repository }}@${{ gitea.ref_name }}

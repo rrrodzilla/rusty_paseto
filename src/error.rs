@@ -136,8 +136,14 @@ pub enum Error {
 
     // ==================== Time Format Errors ====================
     /// Error formatting time values
+    #[cfg(feature = "time")]
     #[error("time format error: {0}")]
     TimeFormat(#[from] time::error::Format),
+
+    /// Error parsing time values
+    #[cfg(feature = "chrono")]
+    #[error("chrono parse error: {0}")]
+    ChronoParse(#[from] chrono::ParseError),
 }
 
 /// A specialized Result type for rusty_paseto operations.

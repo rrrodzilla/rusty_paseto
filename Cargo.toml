@@ -95,11 +95,6 @@ expect_used = "deny"
 anyhow = "1.0"
 serde_json = { version = "1.0" }
 primes = "0.4"
-actix-web = "4"
-actix-identity = "0.4"
-tokio = "1.17"
-actix-utils = "3.0"
-uuid = { version = "1.8", features = ["v4"] }
 proptest = "1.4"
 erased-serde = { version = "0.4" }
 

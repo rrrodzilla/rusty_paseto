@@ -1,23 +1,36 @@
-# An example using a paseto token with the actix_identity crate
+# Framework-neutral PASETO session-cookie example
 
-This example creates a simple actix_web server using the default [CookieIdentityPolicy](https://docs.rs/actix-identity/latest/actix_identity/struct.CookieIdentityPolicy.html) as well as a custom [PasetoCookieIdentityPolicy](https://github.com/rrrodzilla/rusty_paseto/blob/main/examples/actix_identity/paseto.rs).  The [CookieIdentityPolicy](https://docs.rs/actix-identity/latest/actix_identity/struct.CookieIdentityPolicy.html) is used for a an identity cookie.  The latter policy is used to validate a PASETO authentication token that is stored in a separate cookie when the user logs in by making a POST request to the login endpoint.
+This example shows the security-sensitive portion of using a PASETO V4 local
+token as an authenticated session cookie. It deliberately avoids a web
+framework so the example does not impose a server dependency graph on the
+library.
 
-> **Warning**: Both cookies are created with `.secure(false)` so the example works when run over HTTP. In a real application you should enable the `secure` flag and provide proper error handling instead of panicking when authentication fails.
+Run it with:
 
-When a user makes a request to a secure endpoint `/app/secure`, the [PasetoCookieIdentityPolicy](https://github.com/rrrodzilla/rusty_paseto/blob/main/examples/actix_identity/paseto.rs) validates the PASETO token on each request using the [CookieIdentityPolicy's](https://docs.rs/actix-identity/latest/actix_identity/struct.CookieIdentityPolicy.html) identity as the implicit assertion.  This means if a user comes from a different device or changes their cookies after logging in, the implicit assertion will fail and the PASETO won't be validated.  This example panics when this happens, but in practice you would map the error to a Not Authorized HTTP error.
-
-## Usage
-
-First run `cargo run --example actix_identity" to build and start the web server.
-
-Then run the following command from a separate shell (I'm using [Fish](https://fishshell.com/)) to execute a series of requests that do the following:
-```fish
-curl http://localhost:8080;curl -X POST http://localhost:8080/login -c ~/cookies; curl http://localhost:8080/app/secure -b ~/cookies; curl -X POST http://localhost:8080/logout -b ~/cookies
+```console
+cargo run --example actix_identity
 ```
 
-1) Visits the site as an anonymous user and then,
-2) Login the user, creating a paseto token and storing it in a cookie using the identity as the
-   implicit assertion and then,
-3) Logout the user, forgetting the identity
+Set `PASETO_KEY` to a 32-byte hex-encoded key to use stable key material. When
+the variable is absent, the example generates an ephemeral key suitable only
+for the current demonstration process.
 
+The example demonstrates how to:
 
+1. Issue a short-lived V4 local token after authentication.
+2. Bind it to opaque, server-side session context using an implicit assertion.
+3. Transport it in a `Secure`, `HttpOnly`, `SameSite=Lax` cookie.
+4. Verify expiration, subject, and the implicit assertion on each protected
+   request.
+5. Reject a copied token when it is presented with a different session
+   binding.
+
+In a real service, the login handler calls `issue_session_token`, stores the
+opaque binding in server-side session state, and writes the returned token to
+the cookie. Authentication middleware reads the cookie, retrieves the binding,
+and calls `verify_session_token` before forwarding the request.
+
+Production deployments should also use HTTPS, source keys from a secret
+manager, rotate keys, enforce CSRF protection, and maintain a revocation or
+session-generation mechanism for logout and emergency invalidation. PASETO is
+a bearer-token format and does not prevent replay by itself.

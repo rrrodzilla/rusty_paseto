@@ -1,200 +1,124 @@
-//! # PASETO + actix-identity Example
+//! # Framework-neutral PASETO session-cookie example
 //!
-//! Demonstrates issuing a PASETO V4 local token at login and validating it on
-//! every protected request via a custom `actix-identity` policy.
+//! Demonstrates the security-sensitive parts of using a V4 local PASETO as a
+//! session cookie without coupling the crate to a web framework. Adapt
+//! `issue_session_token` in your login handler and `verify_session_token` in
+//! authentication middleware.
 //!
-//! ## ⚠️ Production hardening notes
-//!
-//! This example is intentionally short and illustrative. Before adapting it to a
-//! production deployment, address each of the following:
-//!
-//! - **Never hardcode keys.** This example loads `PASETO_KEY` and `COOKIE_KEY`
-//!   from environment variables and falls back to a fresh random key per
-//!   process start when they are absent. A real deployment must persist these
-//!   keys in a secret manager (e.g., AWS Secrets Manager, Vault) and rotate
-//!   them on schedule.
-//! - **Run over HTTPS.** This example sets `secure(false)` for local
-//!   development; production cookies must use `secure(true)`.
-//! - **`actix-identity` 0.4** (used here) is several majors behind current.
-//!   New code should use the current `actix-identity` (and the modern
-//!   `IdentityMiddleware` API) — the patterns shown here are still relevant
-//!   but the call surface has changed.
-//! - **The implicit assertion bound here is the random per-session UUID.**
-//!   That binds the token to the session cookie but does not protect against
-//!   session-fixation; pair with proper CSRF protection in real apps.
-//!
-//! ## Running the example
-//!
-//! ```bash
-//! # optional: provide your own keys (otherwise random keys are generated)
-//! export PASETO_KEY="...32 bytes..."
-//! export COOKIE_KEY="...32 bytes..."
-//!
-//! cargo run --example actix_identity
-//!
-//! # then in another shell:
-//! curl http://localhost:8080
-//! curl -X POST http://localhost:8080/login -c /tmp/cookies
-//! curl http://localhost:8080/app/secure -b /tmp/cookies
-//! curl -X POST http://localhost:8080/logout -b /tmp/cookies
-//! ```
+//! The implicit assertion binds the token to server-side session context that
+//! is not stored in the token. A copied token will fail validation when the
+//! corresponding session binding is unavailable or different.
 
 use rusty_paseto::prelude::*;
-use actix_web::http::StatusCode;
-use actix_web::cookie::{Cookie, SameSite};
-use actix_web::web;
-use actix_web::{post, get, HttpResponse, HttpServer, App, services};
-use actix_identity::{Identity, CookieIdentityPolicy, IdentityService};
-use ring::rand::{SecureRandom, SystemRandom};
-use time::OffsetDateTime;
-use uuid::Uuid;
+use rusty_paseto::{Error, Result};
 
-mod paseto;
-use paseto::PasetoCookieIdentityPolicy;
+const COOKIE_NAME: &str = "auth-token";
 
-#[get("/secure")]
-async fn secure(id: Identity) -> String {
-    // access request identity
-    if let Some(id) = id.identity() {
-        format!("Logged in Secure User: {}\n", id)
-    } else {
-        "Welcome Anonymous!".to_owned()
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct SessionBinding(String);
+
+impl SessionBinding {
+  fn new(value: impl Into<String>) -> Self {
+    Self(value.into())
+  }
+}
+
+impl AsRef<str> for SessionBinding {
+  fn as_ref(&self) -> &str {
+    &self.0
+  }
+}
+
+fn issue_session_token(
+  key: &PasetoSymmetricKey<V4, Local>,
+  session_binding: &SessionBinding,
+) -> Result<String> {
+  PasetoBuilder::<V4, Local>::default()
+    .subject("user-123")
+    .set_implicit_assertion(ImplicitAssertion::from(session_binding.as_ref()))
+    .build(key)
+    .map_err(Error::from)
+}
+
+fn verify_session_token(
+  token: &str,
+  key: &PasetoSymmetricKey<V4, Local>,
+  session_binding: &SessionBinding,
+) -> Result<serde_json::Value> {
+  PasetoParser::<V4, Local>::default()
+    .expect_subject("user-123")
+    .set_implicit_assertion(ImplicitAssertion::from(session_binding.as_ref()))
+    .parse(token, key)
+    .map_err(Error::from)
+}
+
+fn set_cookie_header(token: &str) -> String {
+  format!("{COOKIE_NAME}={token}; Path=/; Secure; HttpOnly; SameSite=Lax")
+}
+
+fn load_paseto_key() -> Result<PasetoSymmetricKey<V4, Local>> {
+  let key = match std::env::var("PASETO_KEY") {
+    Ok(hex_key) => Key::<32>::try_from(hex_key.as_str()).map_err(Error::from)?,
+    Err(std::env::VarError::NotPresent) => {
+      eprintln!(
+        "PASETO_KEY is unset; generating an ephemeral demonstration key. \
+         Production services must load a stable key from a secret manager."
+      );
+      Key::<32>::try_new_random().map_err(Error::from)?
     }
+    Err(std::env::VarError::NotUnicode(_)) => return Err(Error::InvalidKey),
+  };
+
+  Ok(PasetoSymmetricKey::<V4, Local>::from(key))
 }
 
-#[get("/")]
-async fn index(id: Identity) -> String {
-    // access request identity
-    if let Some(id) = id.identity() {
-        format!("Welcome! {}", id)
-    } else {
-        println!("Found new anonymous user\n");
-        "Welcome Anonymous!\n".to_owned()
-    }
+fn main() -> Result<()> {
+  let key = load_paseto_key()?;
+
+  // In a real application, generate this opaque value during login and keep
+  // it in server-side session state. Do not derive it from attacker-controlled
+  // cookie data.
+  let session_binding = SessionBinding::new("opaque-server-side-session-binding");
+  let token = issue_session_token(&key, &session_binding)?;
+  let cookie = set_cookie_header(&token);
+
+  // Authentication middleware extracts the cookie value and looks up the
+  // server-side session binding before verification.
+  let claims = verify_session_token(&token, &key, &session_binding)?;
+
+  println!("Set-Cookie: {cookie}");
+  println!("Verified subject: {}", claims["sub"]);
+  Ok(())
 }
 
-#[post("/login")]
-async fn login(id: Identity, data: web::Data<AppData>) -> HttpResponse {
-    // here you might do whatever checks are needed to authenticate user
+#[cfg(test)]
+mod tests {
+  use super::*;
 
-    // create a new identity and wrap it in an auth cookie
-    let authenticated_user_id = Uuid::new_v4().to_string();
-    println!("Logged in user {}\n", authenticated_user_id);
+  fn test_key() -> PasetoSymmetricKey<V4, Local> {
+    PasetoSymmetricKey::from(Key::from(*b"wubbalubbadubdubwubbalubbadubdub"))
+  }
 
-    // bind the token to this session via an implicit assertion (V3/V4 only)
-    let assertion = ImplicitAssertion::from(authenticated_user_id.as_str());
+  #[test]
+  fn issued_token_verifies_only_with_original_session_binding() -> Result<()> {
+    let key = test_key();
+    let original = SessionBinding::new("original-session");
+    let different = SessionBinding::new("different-session");
+    let token = issue_session_token(&key, &original)?;
 
-    let key = PasetoSymmetricKey::<V4, Local>::from(Key::from(&data.paseto_key));
+    let claims = verify_session_token(&token, &key, &original)?;
+    assert_eq!(claims["sub"], "user-123");
+    assert!(verify_session_token(&token, &key, &different).is_err());
+    Ok(())
+  }
 
-    let token = match PasetoBuilder::<V4, Local>::default()
-        .set_implicit_assertion(assertion)
-        .build(&key)
-    {
-        Ok(t) => t,
-        Err(e) => {
-            eprintln!("paseto build failed: {e}");
-            return HttpResponse::InternalServerError().finish();
-        }
-    };
+  #[test]
+  fn cookie_header_enables_browser_security_attributes() {
+    let header = set_cookie_header("token");
 
-    // remember new authenticated identity
-    id.remember(authenticated_user_id.to_string());
-
-    // return the response creating a new cookie to hold the token
-    HttpResponse::build(StatusCode::OK)
-        .cookie(
-            Cookie::build("auth-token", token)
-                .path("/")
-                .expires(OffsetDateTime::now_utc())
-                // Using `secure(false)` so the example works over HTTP.
-                // In production use `secure(true)`.
-                .secure(false)
-                .http_only(true)
-                .same_site(SameSite::Lax)
-                .finish(),
-        )
-        .finish()
-}
-
-#[post("/logout")]
-async fn logout(id: Identity) -> HttpResponse {
-    match id.identity() {
-        Some(user) => {
-            println!("Logging out user {user}\n");
-            let body = format!("Goodbye {user}!\n");
-            id.forget();
-            HttpResponse::Ok().body(body)
-        }
-        None => HttpResponse::Unauthorized().finish(),
-    }
-}
-
-// shared state — the 32-byte PASETO V4 local key
-pub(crate) struct AppData {
-    pub(crate) paseto_key: [u8; 32],
-}
-
-/// Loads a 32-byte key from `var` (hex-encoded), or generates a fresh random
-/// key per process start. Panicking only at startup is acceptable for this
-/// example; production code should fail-fast at config load with a clear
-/// operator-facing error.
-fn load_or_generate_key(var: &str) -> [u8; 32] {
-    if let Ok(hex_value) = std::env::var(var) {
-        match hex::decode(&hex_value) {
-            Ok(bytes) if bytes.len() == 32 => {
-                let mut key = [0u8; 32];
-                key.copy_from_slice(&bytes);
-                println!("Loaded {var} from environment");
-                return key;
-            }
-            Ok(_) => eprintln!("{var} present but not 32 bytes; generating a fresh random key"),
-            Err(e) => eprintln!("{var} present but not valid hex ({e}); generating a fresh random key"),
-        }
-    }
-
-    let rng = SystemRandom::new();
-    let mut key = [0u8; 32];
-    rng.fill(&mut key).expect("system RNG failure");
-    println!(
-        "Generated a fresh random {var} for this process — tokens issued now will not validate \
-         on the next start. Set {var} (32 bytes hex) for stable keys.",
-    );
-    key
-}
-
-#[actix_web::main]
-async fn main() -> std::io::Result<()> {
-    // Load keys once at startup so every worker shares them.
-    let paseto_key = load_or_generate_key("PASETO_KEY");
-    let cookie_key = load_or_generate_key("COOKIE_KEY");
-
-    HttpServer::new(move || {
-        // create cookie identity backend (inside closure, since policy is not Clone)
-        let policy = IdentityService::new(
-            CookieIdentityPolicy::new(&cookie_key)
-                .name("auth-cookie")
-                // `secure(false)` is for local HTTP development; in production
-                // use HTTPS and `secure(true)`.
-                .secure(false),
-        );
-
-        // create a paseto cookie policy — using middleware would be cleaner in
-        // a real app; this shows the policy approach for clarity
-        let paseto_policy = PasetoCookieIdentityPolicy {};
-
-        // paths that are not verified with the paseto token
-        let unauthenticated_scope = web::scope("").service(services![index, login, logout]);
-        // paths that should verify that a token exists and is valid
-        let authenticated_scope = web::scope("/app").wrap(IdentityService::new(paseto_policy)).service(services![secure]);
-
-        // create and run the server
-        App::new()
-            .app_data(web::Data::new(AppData { paseto_key }))
-            .wrap(policy)
-            .service(authenticated_scope)
-            .service(unauthenticated_scope)
-    })
-    .bind(("127.0.0.1", 8080))?
-    .run()
-    .await
+    assert!(header.starts_with("auth-token=token;"));
+    assert!(header.contains("Secure"));
+    assert!(header.contains("HttpOnly"));
+    assert!(header.contains("SameSite=Lax"));
+  }
 }

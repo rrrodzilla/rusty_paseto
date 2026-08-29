@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Changed
+
+- Replace the obsolete Actix Identity example with a framework-neutral
+  session-cookie example and remove its vulnerable web-server dependency
+  graph from development and CI builds.
+
 ## [0.10.1] - 2026-08-29
 
 ### Security

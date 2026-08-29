@@ -140,6 +140,15 @@ impl<'a, Version, Purpose> PasetoParser<'a, Version, Purpose> {
     self.parser.validate_claim(value, validation_closure);
     self
   }
+
+  fn validate_optional_claim<T: PasetoClaim + 'a + serde::Serialize>(
+    &mut self,
+    value: T,
+    validation_closure: &'static ValidatorFn,
+  ) -> &mut Self {
+    self.parser.validate_optional_claim(value, validation_closure);
+    self
+  }
   /// Takes a [`PasetoClaim`] to ensure existence of the claim and it's value during
   /// parsing and after decryption or signature verification.
   ///
@@ -213,12 +222,14 @@ impl<'a, Version, Purpose> PasetoParser<'a, Version, Purpose> {
   /// ```
   pub fn set_no_expiration_danger_acknowledged(&mut self) -> &mut Self {
     // Overwrite the strict exp validator (installed by `default()`) with a
-    // permissive one that accepts absent/empty exp values but still
-    // validates the expiration time when a value is present.
-    self.parser.validate_claim(ExpirationClaim::default(), &|_, value| {
-      let val = value.as_str().unwrap_or_default();
+    // permissive one that accepts an absent exp claim but still validates
+    // the type, format, and expiration time when the claim is present.
+    self.parser.validate_optional_claim(ExpirationClaim::default(), &|key, value| {
+      let val = value
+        .as_str()
+        .ok_or_else(|| PasetoClaimError::Unexpected(key.to_string()))?;
       if val.is_empty() {
-        return Ok(());
+        return Err(PasetoClaimError::RFC3339Date(val.to_string()));
       }
       let datetime = time::OffsetDateTime::parse(val, &Rfc3339)
         .map_err(|_| PasetoClaimError::RFC3339Date(val.to_string()))?;
@@ -358,13 +369,10 @@ impl<'a, Version, Purpose> Default for PasetoParser<'a, Version, Purpose> {
         Ok(())
       }
     })
-    .validate_claim(NotBeforeClaim::default(), &|_, value| {
-      //let's get the expiration claim value
-      let val = value.as_str().unwrap_or_default();
-      //if there is no value here, then the user didn't provide the claim so we just move on
-      if val.is_empty() {
-        return Ok(());
-      }
+    .validate_optional_claim(NotBeforeClaim::default(), &|key, value| {
+      let val = value
+        .as_str()
+        .ok_or_else(|| PasetoClaimError::Unexpected(key.to_string()))?;
       //otherwise let's continue with the validation
       //turn the value into a datetime
       let not_before_time =
@@ -1123,6 +1131,7 @@ mod paseto_parser_unit_tests {
 
   use crate::prelude::*;
   use anyhow::Result;
+  use serde_json::json;
   #[cfg(feature = "v2_local")]
   use time::format_description::well_known::Rfc3339;
 
@@ -1206,6 +1215,52 @@ mod paseto_parser_unit_tests {
     );
 
     //But it must accept the same token when the caller opts in.
+    PasetoParser::<V2, Local>::default()
+      .set_no_expiration_danger_acknowledged()
+      .parse(&token, &key)?;
+
+    Ok(())
+  }
+
+  fn encrypt_claims(claims: &serde_json::Value, key: &PasetoSymmetricKey<V2, Local>) -> Result<String> {
+    let payload = claims.to_string();
+    let nonce = Key::<24>::try_new_random()?;
+    let nonce = PasetoNonce::<V2, Local>::from(&nonce);
+    Ok(Paseto::<V2, Local>::builder()
+      .set_payload(Payload::from(payload.as_str()))
+      .try_encrypt(key, &nonce)?)
+  }
+
+  #[test]
+  fn parser_rejects_present_malformed_not_before_claims() -> Result<()> {
+    let key = PasetoSymmetricKey::<V2, Local>::from(Key::from(*b"wubbalubbadubdubwubbalubbadubdub"));
+    let expiration = (time::OffsetDateTime::now_utc() + time::Duration::hours(1)).format(&Rfc3339)?;
+
+    for invalid_nbf in [serde_json::Value::Null, json!(123), json!(false), json!("")] {
+      let token = encrypt_claims(&json!({ "exp": expiration, "nbf": invalid_nbf }), &key)?;
+      let result = PasetoParser::<V2, Local>::default().parse(&token, &key);
+      assert!(result.is_err(), "present malformed nbf claim must be rejected");
+    }
+
+    let token = encrypt_claims(&json!({ "exp": expiration }), &key)?;
+    PasetoParser::<V2, Local>::default().parse(&token, &key)?;
+
+    Ok(())
+  }
+
+  #[test]
+  fn non_expiring_parser_rejects_present_malformed_expiration_claims() -> Result<()> {
+    let key = PasetoSymmetricKey::<V2, Local>::from(Key::from(*b"wubbalubbadubdubwubbalubbadubdub"));
+
+    for invalid_exp in [serde_json::Value::Null, json!(123), json!(false), json!(""), json!("not-a-date")] {
+      let token = encrypt_claims(&json!({ "exp": invalid_exp }), &key)?;
+      let result = PasetoParser::<V2, Local>::default()
+        .set_no_expiration_danger_acknowledged()
+        .parse(&token, &key);
+      assert!(result.is_err(), "present malformed exp claim must be rejected");
+    }
+
+    let token = encrypt_claims(&json!({}), &key)?;
     PasetoParser::<V2, Local>::default()
       .set_no_expiration_danger_acknowledged()
       .parse(&token, &key)?;

@@ -8,7 +8,7 @@ pub struct AuthenticationKeySeparator(&'static str);
 
 impl Display for AuthenticationKeySeparator {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", &self.0)
+        write!(f, "{}", self.0)
     }
 }
 

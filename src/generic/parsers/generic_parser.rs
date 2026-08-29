@@ -3,7 +3,7 @@ use crate::generic::*;
 
 use core::marker::PhantomData;
 use serde_json::Value;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
  ///The `GenericParser` is created at compile time by specifying a PASETO version and purpose and
 ///providing a key of the same version and purpose. This structure allows parsing an untrusted token string
 ///and either decrypting (Local) or verifying the signtature of (Public) PASETO tokens and then
@@ -59,6 +59,7 @@ pub struct GenericParser<'a, 'b, Version, Purpose> {
   purpose: PhantomData<Purpose>,
   claims: HashMap<String, Box<dyn erased_serde::Serialize + 'b>>,
   claim_validators: ValidatorMap,
+  optional_claim_validators: HashSet<String>,
   footer: Footer<'a>,
   implicit_assertion: ImplicitAssertion<'a>,
 }
@@ -71,6 +72,7 @@ impl<'a, 'b, Version, Purpose> GenericParser<'a, 'b, Version, Purpose> {
       purpose: PhantomData::<Purpose>,
       claims: HashMap::new(),
       claim_validators: HashMap::new(),
+      optional_claim_validators: HashSet::new(),
       footer: Default::default(),
       implicit_assertion: Default::default(),
     }
@@ -93,6 +95,7 @@ impl<'a, 'b, Version, Purpose> GenericParser<'a, 'b, Version, Purpose> {
     validation_closure: Option<&'static ValidatorFn>,
   ) -> &mut Self {
     let key = value.get_key().to_string();
+    self.optional_claim_validators.remove(&key);
     //first store the claim
     self.claims.insert(key.clone(), Box::new(value));
 
@@ -100,6 +103,17 @@ impl<'a, 'b, Version, Purpose> GenericParser<'a, 'b, Version, Purpose> {
     if let Some(closure) = validation_closure {
       self.claim_validators.insert(key, Box::new(closure));
     }
+    self
+  }
+
+  pub(crate) fn validate_optional_claim<T: PasetoClaim + 'b + serde::Serialize>(
+    &mut self,
+    value: T,
+    validation_closure: &'static ValidatorFn,
+  ) -> &mut Self {
+    let key = value.get_key().to_string();
+    self.set_validation_claim(value, Some(validation_closure));
+    self.optional_claim_validators.insert(key);
     self
   }
  ///Allows user to pass a [`PasetoClaim`] along with a [custom function](ValidatorFn) to enable
@@ -154,9 +168,11 @@ impl<'a, 'b, Version, Purpose> GenericParser<'a, 'b, Version, Purpose> {
       //now let's run any custom validation if there is any
       if let Some(box_validator) = self.claim_validators.get(key) {
         let validator = box_validator.as_ref();
-        // Use .get() for safe JSON access - returns None for missing keys
-        let json_value = json.get(key).unwrap_or(&Value::Null);
-        validator(key, json_value)?;
+        match json.get(key) {
+          Some(json_value) => validator(key, json_value)?,
+          None if self.optional_claim_validators.contains(key) => continue,
+          None => validator(key, &Value::Null)?,
+        }
       } else {
         //otherwise, simply verify the claim exists and matches the value passed in
         let json_value = json.get(key).unwrap_or(&Value::Null);
@@ -169,11 +185,11 @@ impl<'a, 'b, Version, Purpose> GenericParser<'a, 'b, Version, Purpose> {
           return Err(
             PasetoClaimError::Invalid(
               key.to_string(),
-              json_value
+              raw_value
                 .as_str()
                 .ok_or_else(|| PasetoClaimError::Unexpected(key.to_string()))?
                 .into(),
-              raw_value
+              json_value
                 .as_str()
                 .ok_or_else(|| PasetoClaimError::Unexpected(key.to_string()))?
                 .into(),
@@ -929,7 +945,7 @@ mod parsers {
     );
 
     let expected_error_kind =
-      "The claim 'aud' failed validation.  Expected 'customers' but received 'not the same customers'";
+      "The claim 'aud' failed validation.  Expected 'not the same customers' but received 'customers'";
     assert_eq!(expected_error_kind, actual_error_kind);
 
     Ok(())

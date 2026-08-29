@@ -1,6 +1,6 @@
 [package]
 name = "rusty_paseto"
-version = "0.10.0"
+version = "0.10.1"
 edition = "2021"
 # MSRV: 1.85 — required by transitive dependency time-core 0.1.8 (edition2024).
 # Earlier toolchains can build older versions of this crate, but 0.10+ tracks

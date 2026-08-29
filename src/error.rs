@@ -119,6 +119,7 @@ pub enum Error {
 
     // ==================== Serialization Errors ====================
     /// JSON serialization or deserialization error
+    #[cfg(feature = "generic")]
     #[error("JSON error: {0}")]
     Json(#[from] serde_json::Error),
 

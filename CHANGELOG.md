@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.10.1] - 2026-08-29
+
+### Security
+
+- Reject present `nbf` claims that are null, non-string, empty, or malformed
+  instead of treating them as if the optional claim were absent.
+- When non-expiring tokens are explicitly enabled, accept only an absent `exp`
+  claim; reject present null, non-string, empty, malformed, or expired values.
+
+### Fixed
+
+- Correct claim-mismatch errors so they report the verifier's configured value
+  as expected and the token's claim value as received
+  ([#92](https://github.com/rrrodzilla/rusty_paseto/issues/92)).
+- Restore core-only feature builds by compiling the JSON error variant only
+  when the `generic` feature enables `serde_json`.
+
 ## [0.10.0] - 2026-05-10
 
 This release is a focused security pass driven by a full internal audit of the
